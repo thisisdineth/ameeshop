@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Amee-Tea | Finished Products</title>
+    <meta name="description" content="Amee-Tea - Finished Products Management and Stock Overview" />
+    <link rel="icon" type="image/png" href="tealeaf.png" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="tbs.css"> 
+</head>
+<body>
+    <div id="app" class="app-container">
+        <nav id="top-navbar">
+            <div class="container nav-container">
+                <div class="nav-brand">
+                    <a href="index.html" class="nav-logo-link"><i class="fas fa-leaf nav-logo-icon"></i> Amee-Tea</a>
+                </div>
+                <div id="mobile-menu-button-container">
+                    <button id="mobile-menu-button"><i class="fas fa-bars nav-mobile-icon"></i></button>
+                </div>
+                <div id="desktop-nav-links">
+                    <a href="index.html" class="navbar-item"><i class="fas fa-tachometer-alt fa-fw"></i> <span>Dashboard</span></a>
+                    <a href="raw_tea.html" class="navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Tea</span></a>
+                    <a href="packing_material.html" class="navbar-item"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
+                    <a href="production.html" class="navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
+                    <a href="finished_products.html" class="navbar-item active"><i class="fas fa-mug-hot fa-fw"></i> <span>Finished Products</span></a>
+                    <a href="sales.html" class="navbar-item"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
+                    <a href="users.html" class="navbar-item"><i class="fas fa-users fa-fw"></i> <span>Users</span></a>
+                    <a href="settings.html" class="navbar-item"><i class="fas fa-cog fa-fw"></i> <span>Settings</span></a>
+                </div>
+            </div>
+            <div id="mobile-menu" class="hidden">
+                <a href="index.html" class="mobile-navbar-item"><i class="fas fa-tachometer-alt fa-fw"></i> <span>Dashboard</span></a>
+                <a href="raw_tea.html" class="mobile-navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Tea</span></a>
+                <a href="packing_material.html" class="mobile-navbar-item"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
+                <a href="production.html" class="mobile-navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
+                <a href="finished_products.html" class="mobile-navbar-item active"><i class="fas fa-mug-hot fa-fw"></i> <span>Finished Products</span></a>
+                <a href="sales.html" class="mobile-navbar-item"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
+                <a href="users.html" class="mobile-navbar-item"><i class="fas fa-users fa-fw"></i> <span>Users</span></a>
+                <a href="settings.html" class="mobile-navbar-item"><i class="fas fa-cog fa-fw"></i> <span>Settings</span></a>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="container">
+                <h1 class="page-title"><i class="fas fa-mug-hot fa-fw"></i> Finished Products Management</h1>
+
+                <div class="table-management-controls section-card">
+                    <button id="addNewProductBtn" class="btn btn-primary">
+                        <i class="fas fa-plus fa-fw"></i> Add New Finished Product
+                    </button>
+                    <div id="productFormModal" class="modal">
+                        <div class="modal-content">
+                            <span class="modal-close-button">&times;</span>
+                            <h2 class="modal-title" id="productFormTitle">Add New Finished Product</h2>
+                            
+                            <div class="lookup-section">
+                                <h4 class="lookup-title">Optional: Lookup from Production Log to Pre-fill</h4>
+                                <div class="form-grid grid-cols-3">
+                                    <div class="form-group">
+                                        <label for="lookupProductCode" class="form-label form-label-sm">Code</label>
+                                        <input type="text" id="lookupProductCode" class="form-input form-input-sm" placeholder="Search Code">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="lookupProductName" class="form-label form-label-sm">Name</label>
+                                        <input type="text" id="lookupProductName" class="form-input form-input-sm" placeholder="Search Name">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="lookupBatchNumber" class="form-label form-label-sm">Batch No.</label>
+                                        <input type="text" id="lookupBatchNumber" class="form-input form-input-sm" placeholder="Search Batch">
+                                    </div>
+                                </div>
+                                <ul id="lookupSuggestionsList" class="suggestions-list suggestions-list-sm"></ul>
+                            </div>
+                            <hr class="form-divider">
+
+                            <form id="productForm">
+                                <input type="hidden" id="productEditId">
+                                <div class="form-group">
+                                    <label for="productCode" class="form-label">Item Code (Unique):</label>
+                                    <input type="text" id="productCode" class="form-input" placeholder="e.g., GTB25 (Auto-filled or enter new)" required>
+                                    <p class="form-hint">Unique code for this product definition. Usually not changed after creation.</p>
+                                </div>
+                                <div class="form-group">
+                                    <label for="itemName" class="form-label">Item Name:</label>
+                                    <input type="text" id="itemName" class="form-input" placeholder="e.g., Premium Green Tea (25 Bags)" required>
+                                </div>
+                                <div class="form-grid grid-cols-2">
+                                    <div class="form-group">
+                                        <label for="standardWeight" class="form-label">Standard Weight:</label>
+                                        <input type="number" step="any" id="standardWeight" class="form-input" placeholder="e.g., 50">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="weightUnit" class="form-label">Weight Unit:</label>
+                                        <input type="text" id="weightUnit" class="form-input" placeholder="e.g., g, kg, ml">
+                                    </div>
+                                </div>
+                                <div class="form-grid grid-cols-2">
+                                    <div class="form-group">
+                                        <label for="mrp" class="form-label">MRP (Rs):</label>
+                                        <input type="number" step="0.01" id="mrp" class="form-input" placeholder="0.00">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="sellingPrice" class="form-label">Selling Price (Rs)):</label>
+                                        <input type="number" step="0.01" id="sellingPrice" class="form-input" placeholder="0.00" required>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="unitOfMeasure" class="form-label">Unit of Measure (for stock/sale):</label>
+                                    <input type="text" id="unitOfMeasure" class="form-input" placeholder="e.g., Pack, Box, Bottle" required>
+                                </div>
+                                <button type="submit" id="saveProductBtn" class="btn btn-success btn-block mt-1">
+                                    <i class="fas fa-save fa-fw"></i> Save Product Definition
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="all-items-list-container section-card">
+                    <h3 class="section-title">Defined Finished Products</h3>
+                    <div class="form-group">
+                        <label for="searchProductsInput" class="form-label">Search Products:</label>
+                        <input type="text" id="searchProductsInput" class="form-input" placeholder="Search by Code or Name...">
+                    </div>
+                    <div class="table-responsive-wrapper">
+                        <table id="finishedProductsTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="table-header">Item Code</th>
+                                    <th class="table-header">Item Name</th>
+                                    <th class="table-header text-right">Weight</th>
+                                    <th class="table-header text-right">MRP</th>
+                                    <th class="table-header text-right">Selling Price</th>
+                                    <th class="table-header text-right">Available Stock</th>
+                                    <th class="table-header text-right">Total Sold</th>
+                                    <th class="table-header text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="finishedProductsTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-database-compat.js"></script>
+    <script src="finished_products.js"></script>
+</body>
+</html>

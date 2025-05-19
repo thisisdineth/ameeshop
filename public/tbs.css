@@ -159,6 +159,75 @@ textarea.form-input { min-height: 60px; }
     border-width: 0;
 }
 
+.lookup-section {
+    background-color: #f8f9fa; /* Slightly different background */
+    padding: 0.75rem;
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 1rem;
+    border: 1px solid var(--border-color-light);
+}
+
+.lookup-title {
+    font-size: 0.9em;
+    font-weight: 600;
+    color: var(--text-color-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.form-label-sm { /* Smaller labels for lookup section */
+    display: block;
+    margin-bottom: 0.2rem;
+    font-size: 0.75rem; /* Smaller */
+    font-weight: 500;
+    color: var(--text-color-secondary);
+}
+
+.form-input-sm { /* Smaller inputs for lookup section */
+    padding: 0.4rem 0.6rem; /* Smaller padding */
+    font-size: 0.8rem; /* Smaller font */
+}
+
+.suggestions-list-sm { /* Smaller suggestions list */
+    max-height: 100px; /* Shorter list */
+    font-size: 0.8rem;
+}
+.suggestions-list-sm li {
+    padding: 0.4rem 0.6rem;
+}
+
+/* Ensure item list styles for search results are distinct if needed */
+.item-list li .item-actions .btn-sm { /* From previous packing/raw_tea css */
+    margin-left: 0.5rem;
+}
+.list-item-placeholder { /* From previous packing/raw_tea css */
+    color: var(--text-color-muted);
+    font-style: italic;
+    padding: 0.6rem 0.85rem;
+}
+.mt-1 { margin-top: 0.25rem !important; } /* Utility if not present */
+
+/* Ensure your existing .suggestions-list styles are flexible enough or add specific ones for product lookup */
+.suggestions-list {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0 0;
+    max-height: 150px; /* Default max height */
+    overflow-y: auto;
+    border: 1px solid var(--border-color-light);
+    border-radius: var(--border-radius-sm);
+    background-color: var(--content-background-color); /* Ensure it has a background */
+    position: relative; /* Can be absolute if positioned under input */
+    z-index: 1060; /* Above modal content but below modal itself if needed */
+}
+.suggestions-list li {
+    padding: 0.6rem 0.85rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color-light);
+    font-size: 0.9rem;
+}
+.suggestions-list li:last-child { border-bottom: none; }
+.suggestions-list li:hover { background-color: var(--table-row-hover-bg); }
+
 
 /* === Buttons === */
 .btn { display: inline-flex; align-items: center; justify-content: center; font-weight: 500; text-align: center; vertical-align: middle; cursor: pointer; user-select: none; background-color: transparent; border: 1px solid transparent; padding: 0.6rem 1.2rem; font-size: 0.9rem; line-height: 1.5; border-radius: var(--border-radius-md); transition: all 0.15s ease-in-out; text-decoration: none; }
