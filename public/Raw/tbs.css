@@ -1,0 +1,632 @@
+/* === CSS Custom Properties (Variables) === */
+:root {
+    --primary-font: 'Inter', sans-serif;
+    --background-color: #f8f9fa; /* Light gray page background */
+    --content-background-color: #ffffff; /* White for content cards/sections */
+    --navbar-background-color: #ffffff;
+    --navbar-border-color: #e5e7eb;
+    --navbar-text-color: #1f2937; /* Dark gray for navbar text */
+    --navbar-hover-bg: #e0f2fe; /* Light blue for hover/active */
+    --navbar-hover-text: #0c4a6e; /* Dark blue for hover/active text */
+
+    --text-color-primary: #212529; /* Dark text for content */
+    --text-color-secondary: #495057; /* Medium gray for less prominent text */
+    --text-color-muted: #6c757d; /* Light gray for muted text */
+
+    --border-color-light: #dee2e6;
+    --border-color-medium: #ced4da;
+
+    --button-primary-bg: #007bff; /* Blue */
+    --button-primary-hover-bg: #0056b3;
+    --button-success-bg: #28a745; /* Green */
+    --button-success-hover-bg: #1e7e34;
+    --button-danger-bg: #dc3545; /* Red */
+    --button-danger-hover-bg: #c82333;
+    --button-warning-bg: #ffc107; /* Yellow/Amber */
+    --button-warning-hover-bg: #e0a800;
+    --button-text-color: #ffffff;
+
+    --input-border-color: #ced4da;
+    --input-focus-border-color: #80bdff;
+    --input-focus-box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+
+    --table-header-bg: #e9ecef;
+    --table-subheader-bg: #f8f9fa;
+    --table-border-color: #dee2e6;
+    --table-row-hover-bg: #f1f3f5;
+    --table-text-header: #212529;
+    --table-text-body: #343a40;
+
+    --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+
+    --border-radius-sm: 0.2rem;
+    --border-radius-md: 0.375rem;
+    --border-radius-lg: 0.5rem;
+}
+
+/* === Basic Resets & Body === */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--primary-font);
+    line-height: 1.6;
+    color: var(--text-color-primary);
+    background-color: var(--background-color);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* === Main App Container === */
+#app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* === Top Navbar (General Styles) === */
+#top-navbar {
+    background-color: var(--navbar-background-color);
+    border-bottom: 1px solid var(--navbar-border-color);
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    width: 100%;
+}
+
+#top-navbar .container {
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+#top-navbar .flex { display: flex; }
+#top-navbar .items-center { align-items: center; }
+#top-navbar .justify-between { justify-content: space-between; }
+#top-navbar .h-16 { height: 4rem; }
+
+#top-navbar .text-xl { font-size: 1.25rem; }
+#top-navbar .font-bold { font-weight: 700; }
+#top-navbar .text-navbar-text { color: var(--navbar-text-color); }
+#top-navbar a { text-decoration: none; }
+
+/* Desktop Navbar Links Items Styling */
+.navbar-item {
+    padding: 0.75rem 1rem;
+    color: var(--navbar-text-color);
+    text-decoration: none;
+    border-radius: var(--border-radius-md);
+    display: inline-flex;
+    align-items: center;
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+    font-size: 0.9rem;
+}
+.navbar-item i {
+    margin-right: 0.5rem;
+    font-size: 1rem;
+}
+.navbar-item:hover,
+.navbar-item.active {
+    background-color: var(--navbar-hover-bg);
+    color: var(--navbar-hover-text);
+}
+
+/* Mobile Navbar Link Items Styling */
+.mobile-navbar-item {
+    display: inline-block;
+    white-space: nowrap;
+    align-items: center;
+    padding: 0.85rem 1rem;
+    color: var(--navbar-text-color);
+    text-decoration: none;
+    border-bottom: 1px solid var(--navbar-border-color);
+    font-size: 0.95rem;
+}
+.mobile-navbar-item:last-child { border-bottom: none; }
+.mobile-navbar-item i { margin-right: 0.75rem; width: 20px; text-align: center; }
+.mobile-navbar-item:hover, .mobile-navbar-item.active {
+    background-color: var(--navbar-hover-bg);
+    color: var(--navbar-hover-text);
+}
+
+
+/* === NAVBAR VISIBILITY CONTROL (REVISED) === */
+
+/* Desktop Navigation Links Container */
+#desktop-nav-links {
+    display: none; /* Hidden by default (mobile-first) */
+    align-items: center; /* From original items-center class */
+}
+/* Apply spacing if items are direct children and it's a flex container */
+#desktop-nav-links > .navbar-item:not(:last-child) {
+    margin-right: 0.5rem; /* Adjust as needed for spacing between desktop links */
+}
+
+/* Mobile Menu Button Container */
+#mobile-menu-button-container {
+    display: block; /* Shown by default on mobile */
+}
+#mobile-menu-button { /* Styling for the button itself */
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    color: var(--navbar-text-color);
+}
+#mobile-menu-button i { font-size: 1.5rem; }
+
+
+/* Mobile Menu Dropdown (the actual menu that slides/appears) */
+#mobile-menu {
+    background-color: var(--navbar-background-color);
+    border-top: 1px solid var(--navbar-border-color);
+    box-shadow: var(--shadow-md);
+    /* The 'hidden' class (toggled by JS) will handle its initial display:none state */
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+/* Utility class for JS toggling visibility */
+.hidden {
+    display: none !important;
+}
+
+/* --- Media Queries for Navbar Visibility --- */
+
+/* Medium screens and up (Desktop View - 768px and above) */
+@media (min-width: 768px) {
+    #desktop-nav-links {
+        display: flex !important; /* Show desktop links */
+    }
+
+    #mobile-menu-button-container {
+        display: none !important; /* Hide mobile menu button container */
+    }
+
+    #mobile-menu {
+        display: none !important; /* Ensure mobile dropdown is also hidden on desktop */
+    }
+}
+
+/* === Main Content Area === */
+main {
+    flex-grow: 1; /* Takes up remaining vertical space */
+    padding: 1.5rem; /* Default padding */
+}
+
+main .container { /* For main content sections */
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* === Typography === */
+h1, h2, h3, h4 {
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    color: var(--text-color-primary);
+}
+h1 { font-size: 1.8rem; margin-bottom: 1.5rem; }
+h2 { font-size: 1.5rem; margin-bottom: 1rem; }
+h3 { font-size: 1.25rem; }
+h4 { font-size: 1.1rem; }
+
+/* === General Section Styling === */
+.section-card { /* A reusable class for content blocks */
+    background-color: var(--content-background-color);
+    padding: 1.5rem;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-md);
+    margin-bottom: 1.5rem;
+}
+/* Applying this to your existing sections */
+#currentTableSection,
+.add-row-section,
+.all-tables-section {
+    background-color: var(--content-background-color);
+    padding: 1.5rem;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-md);
+    margin-bottom: 2rem;
+}
+.table-creation-section {
+    margin-bottom: 2rem;
+}
+
+/* === Form Elements === */
+.form-input,
+input[type="text"],
+input[type="number"],
+input[type="date"],
+select {
+    width: 100%;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--text-color-primary);
+    background-color: var(--content-background-color);
+    background-clip: padding-box;
+    border: 1px solid var(--input-border-color);
+    border-radius: var(--border-radius-md);
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    margin-bottom: 0.5rem; /* Add some space below inputs by default */
+}
+
+.form-input:focus,
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+select:focus {
+    color: var(--text-color-primary);
+    background-color: var(--content-background-color);
+    border-color: var(--input-focus-border-color);
+    outline: 0;
+    box-shadow: var(--input-focus-box-shadow);
+}
+/* Grid for form layouts */
+.form-grid {
+    display: grid;
+    gap: 1rem;
+}
+@media (min-width: 768px) {
+    .form-grid-md-2 { grid-template-columns: repeat(2, 1fr); }
+    .form-grid-md-3 { grid-template-columns: repeat(3, 1fr); }
+}
+.add-row-section h4 {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-color-secondary);
+}
+.add-row-section > form > div:first-of-type h4 {
+    margin-top: 0; /* No top margin for the very first h4 in the form */
+}
+
+
+/* === Buttons === */
+.btn {
+    display: inline-block;
+    font-weight: 500;
+    color: var(--button-text-color);
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+    user-select: none;
+    background-color: transparent;
+    border: 1px solid transparent;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    border-radius: var(--border-radius-md);
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    text-decoration: none; /* For <a> styled as buttons */
+}
+.btn i {
+    margin-right: 0.35rem;
+}
+
+.btn-primary {
+    color: var(--button-text-color);
+    background-color: var(--button-primary-bg);
+    border-color: var(--button-primary-bg);
+}
+.btn-primary:hover {
+    background-color: var(--button-primary-hover-bg);
+    border-color: var(--button-primary-hover-bg);
+}
+
+.btn-success {
+    color: var(--button-text-color);
+    background-color: var(--button-success-bg);
+    border-color: var(--button-success-bg);
+}
+.btn-success:hover {
+    background-color: var(--button-success-hover-bg);
+    border-color: var(--button-success-hover-bg);
+}
+
+.btn-danger {
+    color: var(--button-text-color);
+    background-color: var(--button-danger-bg);
+    border-color: var(--button-danger-bg);
+}
+.btn-danger:hover {
+    background-color: var(--button-danger-hover-bg);
+    border-color: var(--button-danger-hover-bg);
+}
+
+.btn-warning {
+    color: #212529; /* Dark text for light warning button */
+    background-color: var(--button-warning-bg);
+    border-color: var(--button-warning-bg);
+}
+.btn-warning:hover {
+    background-color: var(--button-warning-hover-bg);
+    border-color: var(--button-warning-hover-bg);
+}
+
+.btn-sm { /* Small button variant */
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: var(--border-radius-sm);
+}
+
+/* Table Action Buttons */
+#materialTable .actions .btn {
+    margin-right: 0.3rem;
+    padding: 0.3rem 0.6rem; /* Slightly smaller padding for table action buttons */
+}
+#materialTable .actions .edit-btn { /* Use specific classes if you need distinct styling */
+    background-color: var(--button-warning-bg);
+    color: #212529;
+    border-color: var(--button-warning-bg);
+}
+#materialTable .actions .edit-btn:hover {
+    background-color: var(--button-warning-hover-bg);
+    border-color: var(--button-warning-hover-bg);
+}
+#materialTable .actions .delete-btn {
+    background-color: var(--button-danger-bg);
+    color: var(--button-text-color);
+    border-color: var(--button-danger-bg);
+}
+#materialTable .actions .delete-btn:hover {
+    background-color: var(--button-danger-hover-bg);
+    border-color: var(--button-danger-hover-bg);
+}
+
+
+/* === Table Styles === */
+.overflow-x-auto { /* Wrapper for the table to make it scrollable on small screens */
+    overflow-x: auto;
+    width: 100%;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
+
+#materialTable {
+    width: 100%;
+    min-width: 1000px; /* Minimum width before horizontal scroll appears, adjust as needed */
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    color: var(--table-text-body);
+    margin-top: 1rem; /* Space above the table */
+}
+
+#materialTable th,
+#materialTable td {
+    border: 1px solid var(--table-border-color);
+    padding: 0.6rem 0.8rem; /* Adjusted padding */
+    text-align: left;
+    vertical-align: middle;
+}
+
+/* Table Header Styling */
+#materialTable thead {
+    background-color: var(--table-header-bg); /* Fallback, specific th might override */
+    color: var(--table-text-header);
+}
+
+#materialTable th {
+    font-weight: 600; /* Bolder for headers */
+    white-space: nowrap; /* Prevent header text from wrapping */
+}
+
+/* Main headers (rowspan=2 or colspan) */
+#materialTable thead tr:first-child th {
+    background-color: #d3d9df; /* Slightly darker for primary headers */
+    text-align: center; /* Center align top-level headers */
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 0.8rem;
+    padding: 0.75rem 0.8rem;
+}
+/* Sub-headers */
+#materialTable thead tr:nth-child(2) th {
+    background-color: var(--table-subheader-bg);
+    font-weight: 500;
+    font-size: 0.78rem;
+    padding: 0.5rem 0.75rem;
+    text-align: center; /* Center align sub-headers too */
+}
+
+/* Table Body Styling */
+#materialTable tbody tr:nth-child(even) {
+    background-color: var(--content-background-color); /* Or var(--table-subheader-bg) for subtle striping */
+}
+#materialTable tbody tr:nth-child(odd) {
+    background-color: #fdfdfd;
+}
+
+
+#materialTable tbody tr:hover {
+    background-color: var(--table-row-hover-bg);
+}
+
+#materialTable td {
+    /* Target specific columns if width adjustments are needed */
+}
+/* Example: Date column slightly wider */
+#materialTable td:first-child, #materialTable th:first-child {
+    /* width: 10%; */ /* Be cautious with fixed widths, can break responsiveness */
+}
+
+
+/* === Modal Styles === */
+.modal {
+    display: none; /* Hidden by default, JS toggles to 'flex' */
+    position: fixed;
+    z-index: 1050; /* Higher than navbar */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* Prevent body scroll when modal is open */
+    outline: 0;
+    background-color: rgba(0, 0, 0, 0.5); /* Dimmed background */
+    align-items: center; /* Vertical centering */
+    justify-content: center; /* Horizontal centering */
+}
+
+.modal-content {
+    position: relative;
+    background-color: var(--content-background-color);
+    border: 1px solid rgba(0,0,0,.2);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 1.5rem 2rem;
+    width: 90%;
+    max-width: 500px; /* Max width of modal */
+    max-height: 90vh; /* Max height */
+    overflow-y: auto; /* Scroll inside modal if content overflows */
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+}
+
+.close-button {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 1.75rem;
+    font-weight: bold;
+    line-height: 1;
+    color: #000;
+    text-shadow: 0 1px 0 #fff;
+    opacity: 0.5;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+}
+.close-button:hover {
+    opacity: 0.8;
+    color: #000;
+    text-decoration: none;
+}
+
+#existingTableSuggestions {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 1rem 0;
+    max-height: 150px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color-light);
+    border-radius: var(--border-radius-sm);
+}
+#existingTableSuggestions li {
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color-light);
+}
+#existingTableSuggestions li:last-child {
+    border-bottom: none;
+}
+#existingTableSuggestions li:hover {
+    background-color: #e9ecef;
+}
+
+/* === All Tables List Styling === */
+#allTablesList {
+    list-style: none;
+    padding: 0;
+}
+#allTablesList li {
+    background-color: var(--content-background-color);
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-color-medium);
+    border-radius: var(--border-radius-md);
+    margin-bottom: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+#allTablesList li:hover {
+    background-color: #f8f9fa;
+    box-shadow: var(--shadow-sm);
+}
+#allTablesList button { /* The delete table button within the list item */
+    margin-left: 1rem; /* Space it from the table name */
+}
+
+/* === Utility Classes === */
+.mb-1 { margin-bottom: 0.25rem !important; }
+.mb-2 { margin-bottom: 0.5rem !important; }
+.mb-3 { margin-bottom: 1rem !important; }
+.mb-4 { margin-bottom: 1.5rem !important; }
+.mb-5 { margin-bottom: 2rem !important; }
+
+.mt-1 { margin-top: 0.25rem !important; }
+.mt-2 { margin-top: 0.5rem !important; }
+.mt-3 { margin-top: 1rem !important; }
+.mt-4 { margin-top: 1.5rem !important; }
+.mt-5 { margin-top: 2rem !important; }
+
+.w-full { width: 100% !important; }
+.md-w-1-2 { /* For search input, example */ }
+@media (min-width: 768px) {
+    .md-w-1-2 { width: 50% !important; }
+}
+
+
+/* === Responsive Adjustments === */
+@media (max-width: 991.98px) { /* Large devices and below */
+    #materialTable {
+        min-width: 900px; /* Adjust min-width as needed for your content */
+    }
+}
+
+@media (max-width: 767.98px) { /* Medium devices and below (tablets, large phones) */
+    h1 { font-size: 1.6rem; }
+    h2 { font-size: 1.35rem; }
+    main { padding: 1rem; }
+    .section-card, #currentTableSection, .add-row-section, .all-tables-section {
+        padding: 1rem;
+    }
+    .modal-content {
+        width: 95%;
+        padding: 1rem 1.25rem;
+    }
+    .form-grid-md-2, .form-grid-md-3 {
+        grid-template-columns: 1fr; /* Stack form grid items */
+    }
+    #materialTable {
+        font-size: 0.8rem;
+        min-width: 800px; /* Further reduce or let it scroll */
+    }
+    #materialTable th,
+    #materialTable td {
+        padding: 0.5rem 0.4rem;
+    }
+    #top-navbar .container {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+}
+
+@media (max-width: 575.98px) { /* Small devices (phones) */
+    h1 { font-size: 1.4rem; }
+    .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+    #materialTable {
+        min-width: 600px; /* Content dictates this heavily */
+    }
+     #materialTable .actions .btn {
+        padding: 0.25rem 0.4rem;
+        font-size: 0.7rem;
+    }
+}

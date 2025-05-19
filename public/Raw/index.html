@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Amee-Tea | Distribution Control Panel</title>
+    <meta name="description" content="Amee-Tea Distribution Control Panel - Manage tea production, sales, and inventory" />
+    <meta name="author" content="Amee-Tea" />
+    <meta property="og:title" content="Amee-Tea Distribution Control Panel" />
+    <meta property="og:description" content="Manage tea production, sales, and inventory with Amee-Tea's control panel" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@AmeeTea" />
+    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <link rel="icon" type="image/svg+xml" href="/tealeaf.svg" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="tbs.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div id="app" class="flex flex-col min-h-screen bg-background">
+        <nav id="top-navbar" class="bg-navbar-default shadow-md">
+    <div class="container mx-auto px-4">
+        <div class="flex items-center justify-between h-16">
+            <div class="flex items-center">
+                <a href="../index.html" class="text-xl font-bold text-navbar-text">
+                    Amee-Tea
+                </a>
+            </div>
+
+            <div id="mobile-menu-button-container">
+                <button id="mobile-menu-button" class="text-navbar-text focus:outline-none">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </div>
+
+            <div id="desktop-nav-links" class="items-center">
+                <a href="../index.html" class="navbar-item">
+                    <i class="fas fa-chart-bar"></i> <span>Dashboard</span>
+                </a>
+                <a href="./raw" class="navbar-item">
+                    <i class="fas fa-users"></i> <span>Users</span>
+                </a>
+                <a href="./raw" class="navbar-item active">
+                    <i class="fas fa-box"></i> <span>Packing/Raw Material</span>
+                </a>
+                </div>
+        </div>
+    </div>
+
+    <div id="mobile-menu" class="hidden bg-navbar-default-dark">
+               <a href="../index.html" class="navbar-item">
+                    <i class="fas fa-chart-bar"></i> <span>Dashboard</span>
+                </a>
+                <a href="./raw" class="navbar-item">
+                    <i class="fas fa-users"></i> <span>Users</span>
+                </a>
+                <a href="./raw" class="navbar-item active">
+                    <i class="fas fa-box"></i> <span>Packing/Raw Material</span>
+                </a>
+                </div>
+</nav>
+
+        <main class="flex-1 p-6 md:p-8">
+            <div class="container mx-auto">
+                <h1 class="text-2xl font-semibold text-gray-800 mb-6">Raw Material Inventory</h1>
+
+                <div class="all-tables-section bg-white shadow-md rounded-lg p-6">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">All Created Tables</h2>
+                    <input type="text" id="searchTableInput" placeholder="Search by Table Name..." class="form-input mb-4 w-full md:w-1/2">
+                    <ul id="allTablesList" class="space-y-2">
+                        </ul>
+                </div>
+                <div class="table-creation-section mb-6">
+                    <button id="addNewTableBtn" class="btn btn-primary">Add New Table</button>
+                    <div id="newTableModal" class="modal">
+                        <div class="modal-content">
+                            <span class="close-button">&times;</span>
+                            <h2 class="text-xl font-semibold mb-4">Create/Update Table</h2>
+                            <input type="text" id="tableNameInput" placeholder="Enter Table Name" class="form-input mb-2">
+                            <ul id="existingTableSuggestions" class="mb-4"></ul>
+                            <button id="createOrUpdateTableBtn" class="btn btn-success">Create/Update Table</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="currentTableSection" class="hidden bg-white shadow-md rounded-lg p-6 mb-8">
+                    <h2 id="currentTableName" class="text-xl font-semibold text-gray-700 mb-4"></h2>
+                    <div class="overflow-x-auto">
+                        <table id="materialTable" class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th rowspan="2" class="table-header">Date</th>
+                                    <th colspan="6" class="table-header text-center">Inflow</th>
+                                    <th colspan="5" class="table-header text-center">Outflow</th> 
+                                    <th colspan="3" class="table-header text-center">Balance</th>
+                                    <th rowspan="2" class="table-header">Actions</th>
+                                </tr>
+                                <tr>
+                                    <th class="table-subheader">Supplier</th>
+                                    <th class="table-subheader">Estate</th>
+                                    <th class="table-subheader">Grade</th>
+                                    <th class="table-subheader">Bag Weight (Kg)</th>
+                                    <th class="table-subheader">No. of Bags</th>
+                                    <th class="table-subheader">Total Weight (Kg)</th>
+                                    <th class="table-subheader">Date</th>
+                                    <th class="table-subheader">Estate</th>
+                                    <th class="table-subheader">Grade</th>
+                                    <th class="table-subheader">Product</th>
+                                    <th class="table-subheader">Weight (Kg)</th>
+                                    <th class="table-subheader">Estate</th>
+                                    <th class="table-subheader">Grade</th>
+                                    <th class="table-subheader">Qty (Kg)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="materialTableBody" class="bg-white divide-y divide-gray-200">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="add-row-section bg-white shadow-md rounded-lg p-6 mb-8">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">Add New Row</h3>
+                    <form id="addRowForm" class="space-y-4">
+                        <div>
+                            <h4 class="text-lg font-medium text-gray-600 mb-2">Inflow</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <input type="date" id="inflowDate" class="form-input" required>
+                                <input type="text" id="inflowSupplier" placeholder="Supplier" class="form-input">
+                                <input type="text" id="inflowEstate" placeholder="Estate" class="form-input">
+                                <input type="text" id="inflowGrade" placeholder="Grade" class="form-input">
+                                <input type="number" step="any" id="inflowBagWeight" placeholder="Bag Weight (Kg)" class="form-input">
+                                <input type="number" id="inflowBags" placeholder="No. of Bags" class="form-input">
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="text-lg font-medium text-gray-600 mb-2">Outflow</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <input type="date" id="outflowDate" class="form-input">
+                                <input type="text" id="outflowEstate" placeholder="Estate" class="form-input">
+                                <input type="text" id="outflowGrade" placeholder="Grade" class="form-input">
+                                <input type="text" id="outflowProduct" placeholder="Product" class="form-input">
+                                <input type="number" step="any" id="outflowWeight" placeholder="Weight (Kg)" class="form-input">
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="text-lg font-medium text-gray-600 mb-2">Balance (Optional)</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <input type="text" id="balanceEstate" placeholder="Estate" class="form-input">
+                                <input type="text" id="balanceGrade" placeholder="Grade" class="form-input">
+                                <input type="number" step="any" id="balanceQty" placeholder="Qty (Kg)" class="form-input">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Row</button>
+                    </form>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-database-compat.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
