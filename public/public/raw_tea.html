@@ -1,25 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Amee-Tea | Raw Tea Inventory</title>
     <meta name="description" content="Amee-Tea - Raw Tea Inventory Management" />
-    <meta name="author" content="Amee-Tea" />
-    <meta property="og:title" content="Amee-Tea Raw Tea Inventory" />
-    <meta property="og:description" content="Manage Raw Tea Inventory" />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="og-image.png" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@AmeeTea" />
-    <meta name="twitter:image" content="twitter-image.png" />
     <link rel="icon" type="image/png" href="tealeaf.png" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="tbs.css">
 </head>
-
 <body>
     <div id="app" class="app-container">
         <nav id="top-navbar">
@@ -79,8 +69,7 @@
                         <label for="searchTableInput" class="form-label">Search Tables:</label>
                         <input type="text" id="searchTableInput" class="form-input" placeholder="Enter table name to search...">
                     </div>
-                    <ul id="allTablesList" class="item-list">
-                        </ul>
+                    <ul id="allTablesList" class="item-list"></ul>
                 </div>
 
                 <div id="currentTableDisplay" class="section-card hidden">
@@ -103,8 +92,7 @@
                                     <th class="table-header text-center">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="rawTeaTableBody">
-                                </tbody>
+                            <tbody id="rawTeaTableBody"></tbody>
                         </table>
                     </div>
                 </div>
@@ -157,9 +145,8 @@
             </div>
         </main>
     </div>
-
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-database-compat.js"></script>
-    <script src="app.js"></script> 
+    <script src="raw_tea.js"></script>
 </body>
 </html>

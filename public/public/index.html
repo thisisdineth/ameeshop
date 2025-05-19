@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Amee-Tea | Dashboard</title>
+    <meta name="description" content="Amee-Tea Distribution Control Panel - Dashboard" />
+    <meta name="author" content="Amee-Tea" />
+    <meta property="og:title" content="Amee-Tea Distribution Control Panel" />
+    <meta property="og:description" content="Manage tea production, sales, and inventory with Amee-Tea's control panel" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@AmeeTea" />
+    <meta name="twitter:image" content="twitter-image.png" />
+    <link rel="icon" type="image/png" href="tealeaf.png" /> 
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="index.css">
+</head>
+
+<body>
+    <div id="app" class="app-container">
+        <nav id="top-navbar">
+            <div class="container nav-container">
+                <div class="nav-brand">
+                    <a href="index.html" class="nav-logo-link">
+                        <i class="fas fa-leaf nav-logo-icon"></i> Amee-Tea
+                    </a>
+                </div>
+                <div id="mobile-menu-button-container">
+                    <button id="mobile-menu-button">
+                        <i class="fas fa-bars nav-mobile-icon"></i>
+                    </button>
+                </div>
+                <div id="desktop-nav-links">
+                    <a href="index.html" class="navbar-item active"><i class="fas fa-tachometer-alt fa-fw"></i> <span>Dashboard</span></a>
+                    <a href="raw_tea.html" class="navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Tea</span></a>
+                    <a href="packing_material.html" class="navbar-item"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
+                    <a href="production.html" class="navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
+                    <a href="sales.html" class="navbar-item"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
+                    <a href="users.html" class="navbar-item"><i class="fas fa-users fa-fw"></i> <span>Users/Customers</span></a>
+                    <a href="settings.html" class="navbar-item"><i class="fas fa-cog fa-fw"></i> <span>Settings</span></a>
+
+                </div>
+            </div>
+            <div id="mobile-menu" class="hidden">
+                 <a href="index.html" class="mobile-navbar-item active"><i class="fas fa-tachometer-alt fa-fw"></i> <span>Dashboard</span></a>
+                <a href="raw_tea.html" class="mobile-navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Tea</span></a>
+                <a href="packing_material.html" class="mobile-navbar-item"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
+                <a href="production.html" class="mobile-navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
+                <a href="sales.html" class="mobile-navbar-item"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
+                <a href="users.html" class="mobile-navbar-item"><i class="fas fa-users fa-fw"></i> <span>Users/Customers</span></a>
+                <a href="settings.html" class="mobile-navbar-item"><i class="fas fa-cog fa-fw"></i> <span>Settings</span></a>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="container">
+                <div class="welcome-header">
+                    <h1 class="welcome-title">Welcome back, Admin!</h1>
+                    <p class="welcome-subtitle">Here's a quick overview of your Amee-Tea operations.</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="dashboard-stat-card stat-card-1">
+                        <div class="stat-card-content">
+                            <div>
+                                <p class="stat-card-title">Raw Tea Varieties</p>
+                                <p class="stat-card-value" id="rawTeaTablesCount">0</p>
+                            </div>
+                            <div class="stat-card-icon-wrapper">
+                                <i class="fas fa-boxes-stacked stat-card-icon"></i>
+                            </div>
+                        </div>
+                        <a href="raw_tea.html" class="stat-card-link">Manage Raw Teas <i class="fas fa-arrow-right link-arrow"></i></a>
+                    </div>
+
+                    <div class="dashboard-stat-card stat-card-2">
+                        <div class="stat-card-content">
+                            <div>
+                                <p class="stat-card-title">Packing Materials</p>
+                                <p class="stat-card-value" id="packingMaterialTablesCount">0</p>
+                            </div>
+                            <div class="stat-card-icon-wrapper">
+                                <i class="fas fa-box-archive stat-card-icon"></i>
+                            </div>
+                        </div>
+                         <a href="packing_material.html" class="stat-card-link">Manage Packing <i class="fas fa-arrow-right link-arrow"></i></a>
+                    </div>
+
+                    <div class="dashboard-stat-card stat-card-3">
+                        <div class="stat-card-content">
+                            <div>
+                                <p class="stat-card-title">Finished Products</p> 
+                                <p class="stat-card-value" id="definedProductsCount">0</p>
+                            </div>
+                            <div class="stat-card-icon-wrapper">
+                                <i class="fas fa-mug-hot stat-card-icon"></i>
+                            </div>
+                        </div>
+                         <a href="production.html" class="stat-card-link">View Production <i class="fas fa-arrow-right link-arrow"></i></a>
+                    </div>
+
+                    <div class="dashboard-stat-card stat-card-4">
+                        <div class="stat-card-content">
+                            <div>
+                                <p class="stat-card-title">Customers</p> 
+                                <p class="stat-card-value" id="customersCount">0</p>
+                            </div>
+                            <div class="stat-card-icon-wrapper">
+                                <i class="fas fa-users stat-card-icon"></i>
+                            </div>
+                        </div>
+                         <a href="users.html" class="stat-card-link">Manage Customers <i class="fas fa-arrow-right link-arrow"></i></a>
+                    </div>
+                </div>
+
+                <div class="content-grid">
+                    <div class="quick-actions-panel section-card">
+                        <h2 class="section-title">Quick Actions</h2>
+                        <div class="quick-actions-list">
+                            <a href="raw_tea.html#addNewTableBtnAnchor" class="quick-action-link">
+                                <i class="fas fa-plus-circle fa-fw quick-action-icon"></i> Add New Raw Tea Table
+                            </a>
+                             <a href="packing_material.html#addNewTableBtnAnchor" class="quick-action-link">
+                                <i class="fas fa-plus-circle fa-fw quick-action-icon"></i> Add Packing Material Table
+                            </a>
+                            <a href="production.html#logProductionFormContainer" class="quick-action-link">
+                                <i class="fas fa-industry fa-fw quick-action-icon"></i> Log New Production
+                            </a>
+                            <a href="sales.html#newOrder" class="quick-action-link">
+                                <i class="fas fa-cart-plus fa-fw quick-action-icon"></i> Record New Sale
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="chart-panel section-card lg-col-span-2"> 
+                        <h2 class="section-title">Inventory Overview (Placeholder)</h2>
+                        <div class="chart-placeholder">
+                            <i class="fas fa-chart-pie fa-4x text-gray-300"></i>
+                            <p class="placeholder-text">Key inventory levels chart will be displayed here.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="recent-activity-panel section-card">
+                    <h2 class="section-title"><i class="fas fa-history fa-fw"></i> Recent System Activity</h2>
+                    <ul id="recentActivityList" class="activity-list">
+                        <li class="activity-item-placeholder">Loading recent activities...</li>
+                    </ul>
+                    </div>
+            </div>
+        </main>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-database-compat.js"></script>
+    <script src="index.js"></script>
+</body>
+</html>

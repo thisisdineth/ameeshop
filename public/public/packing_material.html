@@ -1,25 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Amee-Tea | Packing Material Inventory</title>
     <meta name="description" content="Amee-Tea - Packing Material Inventory Management" />
-    <meta name="author" content="Amee-Tea" />
-    <meta property="og:title" content="Amee-Tea Packing Material" />
-    <meta property="og:description" content="Manage Packing Material Inventory" />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="og-image.png" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@AmeeTea" />
-    <meta name="twitter:image" content="twitter-image.png" />
     <link rel="icon" type="image/png" href="tealeaf.png" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="packing.css"> {/* Linking to packing.css */}
+    <link rel="stylesheet" href="tbs.css">
 </head>
-
 <body>
     <div id="app" class="app-container">
         <nav id="top-navbar">
@@ -73,14 +63,13 @@
                     </div>
                 </div>
 
-                <div class="all-tables-list-container section-card">
+                 <div class="all-tables-list-container section-card">
                     <h3 class="section-title">Manage Packing Material Tables</h3>
                     <div class="form-group">
                         <label for="searchTableInput" class="form-label">Search Tables:</label>
                         <input type="text" id="searchTableInput" class="form-input" placeholder="Enter table name to search...">
                     </div>
-                    <ul id="allTablesList" class="item-list">
-                        </ul>
+                    <ul id="allTablesList" class="item-list"></ul>
                 </div>
 
                 <div id="currentTableDisplay" class="section-card hidden">
@@ -102,8 +91,7 @@
                                     <th class="table-header text-center">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="packingMaterialTableBody">
-                                </tbody>
+                            <tbody id="packingMaterialTableBody"></tbody>
                         </table>
                     </div>
                 </div>
@@ -115,7 +103,6 @@
                             <label for="transactionDate" class="form-label">Transaction Date (Record Date):</label>
                             <input type="date" id="transactionDate" class="form-input" required>
                         </div>
-
                         <h4 class="form-section-title">Receive Details</h4>
                         <div class="form-grid grid-cols-3">
                             <div class="form-group">
@@ -136,7 +123,6 @@
                             <label for="receiveNotes" class="form-label">Receive Notes (Optional):</label>
                             <textarea id="receiveNotes" class="form-input" rows="2" placeholder="e.g., Supplier Name, PO Number"></textarea>
                         </div>
-
                         <button type="submit" class="btn btn-primary btn-block">
                             <i class="fas fa-plus fa-fw"></i> Add Receive Entry
                         </button>
@@ -145,7 +131,6 @@
             </div>
         </main>
     </div>
-
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-database-compat.js"></script>
     <script src="packing.js"></script>
