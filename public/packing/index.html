@@ -4,11 +4,11 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Amee-Tea | Raw Tea Inventory</title>
-    <meta name="description" content="Amee-Tea - Raw Tea Inventory Management" />
+    <title>Amee-Tea | Packing Material Inventory</title>
+    <meta name="description" content="Amee-Tea - Packing Material Inventory Management" />
     <meta name="author" content="Amee-Tea" />
-    <meta property="og:title" content="Amee-Tea Raw Tea Inventory" />
-    <meta property="og:description" content="Manage Raw Tea Inventory" />
+    <meta property="og:title" content="Amee-Tea Packing Material" />
+    <meta property="og:description" content="Manage Packing Material Inventory" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="og-image.png" />
     <meta name="twitter:card" content="summary_large_image" />
@@ -17,7 +17,7 @@
     <link rel="icon" type="image/png" href="tealeaf.png" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="tbs.css">
+    <link rel="stylesheet" href="packing.css"> {/* Linking to packing.css */}
 </head>
 
 <body>
@@ -32,8 +32,8 @@
                 </div>
                 <div id="desktop-nav-links">
                     <a href="index.html" class="navbar-item"><i class="fas fa-tachometer-alt fa-fw"></i> <span>Dashboard</span></a>
-                    <a href="raw_tea.html" class="navbar-item active"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Tea</span></a>
-                    <a href="packing_material.html" class="navbar-item"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
+                    <a href="raw_tea.html" class="navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Tea</span></a>
+                    <a href="packing_material.html" class="navbar-item active"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
                     <a href="production.html" class="navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
                     <a href="sales.html" class="navbar-item"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
                     <a href="users.html" class="navbar-item"><i class="fas fa-users fa-fw"></i> <span>Users</span></a>
@@ -42,8 +42,8 @@
             </div>
             <div id="mobile-menu" class="hidden">
                 <a href="index.html" class="mobile-navbar-item"><i class="fas fa-tachometer-alt fa-fw"></i> <span>Dashboard</span></a>
-                <a href="raw_tea.html" class="mobile-navbar-item active"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Tea</span></a>
-                <a href="packing_material.html" class="mobile-navbar-item"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
+                <a href="raw_tea.html" class="mobile-navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Tea</span></a>
+                <a href="packing_material.html" class="mobile-navbar-item active"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
                 <a href="production.html" class="mobile-navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
                 <a href="sales.html" class="mobile-navbar-item"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
                 <a href="users.html" class="mobile-navbar-item"><i class="fas fa-users fa-fw"></i> <span>Users</span></a>
@@ -53,18 +53,18 @@
 
         <main class="main-content">
             <div class="container">
-                <h1 class="page-title"><i class="fas fa-boxes-stacked fa-fw"></i> Raw Tea Inventory</h1>
+                <h1 class="page-title"><i class="fas fa-box-archive fa-fw"></i> Packing Material Inventory</h1>
 
                 <div class="table-management-controls section-card">
                     <button id="addNewTableBtn" class="btn btn-primary">
-                        <i class="fas fa-plus fa-fw"></i> Add New Raw Tea Table
+                        <i class="fas fa-plus fa-fw"></i> Add New Packing Material Table
                     </button>
                     <div id="newTableModal" class="modal">
                         <div class="modal-content">
                             <span class="modal-close-button">&times;</span>
-                            <h2 class="modal-title">Create/Select Raw Tea Table</h2>
-                            <label for="tableNameInput" class="form-label">Table Name (e.g., Green Tea Grade A):</label>
-                            <input type="text" id="tableNameInput" class="form-input" placeholder="Enter unique table name">
+                            <h2 class="modal-title">Create/Select Packing Material Table</h2>
+                            <label for="tableNameInput" class="form-label">Table Name:</label>
+                            <input type="text" id="tableNameInput" class="form-input" placeholder="e.g., Cartons, Tea Bags, Labels">
                             <ul id="existingTableSuggestions" class="suggestions-list"></ul>
                             <button id="createOrSelectTableBtn" class="btn btn-success btn-block mt-1">
                                 <i class="fas fa-check fa-fw"></i> Create or Select Table
@@ -72,9 +72,9 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="all-tables-list-container section-card">
-                    <h3 class="section-title">Manage Raw Tea Tables</h3>
+                    <h3 class="section-title">Manage Packing Material Tables</h3>
                     <div class="form-group">
                         <label for="searchTableInput" class="form-label">Search Tables:</label>
                         <input type="text" id="searchTableInput" class="form-input" placeholder="Enter table name to search...">
@@ -85,72 +85,60 @@
 
                 <div id="currentTableDisplay" class="section-card hidden">
                     <h2 id="currentTableNameDisplay" class="section-title current-table-name"></h2>
-                    <p class="current-balance-summary">Current Balance: <strong id="currentCalculatedBalance">0.00 Kg</strong></p>
+                    <p class="current-balance-summary">Current Balance: <strong id="currentCalculatedBalance">0 Pcs/Units</strong></p>
                     <div class="table-responsive-wrapper">
-                        <table id="rawTeaTable" class="data-table">
+                        <table id="packingMaterialTable" class="data-table">
                             <thead>
                                 <tr>
-                                    <th class="table-header">Date</th>
+                                    <th class="table-header">Transaction Date</th>
                                     <th class="table-header text-center">Type</th>
-                                    <th class="table-header">Supplier/Product</th>
-                                    <th class="table-header">Estate</th>
-                                    <th class="table-header">Grade</th>
-                                    <th class="table-header text-right">Bag Wt (Kg)</th>
-                                    <th class="table-header text-right">No. Bags</th>
-                                    <th class="table-header text-right">Inflow (Kg)</th>
-                                    <th class="table-header text-right">Outflow (Kg)</th>
-                                    <th class="table-header text-right">Balance (Kg)</th>
+                                    <th class="table-header">Receive Date</th>
+                                    <th class="table-header text-right">Unit Price</th>
+                                    <th class="table-header text-right">Receive Qty</th>
+                                    <th class="table-header">Issue Date</th>
+                                    <th class="table-header text-right">Issue Qty</th>
+                                    <th class="table-header">Reason/Product</th>
+                                    <th class="table-header text-right">Balance (Qty)</th>
                                     <th class="table-header text-center">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="rawTeaTableBody">
+                            <tbody id="packingMaterialTableBody">
                                 </tbody>
                         </table>
                     </div>
                 </div>
 
                 <div id="addRowFormContainer" class="section-card hidden">
-                    <h3 class="section-title">Add New Inflow to <span id="addRowFormTableName"></span></h3>
+                    <h3 class="section-title">Add New Receive Entry to <span id="addRowFormTableName"></span></h3>
                     <form id="addRowForm">
                         <div class="form-group">
-                            <label for="transactionDate" class="form-label">Inflow Date:</label>
+                            <label for="transactionDate" class="form-label">Transaction Date (Record Date):</label>
                             <input type="date" id="transactionDate" class="form-input" required>
                         </div>
+
+                        <h4 class="form-section-title">Receive Details</h4>
                         <div class="form-grid grid-cols-3">
                             <div class="form-group">
-                                <label for="inflowSupplier" class="form-label">Supplier:</label>
-                                <input type="text" id="inflowSupplier" class="form-input" placeholder="Supplier Name">
+                                <label for="receiveDate" class="form-label">Actual Receive Date:</label>
+                                <input type="date" id="receiveDate" class="form-input">
+                                <p class="form-hint">Defaults to Transaction Date if empty.</p>
                             </div>
                             <div class="form-group">
-                                <label for="inflowEstate" class="form-label">Estate:</label>
-                                <input type="text" id="inflowEstate" class="form-input" placeholder="Tea Estate">
+                                <label for="receiveUnitPrice" class="form-label">Unit Price:</label>
+                                <input type="number" step="0.01" id="receiveUnitPrice" class="form-input" placeholder="0.00">
                             </div>
                             <div class="form-group">
-                                <label for="inflowGrade" class="form-label">Grade:</label>
-                                <input type="text" id="inflowGrade" class="form-input" placeholder="e.g., BOP, OP, Pekoe">
+                                <label for="receiveQty" class="form-label">Receive Quantity:</label>
+                                <input type="number" step="1" id="receiveQty" class="form-input" placeholder="0" required>
                             </div>
                         </div>
-                        <div class="form-grid grid-cols-3">
-                            <div class="form-group">
-                                <label for="inflowBagWeight" class="form-label">Bag Weight (Kg):</label>
-                                <input type="number" step="any" id="inflowBagWeight" class="form-input" placeholder="0.00">
-                            </div>
-                            <div class="form-group">
-                                <label for="inflowBags" class="form-label">Number of Bags:</label>
-                                <input type="number" step="1" id="inflowBags" class="form-input" placeholder="0">
-                            </div>
-                            <div class="form-group">
-                                <label for="inflowTotalWeight" class="form-label">Total Inflow Weight (Kg):</label>
-                                <input type="number" step="any" id="inflowTotalWeight" class="form-input" placeholder="Calculated or Manual" readonly>
-                                <p class="form-hint">Auto-calculated if Bag Weight and No. of Bags are entered.</p>
-                            </div>
+                        <div class="form-group">
+                            <label for="receiveNotes" class="form-label">Receive Notes (Optional):</label>
+                            <textarea id="receiveNotes" class="form-input" rows="2" placeholder="e.g., Supplier Name, PO Number"></textarea>
                         </div>
-                         <div class="form-group">
-                            <label for="inflowNotes" class="form-label">Notes (Optional):</label>
-                            <textarea id="inflowNotes" class="form-input" rows="2" placeholder="Any notes for this inflow..."></textarea>
-                        </div>
+
                         <button type="submit" class="btn btn-primary btn-block">
-                            <i class="fas fa-plus fa-fw"></i> Add Inflow
+                            <i class="fas fa-plus fa-fw"></i> Add Receive Entry
                         </button>
                     </form>
                 </div>
@@ -160,6 +148,6 @@
 
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-database-compat.js"></script>
-    <script src="app.js"></script> 
+    <script src="packing.js"></script>
 </body>
 </html>

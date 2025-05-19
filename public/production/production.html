@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Amee-Tea | Production Log</title>
+    <meta name="description" content="Amee-Tea - Production Log and Management" />
+    <meta name="author" content="Amee-Tea" />
+    <link rel="icon" type="image/png" href="tealeaf.png" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="production.css">
+</head>
+
+<body>
+    <div id="app" class="app-container">
+        <nav id="top-navbar">
+            <div class="container nav-container">
+                <div class="nav-brand">
+                    <a href="index.html" class="nav-logo-link"><i class="fas fa-leaf nav-logo-icon"></i> Amee-Tea</a>
+                </div>
+                <div id="mobile-menu-button-container">
+                    <button id="mobile-menu-button"><i class="fas fa-bars nav-mobile-icon"></i></button>
+                </div>
+                <div id="desktop-nav-links">
+                    <a href="index.html" class="navbar-item"><i class="fas fa-tachometer-alt fa-fw"></i> <span>Dashboard</span></a>
+                    <a href="raw_material.html" class="navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Material</span></a>
+                    <a href="packing_material.html" class="navbar-item"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
+                    <a href="production.html" class="navbar-item active"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
+                    <a href="sales.html" class="navbar-item"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
+                    <a href="users.html" class="navbar-item"><i class="fas fa-users fa-fw"></i> <span>Users</span></a>
+                    <a href="settings.html" class="navbar-item"><i class="fas fa-cog fa-fw"></i> <span>Settings</span></a>
+                </div>
+            </div>
+            <div id="mobile-menu" class="hidden">
+                <a href="index.html" class="mobile-navbar-item"><i class="fas fa-tachometer-alt fa-fw"></i> <span>Dashboard</span></a>
+                <a href="raw_material.html" class="mobile-navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Material</span></a>
+                <a href="packing_material.html" class="mobile-navbar-item"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
+                <a href="production.html" class="mobile-navbar-item active"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
+                <a href="sales.html" class="mobile-navbar-item"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
+                <a href="users.html" class="mobile-navbar-item"><i class="fas fa-users fa-fw"></i> <span>Users</span></a>
+                <a href="settings.html" class="mobile-navbar-item"><i class="fas fa-cog fa-fw"></i> <span>Settings</span></a>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="container">
+                <h1 class="page-title"><i class="fas fa-industry fa-fw"></i> Production Log</h1>
+
+                <div id="logProductionFormContainer" class="section-card">
+                    <h2 class="section-title"><i class="fas fa-plus-circle fa-fw"></i> Log New Production Run</h2>
+                    <form id="logProductionForm">
+                        <div class="form-grid grid-cols-2">
+                            <div class="form-group">
+                                <label for="productionDate" class="form-label">Production Date:</label>
+                                <input type="date" id="productionDate" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="batchNumber" class="form-label">Batch Number (Optional):</label>
+                                <input type="text" id="batchNumber" class="form-input" placeholder="e.g., BATCH-001">
+                            </div>
+                        </div>
+
+                        <div class="form-grid grid-cols-3">
+                             <div class="form-group">
+                                <label for="finishedProductName" class="form-label">Finished Product Name:</label>
+                                <input type="text" id="finishedProductName" class="form-input" placeholder="e.g., Green Tea 25 Bags" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="finishedProductCode" class="form-label">Product Code:</label>
+                                <input type="text" id="finishedProductCode" class="form-input" placeholder="e.g., GT25B" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="quantityProduced" class="form-label">Quantity Produced:</label>
+                                <input type="number" id="quantityProduced" class="form-input" placeholder="0" min="1" required>
+                            </div>
+                        </div>
+
+                        <hr class="form-divider">
+
+                        <h3 class="form-subsection-title">Raw Materials Consumed</h3>
+                        <div id="rawMaterialsConsumedContainer">
+                            </div>
+                        <button type="button" id="addRawMaterialButton" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-plus fa-fw"></i> Add Raw Material
+                        </button>
+
+                        <hr class="form-divider">
+
+                        <h3 class="form-subsection-title">Packing Materials Consumed</h3>
+                        <div id="packingMaterialsConsumedContainer">
+                            </div>
+                        <button type="button" id="addPackingMaterialButton" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-plus fa-fw"></i> Add Packing Material
+                        </button>
+
+                        <hr class="form-divider">
+
+                        <div class="form-group">
+                            <label for="productionNotes" class="form-label">Production Notes (Optional):</label>
+                            <textarea id="productionNotes" class="form-input" rows="3" placeholder="Any notes for this production run..."></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-success btn-block">
+                            <i class="fas fa-save fa-fw"></i> Log Production & Update Inventory
+                        </button>
+                    </form>
+                </div>
+
+                <div id="productionLogDisplay" class="section-card">
+                    <h2 class="section-title"><i class="fas fa-history fa-fw"></i> Production History</h2>
+                    <div class="table-responsive-wrapper">
+                        <table id="productionLogTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="table-header">Prod. Date</th>
+                                    <th class="table-header">Product Name</th>
+                                    <th class="table-header">Product Code</th>
+                                    <th class="table-header text-center">Qty Produced</th>
+                                    <th class="table-header">Batch No.</th>
+                                    <th class="table-header">Raw Materials</th>
+                                    <th class="table-header">Packing Materials</th>
+                                    <th class="table-header text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productionLogTableBody">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-database-compat.js"></script>
+    <script src="production.js"></script>
+</body>
+</html>
