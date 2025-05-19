@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Amee-Tea | Customer Management</title>
+    <meta name="description" content="Amee-Tea - Manage Customers" />
+    <link rel="icon" type="image/png" href="tealeaf.png" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="tbs.css">  
+</head>
+<body>
+    <div id="app" class="app-container">
+        <nav id="top-navbar">
+            <div class="container nav-container">
+                <div class="nav-brand">
+                    <a href="index.html" class="nav-logo-link"><i class="fas fa-leaf nav-logo-icon"></i> Amee-Tea</a>
+                </div>
+                <div id="mobile-menu-button-container">
+                    <button id="mobile-menu-button"><i class="fas fa-bars nav-mobile-icon"></i></button>
+                </div>
+                <div id="desktop-nav-links">
+                    <a href="index.html" class="navbar-item"><i class="fas fa-tachometer-alt fa-fw"></i> <span>Dashboard</span></a>
+                    <a href="raw_tea.html" class="navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Tea</span></a>
+                    <a href="packing_material.html" class="navbar-item"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
+                    <a href="production.html" class="navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
+                    <a href="finished_products.html" class="navbar-item"><i class="fas fa-mug-hot fa-fw"></i> <span>Finished Products</span></a>
+                    <a href="sales.html" class="navbar-item"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
+                    <a href="customers.html" class="navbar-item active"><i class="fas fa-users fa-fw"></i> <span>Customers</span></a> 
+                    <a href="settings.html" class="navbar-item"><i class="fas fa-cog fa-fw"></i> <span>Settings</span></a>
+                </div>
+            </div>
+            <div id="mobile-menu" class="hidden">
+                <a href="index.html" class="mobile-navbar-item"><i class="fas fa-tachometer-alt fa-fw"></i> <span>Dashboard</span></a>
+                <a href="raw_tea.html" class="mobile-navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Tea</span></a>
+                <a href="packing_material.html" class="mobile-navbar-item"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
+                <a href="production.html" class="mobile-navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
+                <a href="finished_products.html" class="mobile-navbar-item"><i class="fas fa-mug-hot fa-fw"></i> <span>Finished Products</span></a>
+                <a href="sales.html" class="mobile-navbar-item"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
+                <a href="customers.html" class="mobile-navbar-item active"><i class="fas fa-users fa-fw"></i> <span>Customers</span></a> 
+                <a href="settings.html" class="mobile-navbar-item"><i class="fas fa-cog fa-fw"></i> <span>Settings</span></a>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="container">
+                <h1 class="page-title"><i class="fas fa-users fa-fw"></i> Customer Management</h1>
+
+                <div class="all-items-list-container section-card">
+                    <h2 class="section-title">All Customers</h2>
+                    <div class="form-group">
+                        <label for="searchCustomersInput" class="form-label">Search Customers:</label>
+                        <input type="text" id="searchCustomersInput" class="form-input" placeholder="Search by Name or ID...">
+                    </div>
+                    <div class="table-responsive-wrapper">
+                        <table id="customersTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="table-header">Customer ID</th>
+                                    <th class="table-header">Customer Name</th>
+                                    <th class="table-header">Date Added</th>
+                                    <th class="table-header text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customersTableBody">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-database-compat.js"></script>
+    <script src="customers.js"></script>
+</body>
+</html>

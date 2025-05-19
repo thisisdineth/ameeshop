@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Amee-Tea | Sales Management</title>
+    <meta name="description" content="Amee-Tea - Record Sales and Manage Invoices" />
+    <link rel="icon" type="image/png" href="tealeaf.png" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="tbs.css">
+</head>
+<body>
+    <div id="app" class="app-container">
+        <nav id="top-navbar">
+            <div class="container nav-container">
+                <div class="nav-brand">
+                    <a href="index.html" class="nav-logo-link"><i class="fas fa-leaf nav-logo-icon"></i> Amee-Tea</a>
+                </div>
+                <div id="mobile-menu-button-container">
+                    <button id="mobile-menu-button"><i class="fas fa-bars nav-mobile-icon"></i></button>
+                </div>
+                <div id="desktop-nav-links">
+                    <a href="index.html" class="navbar-item"><i class="fas fa-tachometer-alt fa-fw"></i> <span>Dashboard</span></a>
+                    <a href="raw_tea.html" class="navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Tea</span></a>
+                    <a href="packing_material.html" class="navbar-item"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
+                    <a href="production.html" class="navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
+                    <a href="finished_products.html" class="navbar-item"><i class="fas fa-mug-hot fa-fw"></i> <span>Finished Products</span></a>
+                    <a href="sales.html" class="navbar-item active"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
+                    <a href="customers.html" class="navbar-item"><i class="fas fa-users fa-fw"></i> <span>Customers</span></a> 
+                    <a href="settings.html" class="navbar-item"><i class="fas fa-cog fa-fw"></i> <span>Settings</span></a>
+                </div>
+            </div>
+            <div id="mobile-menu" class="hidden">
+                <a href="index.html" class="mobile-navbar-item"><i class="fas fa-tachometer-alt fa-fw"></i> <span>Dashboard</span></a>
+                <a href="raw_tea.html" class="mobile-navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Tea</span></a>
+                <a href="packing_material.html" class="mobile-navbar-item"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
+                <a href="production.html" class="mobile-navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
+                <a href="finished_products.html" class="mobile-navbar-item"><i class="fas fa-mug-hot fa-fw"></i> <span>Finished Products</span></a>
+                <a href="sales.html" class="mobile-navbar-item active"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
+                <a href="customers.html" class="mobile-navbar-item"><i class="fas fa-users fa-fw"></i> <span>Customers</span></a>
+                <a href="settings.html" class="mobile-navbar-item"><i class="fas fa-cog fa-fw"></i> <span>Settings</span></a>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="container">
+                <h1 class="page-title"><i class="fas fa-shopping-cart fa-fw"></i> Sales Management</h1>
+
+                <div id="recordSaleFormContainer" class="section-card">
+                    <h2 class="section-title"><i class="fas fa-cash-register fa-fw"></i> Record New Sale</h2>
+                    <form id="saleForm">
+                        <div class="form-grid grid-cols-2">
+                            <div class="form-group">
+                                <label for="saleDate" class="form-label">Sale Date:</label>
+                                <input type="date" id="saleDate" class="form-input" required>
+                            </div>
+                            <div class="form-group customer-input-group">
+                                <label for="customerName" class="form-label">Customer Name:</label>
+                                <input type="text" id="customerName" class="form-input" placeholder="Type customer name..." autocomplete="off" required>
+                                <div id="customerSuggestionsList" class="suggestions-dropdown"></div> 
+                                <input type="hidden" id="selectedCustomerId"> 
+                                <p class="form-hint">New customers will be saved automatically.</p>
+                            </div>
+                        </div>
+
+                        <hr class="form-divider">
+                        <h3 class="form-subsection-title">Items Sold</h3>
+                        <div id="saleItemsContainer">
+                            {/* Sale item rows will be added here by JS */}
+                        </div>
+                        <button type="button" id="addSaleItemButton" class="btn btn-secondary btn-sm mb-1">
+                            <i class="fas fa-plus fa-fw"></i> Add Item to Sale
+                        </button>
+                        <hr class="form-divider">
+
+                        <div class="form-grid grid-cols-3 sale-summary-grid">
+                            <div class="form-group">
+                                <label for="subTotal" class="form-label">Subtotal (Rs.):</label>
+                                <input type="text" id="subTotal" class="form-input" placeholder="0.00" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="overallDiscount" class="form-label">Overall Discount (Rs.):</label>
+                                <input type="number" step="0.01" id="overallDiscount" class="form-input" placeholder="0.00" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="grandTotal" class="form-label">Grand Total (Rs.):</label>
+                                <input type="text" id="grandTotal" class="form-input" placeholder="0.00" readonly>
+                            </div>
+                        </div>
+                         <div class="form-grid grid-cols-2">
+                            <div class="form-group">
+                                <label for="paymentMethod" class="form-label">Payment Method:</label>
+                                <select id="paymentMethod" class="form-input">
+                                    <option value="Cash">Cash</option>
+                                    <option value="Card">Card</option>
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                    <option value="Cheque">Cheque</option>
+                                    <option value="Online">Online</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                             <div class="form-group">
+                                <label for="saleNotes" class="form-label">Sale Notes (Optional):</label>
+                                <input type="text" id="saleNotes" class="form-input" placeholder="Any notes for this sale...">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-success btn-block mt-1">
+                            <i class="fas fa-check-circle fa-fw"></i> Complete Sale & Generate Invoice
+                        </button>
+                    </form>
+                </div>
+
+                <div id="salesHistoryDisplay" class="section-card">
+                    <h2 class="section-title"><i class="fas fa-history fa-fw"></i> Sales History</h2>
+                    <div class="form-group">
+                        <label for="searchSalesInput" class="form-label">Search Sales (by Customer or Sale ID):</label>
+                        <input type="text" id="searchSalesInput" class="form-input" placeholder="Type to search...">
+                    </div>
+                    <div class="table-responsive-wrapper">
+                        <table id="salesLogTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="table-header">Sale Date</th>
+                                    <th class="table-header">Sale ID</th>
+                                    <th class="table-header">Customer</th>
+                                    <th class="table-header">Items</th>
+                                    <th class="table-header text-right">Grand Total (Rs.)</th>
+                                    <th class="table-header">Payment Method</th>
+                                    <th class="table-header text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="salesLogTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-database-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <script src="sales.js"></script>
+</body>
+</html>

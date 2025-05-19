@@ -318,3 +318,248 @@ textarea.form-input { min-height: 60px; }
     .data-table td { padding: 0.5rem 0.4rem; }
     .current-balance-summary { font-size: 0.9rem; padding: 0.4rem; }
 }
+form-subsection-title { /* Used in sales form for "Items Sold" */
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-color-primary);
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.25rem; /* Less padding than section-title */
+}
+
+.sale-item-row {
+    display: grid;
+    /* Product Select, Qty, Unit Price, Item Discount, Line Total, Remove Btn */
+    grid-template-columns: 3fr 1fr 1.5fr 1fr 1.5fr auto; 
+    gap: 0.75rem;
+    align-items: flex-end;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color-light);
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 0.75rem;
+    background-color: #fdfdfd;
+}
+.sale-item-row .form-group {
+    margin-bottom: 0; /* Remove default bottom margin from .form-group inside grid */
+}
+@media (max-width: 991px) { /* Adjust for tablet */
+    .sale-item-row {
+        grid-template-columns: 2fr 1fr 1fr; /* Product, Qty, Price - Stack others or make simpler */
+        /* You might need to hide discount/line total or stack them below */
+    }
+     .sale-item-row .item-discount-group, .sale-item-row .line-total-group {
+        display: none; /* Hide for simplicity on smaller tablets */
+    }
+}
+
+@media (max-width: 767px) { /* Stack for mobile */
+    .sale-item-row {
+        grid-template-columns: 1fr;
+    }
+    .sale-item-row .form-group {
+        margin-bottom: 0.5rem;
+    }
+     .sale-item-row .btn-remove-item {
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+}
+
+.sale-summary-grid input[readonly] { /* Make readonly summary fields distinct */
+    font-weight: bold;
+    background-color: #e9ecef; /* Light gray */
+}
+
+.mb-1 { margin-bottom: 0.25rem !important; } /* Utility */
+/* Customer Input Group & Suggestions Dropdown */
+.customer-input-group {
+    position: relative; /* For positioning the suggestions dropdown */
+}
+
+.suggestions-dropdown {
+    display: none; /* Hidden by default */
+    position: absolute;
+    background-color: var(--content-background-color);
+    border: 1px solid var(--border-color-medium);
+    border-top: none;
+    border-radius: 0 0 var(--border-radius-md) var(--border-radius-md);
+    z-index: 999; /* Above other form elements */
+    width: 100%; /* Match input width */
+    max-height: 150px;
+    overflow-y: auto;
+    box-shadow: var(--shadow-sm);
+}
+
+.suggestions-dropdown ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.suggestions-dropdown li {
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.suggestions-dropdown li:hover {
+    background-color: var(--navbar-hover-bg); /* Use navbar hover for consistency */
+    color: var(--navbar-hover-text);
+}
+/* Add to tbs.css if desired */
+.data-table td a.table-link {
+    color: var(--button-primary-bg); /* Or your preferred link color */
+    text-decoration: none;
+    font-weight: 500;
+}
+.data-table td a.table-link:hover {
+    text-decoration: underline;
+    color: var(--button-primary-hover-bg);
+}
+.page-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.customer-info-card .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Responsive grid */
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+.customer-info-card .info-grid div {
+    padding: 0.25rem 0;
+}
+.customer-info-card .info-grid strong {
+    color: var(--text-color-secondary);
+}
+
+.spending-summary {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color-light);
+    font-size: 1.1rem;
+}
+.spending-summary strong {
+    font-weight: 600;
+}
+
+.admin-notes-card .notes-display-area {
+    background-color: #f8f9fa; /* Light background for notes display */
+    border: 1px solid var(--border-color-light);
+    border-radius: var(--border-radius-sm);
+    padding: 0.75rem;
+    min-height: 60px;
+    margin-bottom: 0.75rem;
+    white-space: pre-wrap; /* Preserve line breaks in notes */
+    font-size: 0.9rem;
+    color: var(--text-color-secondary);
+}
+.mt-1 { margin-top: 0.25rem !important; } /* Utility, likely already present */
+.page-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+.page-header-flex .btn { /* Style for back button */
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+}
+
+.customer-info-card .form-grid.grid-cols-custom-customer {
+    display: grid;
+    grid-template-columns: 150px 1fr; /* Profile pic column and details column */
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+@media (max-width: 767px) {
+    .customer-info-card .form-grid.grid-cols-custom-customer {
+        grid-template-columns: 1fr; /* Stack on mobile */
+        text-align: center;
+    }
+    .profile-pic-container {
+        margin-bottom: 1rem;
+    }
+}
+
+
+.profile-pic-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.profile-pic-img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%; /* Circular profile pic */
+    object-fit: cover; /* Ensure image covers the area nicely */
+    border: 3px solid var(--border-color-light);
+    margin-bottom: 0.5rem;
+    background-color: #f0f0f0; /* Placeholder background */
+}
+.hidden-file-input {
+    display: none;
+}
+#uploadStatus {
+    font-size: 0.75rem;
+    margin-top: 0.3rem;
+}
+
+
+.customer-main-details .form-group {
+    margin-bottom: 0.75rem; /* Tighter spacing for info display */
+}
+.form-static-text {
+    font-size: 0.9rem;
+    color: var(--text-color-primary);
+    padding: 0.6rem 0; /* Align with input padding */
+    min-height: calc(0.6rem * 2 + 0.9rem * 1.5); /* Match input height */
+    word-break: break-word;
+}
+
+
+.phone-number-entry {
+    display: grid;
+    grid-template-columns: 1fr 2fr auto; /* Type, Number, Remove button */
+    gap: 0.5rem;
+    align-items: center; /* Vertically align items */
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px dashed var(--border-color-light);
+}
+.phone-number-entry:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+.phone-number-entry .form-input { margin-bottom: 0; } /* Override default form-input margin */
+
+
+.admin-notes-card .notes-display-area {
+    background-color: #f8f9fa;
+    border: 1px solid var(--border-color-light);
+    border-radius: var(--border-radius-sm);
+    padding: 0.75rem;
+    min-height: 60px;
+    margin-bottom: 0.75rem;
+    white-space: pre-wrap;
+    font-size: 0.9rem;
+    color: var(--text-color-secondary);
+    line-height: 1.5;
+}
+.mt-1 { margin-top: 0.25rem !important; }
+.mb-1 { margin-bottom: 0.25rem !important; }
+
+.sales-history-card .spending-summary { /* Positioned before sales table */
+    text-align: right;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color-light);
+}
+.sales-history-card .spending-summary strong {
+    font-weight: 600;
+}

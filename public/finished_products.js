@@ -39,12 +39,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const mrpInput = document.getElementById('mrp');
     const sellingPriceInput = document.getElementById('sellingPrice');
     const unitOfMeasureInput = document.getElementById('unitOfMeasure');
+    const openingStockInput = document.getElementById('openingStock'); // New
+    const openingStockGroup = document.getElementById('openingStockGroup'); // New
     const productEditIdInput = document.getElementById('productEditId');
 
     const finishedProductsTableBody = document.getElementById('finishedProductsTableBody');
     const searchProductsInput = document.getElementById('searchProductsInput');
 
-    // Lookup section elements
     const lookupProductCodeInput = document.getElementById('lookupProductCode');
     const lookupProductNameInput = document.getElementById('lookupProductName');
     const lookupBatchNumberInput = document.getElementById('lookupBatchNumber');
@@ -54,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const PRODUCTION_LOG_PATH = 'productionLog'; 
 
     let allDefinedProducts = {}; 
-    let productionLogCacheForLookup = []; // Cache for lookup suggestions
+    let productionLogCacheForLookup = [];
 
     // --- Modal Functionality ---
     if (addNewProductBtn) {
@@ -64,10 +65,10 @@ document.addEventListener('DOMContentLoaded', () => {
             productCodeInput.disabled = false; 
             productFormTitle.textContent = 'Add New Finished Product';
             saveProductBtn.innerHTML = '<i class="fas fa-save fa-fw"></i> Save Product Definition';
-            lookupSuggestionsListEl.innerHTML = ''; // Clear lookup suggestions
-            lookupProductCodeInput.value = '';
-            lookupProductNameInput.value = '';
-            lookupBatchNumberInput.value = '';
+            openingStockGroup.style.display = 'block'; // Show opening stock for new product
+            openingStockInput.value = '0'; // Default opening stock to 0
+            lookupSuggestionsListEl.innerHTML = '';
+            lookupProductCodeInput.value = ''; lookupProductNameInput.value = ''; lookupBatchNumberInput.value = '';
             productFormModal.style.display = 'flex';
             productCodeInput.focus();
         };
@@ -77,43 +78,42 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.target === productFormModal) productFormModal.style.display = 'none';
     };
 
-    // --- Fetch Production Log for Suggestions (once on page load or refresh strategically) ---
     async function cacheProductionLogForSuggestions() {
         try {
-            // Fetching all might be heavy for large logs. Consider limiting or indexing if performance issues arise.
-            const snapshot = await db.ref(PRODUCTION_LOG_PATH).orderByChild('timestamp').limitToLast(100).once('value'); // Get recent 100
+            const snapshot = await db.ref(PRODUCTION_LOG_PATH).orderByChild('timestamp').limitToLast(100).once('value');
             productionLogCacheForLookup = [];
             if(snapshot.exists()){
                 snapshot.forEach(child => {
                     const data = child.val();
-                    // Store unique combinations, prioritizing most recent if codes/names repeat
                     if(data.finishedProductCode && data.finishedProductName) {
-                        const existing = productionLogCacheForLookup.find(item => item.code === data.finishedProductCode && item.name === data.finishedProductName && item.batch === (data.batchNumber || 'N/A'));
+                        const existing = productionLogCacheForLookup.find(item => 
+                            item.code === data.finishedProductCode && 
+                            item.name === data.finishedProductName && 
+                            item.batch === (data.batchNumber || 'N/A')
+                        );
                         if(!existing){
                              productionLogCacheForLookup.push({
                                 code: data.finishedProductCode,
                                 name: data.finishedProductName,
-                                batch: data.batchNumber || 'N/A' // Handle undefined batch numbers
+                                batch: data.batchNumber || 'N/A'
                             });
                         }
                     }
                 });
-                // console.log("Production Log Cache for Lookup:", productionLogCacheForLookup);
             }
         } catch(error){ console.error("Error caching production log for suggestions:", error); }
     }
 
-    // --- Lookup Input Event Listeners ---
     function displayLookupSuggestions(searchTerm, searchType) {
         lookupSuggestionsListEl.innerHTML = '';
         if (!searchTerm) return;
-
         const filtered = productionLogCacheForLookup.filter(item => {
-            if (searchType === 'code') return item.code.toLowerCase().includes(searchTerm);
-            if (searchType === 'name') return item.name.toLowerCase().includes(searchTerm);
-            if (searchType === 'batch') return item.batch.toLowerCase().includes(searchTerm);
+            const term = searchTerm.toLowerCase();
+            if (searchType === 'code') return item.code.toLowerCase().includes(term);
+            if (searchType === 'name') return item.name.toLowerCase().includes(term);
+            if (searchType === 'batch') return item.batch.toLowerCase().includes(term);
             return false;
-        }).slice(0, 5); // Show top 5 suggestions
+        }).slice(0, 5); 
 
         if (filtered.length > 0) {
             filtered.forEach(item => {
@@ -122,37 +122,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 li.onclick = async () => {
                     productCodeInput.value = item.code;
                     itemNameInput.value = item.name;
-                    lookupSuggestionsListEl.innerHTML = ''; // Clear suggestions
-                    lookupProductCodeInput.value = '';
-                    lookupProductNameInput.value = '';
-                    lookupBatchNumberInput.value = '';
+                    lookupSuggestionsListEl.innerHTML = ''; 
+                    lookupProductCodeInput.value = ''; lookupProductNameInput.value = ''; lookupBatchNumberInput.value = '';
                     
-                    // Check if this product is already defined, then open for edit
                     const existingDefSnapshot = await db.ref(`${DEFINED_PRODUCTS_PATH}/${item.code}`).once('value');
                     if (existingDefSnapshot.exists()) {
                         openEditModal(item.code, existingDefSnapshot.val());
                     } else {
-                        // It's a new definition, pre-filled code and name
-                        productEditIdInput.value = ''; // Ensure it's new mode
-                        productCodeInput.disabled = false; // Allow editing code if it's truly new (though it's prefilled)
+                        productEditIdInput.value = ''; 
+                        productCodeInput.disabled = false; 
                         productFormTitle.textContent = 'Add New Finished Product (Pre-filled)';
                         saveProductBtn.innerHTML = '<i class="fas fa-save fa-fw"></i> Save Product Definition';
-                        // User fills the rest (MRP, Price, etc.)
+                        openingStockGroup.style.display = 'block'; // Show for new pre-filled
+                        openingStockInput.value = '0'; // Default for new pre-filled
                     }
                 };
                 lookupSuggestionsListEl.appendChild(li);
             });
         } else {
-            lookupSuggestionsListEl.innerHTML = '<li>No matches found in production log.</li>';
+            lookupSuggestionsListEl.innerHTML = '<li>No matches in production log.</li>';
         }
     }
 
-    if(lookupProductCodeInput) lookupProductCodeInput.addEventListener('input', (e) => displayLookupSuggestions(e.target.value.toLowerCase(), 'code'));
-    if(lookupProductNameInput) lookupProductNameInput.addEventListener('input', (e) => displayLookupSuggestions(e.target.value.toLowerCase(), 'name'));
-    if(lookupBatchNumberInput) lookupBatchNumberInput.addEventListener('input', (e) => displayLookupSuggestions(e.target.value.toLowerCase(), 'batch'));
+    if(lookupProductCodeInput) lookupProductCodeInput.addEventListener('input', (e) => displayLookupSuggestions(e.target.value, 'code'));
+    if(lookupProductNameInput) lookupProductNameInput.addEventListener('input', (e) => displayLookupSuggestions(e.target.value, 'name'));
+    if(lookupBatchNumberInput) lookupBatchNumberInput.addEventListener('input', (e) => displayLookupSuggestions(e.target.value, 'batch'));
 
-
-    // --- Load and Display Defined Finished Products ---
     function loadDefinedProducts() {
         const productsRef = db.ref(DEFINED_PRODUCTS_PATH).orderByChild('itemName');
         productsRef.on('value', snapshot => {
@@ -165,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
         finishedProductsTableBody.innerHTML = '';
         const searchTerm = searchProductsInput.value.toLowerCase();
         let productDisplayed = false;
-        Object.keys(allDefinedProducts).forEach(productCode => {
+        Object.keys(allDefinedProducts).sort((a,b) => allDefinedProducts[a].itemName.localeCompare(allDefinedProducts[b].itemName)).forEach(productCode => { // Sort by item name for display
             const product = allDefinedProducts[productCode];
             if (product.itemName.toLowerCase().includes(searchTerm) || product.productCode.toLowerCase().includes(searchTerm)) {
                 renderProductRow(productCode, product);
@@ -214,25 +209,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 updatedAt: firebase.database.ServerValue.TIMESTAMP
             };
             try {
-                if (editId && editId === code) { // Ensure we are updating the same product if code was editable then disabled
-                    // Retain existing stock and sold counts when editing definition
+                if (editId && editId === code) { 
                     const existingProduct = allDefinedProducts[editId];
-                    productData.currentStock = existingProduct.currentStock || 0;
-                    productData.totalSold = existingProduct.totalSold || 0;
-                    productData.createdAt = existingProduct.createdAt || firebase.database.ServerValue.TIMESTAMP; // Preserve original creation date
-
+                    productData.currentStock = existingProduct.currentStock || 0; // Preserve stock
+                    productData.totalSold = existingProduct.totalSold || 0;     // Preserve sold
+                    productData.createdAt = existingProduct.createdAt || firebase.database.ServerValue.TIMESTAMP;
                     await db.ref(`${DEFINED_PRODUCTS_PATH}/${editId}`).update(productData);
                     alert(`Product "${itemName}" updated successfully!`);
-                } else { // Add new product
+                } else { 
                     const existingProductSnapshot = await db.ref(`${DEFINED_PRODUCTS_PATH}/${code}`).once('value');
                     if (existingProductSnapshot.exists()) {
                         alert(`Product Code "${code}" already exists. Cannot add duplicate.`); productCodeInput.focus(); return;
                     }
                     productData.createdAt = firebase.database.ServerValue.TIMESTAMP;
-                    productData.currentStock = 0; 
+                    productData.currentStock = parseInt(openingStockInput.value) || 0; // Use opening stock for NEW products
                     productData.totalSold = 0;
                     await db.ref(`${DEFINED_PRODUCTS_PATH}/${code}`).set(productData);
-                    alert(`Product "${itemName}" added successfully!`);
+                    alert(`Product "${itemName}" added successfully with opening stock of ${productData.currentStock}!`);
                 }
                 productFormModal.style.display = 'none'; productForm.reset();
             } catch (error) { console.error("Error saving product:", error); alert('Error saving. Check console.'); }
@@ -252,10 +245,9 @@ document.addEventListener('DOMContentLoaded', () => {
         mrpInput.value = data.mrp || '';
         sellingPriceInput.value = data.sellingPrice || '';
         unitOfMeasureInput.value = data.unitOfMeasure || '';
-        lookupSuggestionsListEl.innerHTML = ''; // Clear lookup suggestions
-        lookupProductCodeInput.value = '';
-        lookupProductNameInput.value = '';
-        lookupBatchNumberInput.value = '';
+        openingStockGroup.style.display = 'none'; // Hide opening stock when editing
+        lookupSuggestionsListEl.innerHTML = ''; 
+        lookupProductCodeInput.value = ''; lookupProductNameInput.value = ''; lookupBatchNumberInput.value = '';
         productFormModal.style.display = 'flex';
     }
 
@@ -274,8 +266,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function initializePage() {
-        await cacheProductionLogForSuggestions(); // Cache production log data for lookups
-        loadDefinedProducts(); // Load and display existing product definitions
+        await cacheProductionLogForSuggestions();
+        loadDefinedProducts(); 
     }
     initializePage();
 });
