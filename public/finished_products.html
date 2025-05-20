@@ -27,8 +27,7 @@
                     <a href="production.html" class="navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
                     <a href="finished_products.html" class="navbar-item active"><i class="fas fa-mug-hot fa-fw"></i> <span>Finished Products</span></a>
                     <a href="sales.html" class="navbar-item"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
-                    <a href="customer.html" class="navbar-item"><i class="fas fa-users fa-fw"></i> <span>customers</span></a>
-                   
+                    <a href="customers.html" class="navbar-item"><i class="fas fa-users fa-fw"></i> <span>Customers</span></a> 
                 </div>
             </div>
             <div id="mobile-menu" class="hidden">
@@ -38,8 +37,7 @@
                 <a href="production.html" class="mobile-navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
                 <a href="finished_products.html" class="mobile-navbar-item active"><i class="fas fa-mug-hot fa-fw"></i> <span>Finished Products</span></a>
                 <a href="sales.html" class="mobile-navbar-item"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
-                <a href="customer.html" class="mobile-navbar-item"><i class="fas fa-users fa-fw"></i> <span>customers</span></a>
-                
+                <a href="customers.html" class="mobile-navbar-item"><i class="fas fa-users fa-fw"></i> <span>Customers</span></a> {/* Corrected from customer.html */}
             </div>
         </nav>
 
@@ -112,10 +110,10 @@
                                     <input type="text" id="unitOfMeasure" class="form-input" placeholder="e.g., Pack, Box, Bottle" required>
                                 </div>
                                 
-                                <div class="form-group" id="openingStockGroup"> 
-                                    <label for="openingStock" class="form-label">Opening Stock Quantity:</label>
-                                    <input type="number" step="1" id="openingStock" class="form-input" placeholder="0">
-                                    <p class="form-hint">Enter initial stock if adding a new product with existing inventory.</p>
+                                <div class="form-group" id="currentStockEditGroup"> 
+                                    <label for="currentStockEditInput" class="form-label" id="stockInputLabel">Opening Stock Quantity:</label> 
+                                    <input type="number" step="1" id="currentStockEditInput" class="form-input" placeholder="0">
+                                    <p class="form-hint" id="stockAdjustHint">Enter initial stock for a new product. For existing products, this is the current stock and can be adjusted (use with caution).</p>
                                 </div>
 
                                 <button type="submit" id="saveProductBtn" class="btn btn-success btn-block mt-1">

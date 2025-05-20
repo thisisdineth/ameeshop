@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    // --- Navbar Mobile Menu Toggle ---
     const mobileMenuButton = document.getElementById('mobile-menu-button');
     const mobileMenu = document.getElementById('mobile-menu');
     if (mobileMenuButton && mobileMenu) {
@@ -25,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- DOM Elements ---
     const addNewProductBtn = document.getElementById('addNewProductBtn');
     const productFormModal = document.getElementById('productFormModal');
     const closeModalButton = document.querySelector('#productFormModal .modal-close-button');
@@ -39,8 +41,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const mrpInput = document.getElementById('mrp');
     const sellingPriceInput = document.getElementById('sellingPrice');
     const unitOfMeasureInput = document.getElementById('unitOfMeasure');
-    const openingStockInput = document.getElementById('openingStock'); // New
-    const openingStockGroup = document.getElementById('openingStockGroup'); // New
+    
+    const stockInputGroup = document.getElementById('currentStockEditGroup'); // Group DIV
+    const stockInputLabel = document.getElementById('stockInputLabel');   // Label for the stock input
+    const stockInputField = document.getElementById('currentStockEditInput'); // The stock input field
+    const stockAdjustHintEl = document.getElementById('stockAdjustHint');     // Hint text
+
     const productEditIdInput = document.getElementById('productEditId');
 
     const finishedProductsTableBody = document.getElementById('finishedProductsTableBody');
@@ -57,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let allDefinedProducts = {}; 
     let productionLogCacheForLookup = [];
 
-    // --- Modal Functionality ---
+    // --- Modal Functionality & Form Prep ---
     if (addNewProductBtn) {
         addNewProductBtn.onclick = () => {
             productForm.reset();
@@ -65,8 +71,12 @@ document.addEventListener('DOMContentLoaded', () => {
             productCodeInput.disabled = false; 
             productFormTitle.textContent = 'Add New Finished Product';
             saveProductBtn.innerHTML = '<i class="fas fa-save fa-fw"></i> Save Product Definition';
-            openingStockGroup.style.display = 'block'; // Show opening stock for new product
-            openingStockInput.value = '0'; // Default opening stock to 0
+            
+            if (stockInputGroup) stockInputGroup.style.display = 'block';
+            if (stockInputLabel) stockInputLabel.textContent = 'Opening Stock Quantity:';
+            if (stockInputField) stockInputField.value = '0'; 
+            if (stockAdjustHintEl) stockAdjustHintEl.textContent = 'Enter initial stock if adding a new product with existing inventory.';
+
             lookupSuggestionsListEl.innerHTML = '';
             lookupProductCodeInput.value = ''; lookupProductNameInput.value = ''; lookupBatchNumberInput.value = '';
             productFormModal.style.display = 'flex';
@@ -78,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.target === productFormModal) productFormModal.style.display = 'none';
     };
 
+    // --- Cache Production Log For Suggestions ---
     async function cacheProductionLogForSuggestions() {
         try {
             const snapshot = await db.ref(PRODUCTION_LOG_PATH).orderByChild('timestamp').limitToLast(100).once('value');
@@ -93,9 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         );
                         if(!existing){
                              productionLogCacheForLookup.push({
-                                code: data.finishedProductCode,
-                                name: data.finishedProductName,
-                                batch: data.batchNumber || 'N/A'
+                                code: data.finishedProductCode, name: data.finishedProductName, batch: data.batchNumber || 'N/A'
                             });
                         }
                     }
@@ -104,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch(error){ console.error("Error caching production log for suggestions:", error); }
     }
 
+    // --- Lookup Input Event Listeners & Display ---
     function displayLookupSuggestions(searchTerm, searchType) {
         lookupSuggestionsListEl.innerHTML = '';
         if (!searchTerm) return;
@@ -120,8 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const li = document.createElement('li');
                 li.textContent = `Code: ${item.code}, Name: ${item.name}, Batch: ${item.batch}`;
                 li.onclick = async () => {
-                    productCodeInput.value = item.code;
-                    itemNameInput.value = item.name;
+                    productCodeInput.value = item.code; itemNameInput.value = item.name;
                     lookupSuggestionsListEl.innerHTML = ''; 
                     lookupProductCodeInput.value = ''; lookupProductNameInput.value = ''; lookupBatchNumberInput.value = '';
                     
@@ -129,12 +138,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (existingDefSnapshot.exists()) {
                         openEditModal(item.code, existingDefSnapshot.val());
                     } else {
-                        productEditIdInput.value = ''; 
-                        productCodeInput.disabled = false; 
+                        productEditIdInput.value = ''; productCodeInput.disabled = false; 
                         productFormTitle.textContent = 'Add New Finished Product (Pre-filled)';
                         saveProductBtn.innerHTML = '<i class="fas fa-save fa-fw"></i> Save Product Definition';
-                        openingStockGroup.style.display = 'block'; // Show for new pre-filled
-                        openingStockInput.value = '0'; // Default for new pre-filled
+                        if(stockInputGroup) stockInputGroup.style.display = 'block';
+                        if(stockInputLabel) stockInputLabel.textContent = 'Opening Stock Quantity:';
+                        if(stockInputField) stockInputField.value = '0';
+                        if(stockAdjustHintEl) stockAdjustHintEl.textContent = 'Enter initial stock for this new product.';
                     }
                 };
                 lookupSuggestionsListEl.appendChild(li);
@@ -143,16 +153,17 @@ document.addEventListener('DOMContentLoaded', () => {
             lookupSuggestionsListEl.innerHTML = '<li>No matches in production log.</li>';
         }
     }
+    let lookupTimeout;
+    const handleLookupInput = (e, type) => { clearTimeout(lookupTimeout); lookupTimeout = setTimeout(() => { displayLookupSuggestions(e.target.value, type); }, 300); };
+    if(lookupProductCodeInput) lookupProductCodeInput.addEventListener('input', (e) => handleLookupInput(e, 'code'));
+    if(lookupProductNameInput) lookupProductNameInput.addEventListener('input', (e) => handleLookupInput(e, 'name'));
+    if(lookupBatchNumberInput) lookupBatchNumberInput.addEventListener('input', (e) => handleLookupInput(e, 'batch'));
 
-    if(lookupProductCodeInput) lookupProductCodeInput.addEventListener('input', (e) => displayLookupSuggestions(e.target.value, 'code'));
-    if(lookupProductNameInput) lookupProductNameInput.addEventListener('input', (e) => displayLookupSuggestions(e.target.value, 'name'));
-    if(lookupBatchNumberInput) lookupBatchNumberInput.addEventListener('input', (e) => displayLookupSuggestions(e.target.value, 'batch'));
-
+    // --- Load and Display Defined Finished Products ---
     function loadDefinedProducts() {
         const productsRef = db.ref(DEFINED_PRODUCTS_PATH).orderByChild('itemName');
         productsRef.on('value', snapshot => {
-            allDefinedProducts = snapshot.val() || {};
-            displayFilteredProducts();
+            allDefinedProducts = snapshot.val() || {}; displayFilteredProducts();
         });
     }
 
@@ -160,11 +171,10 @@ document.addEventListener('DOMContentLoaded', () => {
         finishedProductsTableBody.innerHTML = '';
         const searchTerm = searchProductsInput.value.toLowerCase();
         let productDisplayed = false;
-        Object.keys(allDefinedProducts).sort((a,b) => allDefinedProducts[a].itemName.localeCompare(allDefinedProducts[b].itemName)).forEach(productCode => { // Sort by item name for display
+        Object.keys(allDefinedProducts).sort((a,b) => allDefinedProducts[a].itemName.localeCompare(allDefinedProducts[b].itemName)).forEach(productCode => {
             const product = allDefinedProducts[productCode];
             if (product.itemName.toLowerCase().includes(searchTerm) || product.productCode.toLowerCase().includes(searchTerm)) {
-                renderProductRow(productCode, product);
-                productDisplayed = true;
+                renderProductRow(productCode, product); productDisplayed = true;
             }
         });
         if(!productDisplayed){
@@ -190,6 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
         actionsCell.appendChild(editBtn); actionsCell.appendChild(deleteBtn);
     }
 
+    // --- Save/Update Product Definition ---
     if (productForm) {
         productForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -199,6 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!code || !itemName || !sellingPriceInput.value || !unitOfMeasureInput.value) {
                 alert('Item Code, Name, Selling Price, and Unit of Measure are required.'); return;
             }
+            
             const productData = {
                 productCode: code, itemName: itemName,
                 standardWeight: parseFloat(standardWeightInput.value) || 0,
@@ -208,30 +220,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 unitOfMeasure: unitOfMeasureInput.value.trim(),
                 updatedAt: firebase.database.ServerValue.TIMESTAMP
             };
+
             try {
-                if (editId && editId === code) { 
+                if (editId && editId === code) { // Updating existing product
                     const existingProduct = allDefinedProducts[editId];
-                    productData.currentStock = existingProduct.currentStock || 0; // Preserve stock
-                    productData.totalSold = existingProduct.totalSold || 0;     // Preserve sold
+                    productData.currentStock = parseInt(stockInputField.value) || 0; // Get adjusted stock from input
+                    productData.totalSold = existingProduct.totalSold || 0; // Preserve totalSold
                     productData.createdAt = existingProduct.createdAt || firebase.database.ServerValue.TIMESTAMP;
                     await db.ref(`${DEFINED_PRODUCTS_PATH}/${editId}`).update(productData);
                     alert(`Product "${itemName}" updated successfully!`);
-                } else { 
+                } else { // Adding new product
                     const existingProductSnapshot = await db.ref(`${DEFINED_PRODUCTS_PATH}/${code}`).once('value');
                     if (existingProductSnapshot.exists()) {
                         alert(`Product Code "${code}" already exists. Cannot add duplicate.`); productCodeInput.focus(); return;
                     }
                     productData.createdAt = firebase.database.ServerValue.TIMESTAMP;
-                    productData.currentStock = parseInt(openingStockInput.value) || 0; // Use opening stock for NEW products
+                    productData.currentStock = parseInt(stockInputField.value) || 0; // Use opening/current stock from input
                     productData.totalSold = 0;
                     await db.ref(`${DEFINED_PRODUCTS_PATH}/${code}`).set(productData);
-                    alert(`Product "${itemName}" added successfully with opening stock of ${productData.currentStock}!`);
+                    alert(`Product "${itemName}" added successfully with stock of ${productData.currentStock}!`);
                 }
                 productFormModal.style.display = 'none'; productForm.reset();
             } catch (error) { console.error("Error saving product:", error); alert('Error saving. Check console.'); }
         });
     }
 
+    // --- Open Edit Modal ---
     function openEditModal(productCode, data) {
         productForm.reset();
         productFormTitle.textContent = `Edit Product: ${data.itemName || productCode}`;
@@ -245,17 +259,24 @@ document.addEventListener('DOMContentLoaded', () => {
         mrpInput.value = data.mrp || '';
         sellingPriceInput.value = data.sellingPrice || '';
         unitOfMeasureInput.value = data.unitOfMeasure || '';
-        openingStockGroup.style.display = 'none'; // Hide opening stock when editing
+        
+        if (stockInputGroup) stockInputGroup.style.display = 'block'; // Make sure it's visible for edits
+        if (stockInputLabel) stockInputLabel.textContent = 'Current Available Stock (Adjust if needed):';
+        if (stockInputField) stockInputField.value = data.currentStock || '0'; // Populate with current stock
+        if (stockAdjustHintEl) stockAdjustHintEl.textContent = 'Adjust current stock directly. Use with caution.';
+
+
         lookupSuggestionsListEl.innerHTML = ''; 
         lookupProductCodeInput.value = ''; lookupProductNameInput.value = ''; lookupBatchNumberInput.value = '';
         productFormModal.style.display = 'flex';
     }
 
+    // --- Delete Product Definition (Keep as is) ---
     async function deleteProduct(productCode, itemName, currentStock) {
         if (!productCode) return;
         let confirmMessage = `DELETE product definition for "${itemName}" (Code: ${productCode})? This cannot be undone.`;
         if (currentStock && currentStock > 0) {
-            confirmMessage += `\n\nWARNING: This product has ${currentStock} units in stock. Deleting the definition will not remove the stock records from production log but will make this product unmanageable here.`;
+            confirmMessage += `\n\nWARNING: This product has ${currentStock} units in stock. Deleting definition will not remove stock from logs but makes it unmanageable here.`;
         }
         if (confirm(confirmMessage)) {
             try {
@@ -265,6 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- Initial Load ---
     async function initializePage() {
         await cacheProductionLogForSuggestions();
         loadDefinedProducts(); 
