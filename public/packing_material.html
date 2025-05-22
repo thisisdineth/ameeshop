@@ -25,10 +25,9 @@
                     <a href="raw_tea.html" class="navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Tea</span></a>
                     <a href="packing_material.html" class="navbar-item active"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
                     <a href="production.html" class="navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
-                                    <a href="finished_products.html" class="mobile-navbar-item"><i class="fas fa-mug-hot fa-fw"></i> <span>Finised Product</span></a>
+                    <a href="finished_products.html" class="mobile-navbar-item"><i class="fas fa-mug-hot fa-fw"></i> <span>Finished Product</span></a>
                     <a href="sales.html" class="navbar-item"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
                     <a href="customer.html" class="navbar-item"><i class="fas fa-users fa-fw"></i> <span>Customers</span></a>
-                 
                 </div>
             </div>
             <div id="mobile-menu" class="hidden">
@@ -36,10 +35,9 @@
                 <a href="raw_tea.html" class="mobile-navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Tea</span></a>
                 <a href="packing_material.html" class="mobile-navbar-item active"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
                 <a href="production.html" class="mobile-navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
-                 <a href="finished_products.html" class="mobile-navbar-item"><i class="fas fa-mug-hot fa-fw"></i> <span>Finised Product</span></a>
+                <a href="finished_products.html" class="mobile-navbar-item"><i class="fas fa-mug-hot fa-fw"></i> <span>Finished Product</span></a>
                 <a href="sales.html" class="mobile-navbar-item"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
                 <a href="customer.html" class="mobile-navbar-item"><i class="fas fa-users fa-fw"></i> <span>Customers</span></a>
-
             </div>
         </nav>
 
@@ -75,7 +73,23 @@
                 </div>
 
                 <div id="currentTableDisplay" class="section-card hidden">
-                    <h2 id="currentTableNameDisplay" class="section-title current-table-name"></h2>
+                    <div class="current-table-header">
+                        <h2 id="currentTableNameDisplay" class="section-title current-table-name"></h2>
+                        <div class="table-actions">
+                            <button id="exportToExcelBtn" class="btn btn-info btn-sm">
+                                <i class="fas fa-file-excel fa-fw"></i> Export to Excel (CSV)
+                            </button>
+                            <div class="sort-options">
+                                <label for="sortOrderSelect" class="form-label sr-only">Sort by:</label>
+                                <select id="sortOrderSelect" class="form-input form-input-sm">
+                                    <option value="timestamp_desc">Date Added (Newest First)</option>
+                                    <option value="timestamp_asc">Date Added (Oldest First)</option>
+                                    <option value="transactionDate_desc">Transaction Date (Newest First)</option>
+                                    <option value="transactionDate_asc">Transaction Date (Oldest First)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                     <p class="current-balance-summary">Current Balance: <strong id="currentCalculatedBalance">0 Pcs/Units</strong></p>
                     <div class="table-responsive-wrapper">
                         <table id="packingMaterialTable" class="data-table">
@@ -88,7 +102,7 @@
                                     <th class="table-header text-right">Receive Qty</th>
                                     <th class="table-header">Issue Date</th>
                                     <th class="table-header text-right">Issue Qty</th>
-                                    <th class="table-header">Reason/Product</th>
+                                    <th class="table-header">Reason/Product/Notes</th>
                                     <th class="table-header text-right">Balance (Qty)</th>
                                     <th class="table-header text-center">Actions</th>
                                 </tr>
@@ -98,37 +112,70 @@
                     </div>
                 </div>
 
-                <div id="addRowFormContainer" class="section-card hidden">
-                    <h3 class="section-title">Add New Receive Entry to <span id="addRowFormTableName"></span></h3>
-                    <form id="addRowForm">
-                        <div class="form-group">
-                            <label for="transactionDate" class="form-label">Transaction Date (Record Date):</label>
-                            <input type="date" id="transactionDate" class="form-input" required>
-                        </div>
-                        <h4 class="form-section-title">Receive Details</h4>
-                        <div class="form-grid grid-cols-3">
+                <div id="entryFormsContainer" class="section-card hidden">
+                    <div id="addRowFormContainer">
+                        <h3 class="section-title">Add New Receive Entry to <span id="addRowFormTableName"></span></h3>
+                        <form id="addRowForm">
                             <div class="form-group">
-                                <label for="receiveDate" class="form-label">Actual Receive Date:</label>
-                                <input type="date" id="receiveDate" class="form-input">
-                                <p class="form-hint">Defaults to Transaction Date if empty.</p>
+                                <label for="transactionDate" class="form-label">Transaction Date (Record Date):</label>
+                                <input type="date" id="transactionDate" class="form-input" required>
+                            </div>
+                            <h4 class="form-section-title">Receive Details</h4>
+                            <div class="form-grid grid-cols-3">
+                                <div class="form-group">
+                                    <label for="receiveDate" class="form-label">Actual Receive Date:</label>
+                                    <input type="date" id="receiveDate" class="form-input">
+                                    <p class="form-hint">Defaults to Transaction Date if empty.</p>
+                                </div>
+                                <div class="form-group">
+                                    <label for="receiveUnitPrice" class="form-label">Unit Price:</label>
+                                    <input type="number" step="0.01" id="receiveUnitPrice" class="form-input" placeholder="0.00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="receiveQty" class="form-label">Receive Quantity:</label>
+                                    <input type="number" step="1" id="receiveQty" class="form-input" placeholder="0" required>
+                                </div>
                             </div>
                             <div class="form-group">
-                                <label for="receiveUnitPrice" class="form-label">Unit Price:</label>
-                                <input type="number" step="0.01" id="receiveUnitPrice" class="form-input" placeholder="0.00">
+                                <label for="receiveNotes" class="form-label">Receive Notes (Optional):</label>
+                                <textarea id="receiveNotes" class="form-input" rows="2" placeholder="e.g., Supplier Name, PO Number"></textarea>
                             </div>
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <i class="fas fa-plus fa-fw"></i> Add Receive Entry
+                            </button>
+                        </form>
+                    </div>
+
+                    <hr class="form-divider">
+
+                    <div id="addManualOutflowContainer" class="mt-2">
+                         <h3 class="section-title">Add Manual Outflow Entry to <span id="addOutflowFormTableName"></span></h3>
+                        <form id="addManualOutflowForm">
                             <div class="form-group">
-                                <label for="receiveQty" class="form-label">Receive Quantity:</label>
-                                <input type="number" step="1" id="receiveQty" class="form-input" placeholder="0" required>
+                                <label for="outflowTransactionDate" class="form-label">Transaction Date (Record Date):</label>
+                                <input type="date" id="outflowTransactionDate" class="form-input" required>
                             </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="receiveNotes" class="form-label">Receive Notes (Optional):</label>
-                            <textarea id="receiveNotes" class="form-input" rows="2" placeholder="e.g., Supplier Name, PO Number"></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-block">
-                            <i class="fas fa-plus fa-fw"></i> Add Receive Entry
-                        </button>
-                    </form>
+                             <h4 class="form-section-title">Outflow Details</h4>
+                            <div class="form-grid grid-cols-3">
+                                <div class="form-group">
+                                    <label for="outflowIssueDate" class="form-label">Actual Issue Date:</label>
+                                    <input type="date" id="outflowIssueDate" class="form-input">
+                                    <p class="form-hint">Defaults to Transaction Date if empty.</p>
+                                </div>
+                                <div class="form-group">
+                                    <label for="outflowIssueQty" class="form-label">Issue Quantity:</label>
+                                    <input type="number" step="1" id="outflowIssueQty" class="form-input" placeholder="0" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="outflowReason" class="form-label">Reason/Product:</label>
+                                    <input type="text" id="outflowReason" class="form-input" placeholder="e.g., Damaged, Internal Use" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-warning btn-block">
+                                <i class="fas fa-minus-circle fa-fw"></i> Add Manual Outflow Entry
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </main>

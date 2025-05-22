@@ -563,3 +563,33 @@ form-subsection-title { /* Used in sales form for "Items Sold" */
 .sales-history-card .spending-summary strong {
     font-weight: 600;
 }
+ .table-actions-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .sort-controls, .export-controls {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .sort-controls label, .export-controls label {
+            margin-right: 0.3rem;
+            font-weight: 500;
+        }
+        .btn-icon {
+            padding: 0.375rem 0.75rem;
+        }
+         #manualOutflowFormContainer.section-card, #addRowFormContainer.section-card {
+            margin-top: 1.5rem;
+         }
+         .form-title {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+            border-bottom: 1px solid var(--border-color-light);
+            padding-bottom: 0.5rem;
+         }
