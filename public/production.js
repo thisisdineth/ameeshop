@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Helper Functions ---
     function formatDate(timestamp) {
         if (!timestamp) return 'N/A';
-        return new Date(timestamp).toLocaleDateString('en-CA'); // YYYY-MM-DD
+        return new Date(timestamp).toLocaleDateString('en-CA'); //ตลาด-MM-DD
     }
 
     function formatCurrency(amount) {
@@ -307,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             ...productDefinitionData,
                             currentStock: quantityAddedToSellable,
                             pendingStock: quantityForPending,
-                            totalSold: 0, // Initialize totalSold for new products
+                            addedToDelivery: 0, // Initialize addedToDelivery for new products
                             notes: productionRunDetails.notes,
                             batchNumberOnCreation: productionRunDetails.batchNumber,
                             createdAt: firebase.database.ServerValue.TIMESTAMP,
@@ -321,7 +321,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         currentData.sellingPrice = productDefinitionData.sellingPrice;
                         currentData.currentStock = (currentData.currentStock || 0) + quantityAddedToSellable;
                         currentData.pendingStock = (currentData.pendingStock || 0) + quantityForPending;
-                        // notes and totalSold are not modified here for existing products by production
+                        // notes and addedToDelivery are not modified here for existing products by production
+                        // addedToDelivery will be updated by sales.js
+                        if (typeof currentData.addedToDelivery === 'undefined') {
+                             currentData.addedToDelivery = 0; // Initialize if it doesn't exist
+                        }
                         currentData.updatedAt = firebase.database.ServerValue.TIMESTAMP;
                         return currentData;
                     }
@@ -368,7 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, err => {
             console.error("Error loading finished products on production page:", err);
             if(finishedProductsTableBody) {
-                 finishedProductsTableBody.innerHTML = `<tr><td colspan="12" class="text-center text-danger">Error loading finished products. Check console.</td></tr>`;
+                 finishedProductsTableBody.innerHTML = `<tr><td colspan="11" class="text-center text-danger">Error loading finished products. Check console.</td></tr>`;
             }
         });
     }
@@ -391,8 +395,8 @@ document.addEventListener('DOMContentLoaded', () => {
         switch (currentSortCriteria) {
             case 'latestCreated': productsToDisplay.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); break;
             case 'oldestCreated': productsToDisplay.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)); break;
-            case 'topSelling': productsToDisplay.sort((a, b) => (b.totalSold || 0) - (a.totalSold || 0)); break;
-            case 'lowestSelling': productsToDisplay.sort((a, b) => (a.totalSold || 0) - (b.totalSold || 0)); break;
+            case 'topSelling': productsToDisplay.sort((a, b) => (b.addedToDelivery || 0) - (a.addedToDelivery || 0)); break; // Changed from totalSold
+            case 'lowestSelling': productsToDisplay.sort((a, b) => (a.addedToDelivery || 0) - (b.addedToDelivery || 0)); break; // Changed from totalSold
             case 'productNameAZ': productsToDisplay.sort((a, b) => (a.itemName || "").localeCompare(b.itemName || "")); break;
             case 'productNameZA': productsToDisplay.sort((a, b) => (b.itemName || "").localeCompare(a.itemName || "")); break;
             default: productsToDisplay.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -409,18 +413,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const mrpCell = row.insertCell(); mrpCell.textContent = formatCurrency(product.mrp); mrpCell.classList.add('text-right');
                 const spCell = row.insertCell(); spCell.textContent = formatCurrency(product.sellingPrice); spCell.classList.add('text-right');
                 
-                // "Avg. Income (Rs.)" is actually SP - MRP. If SP > MRP, it's positive.
-                const incomeMetric = (product.sellingPrice || 0) - (product.mrp || 0);
-                const incomeCell = row.insertCell(); incomeCell.textContent = formatCurrency(incomeMetric); incomeCell.classList.add('text-right');
-                if (incomeMetric > 0 && product.mrp > 0) { // If Selling Price is greater than MRP (and MRP is set)
-                     incomeCell.classList.add('text-warning'); 
-                } else if (incomeMetric < 0) { // If Selling Price is less than MRP (discounted)
-                    // incomeCell.classList.add('text-info'); // Optional: style for discounted items
-                }
-
                 const sellableStockCell = row.insertCell(); sellableStockCell.textContent = product.currentStock || 0; sellableStockCell.classList.add('text-center');
                 const pendingStockCell = row.insertCell(); pendingStockCell.textContent = product.pendingStock || 0; pendingStockCell.classList.add('text-center');
-                const totalSoldCell = row.insertCell(); totalSoldCell.textContent = product.totalSold || 0; totalSoldCell.classList.add('text-center'); // Updated by sales.js
+                const addedToDeliveryCell = row.insertCell(); addedToDeliveryCell.textContent = product.addedToDelivery || 0; addedToDeliveryCell.classList.add('text-center'); // Changed from totalSold
 
                 row.insertCell().textContent = formatDate(product.createdAt);
 

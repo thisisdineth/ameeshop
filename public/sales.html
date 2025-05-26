@@ -19,6 +19,7 @@
             width: calc(100% - 2px); /* Match input width */
             max-height: 150px;
             overflow-y: auto;
+            box-sizing: border-box;
         }
         .suggestions-dropdown ul {
             list-style-type: none;
@@ -29,16 +30,17 @@
             padding: 8px 12px;
             cursor: pointer;
         }
-        .suggestions-dropdown li:hover {
+        .suggestions-dropdown li:hover, .suggestions-dropdown li.selected {
             background-color: #f0f0f0;
         }
-        .customer-input-group {
-            position: relative; /* For suggestions dropdown positioning */
+        .input-group-relative { /* Renamed for clarity */
+            position: relative; 
         }
         .sale-item-row {
-            grid-template-columns: 2.5fr 0.8fr 1fr 0.8fr 1fr auto; /* Adjusted for item discount */
-            gap: 0.5rem;
-            align-items: flex-end; /* Align items to the bottom for better button alignment */
+            /* Adjusted for removed item discount: Product, Qty, Price/Unit, Line Total, Remove Btn */
+            grid-template-columns: 3fr 1fr 1.5fr 1.5fr auto; 
+            gap: 0.75rem; /* Slightly increased gap */
+            align-items: flex-end; 
             margin-bottom: 0.75rem;
         }
         .sale-item-row .form-group {
@@ -51,25 +53,31 @@
         .mt-1 { margin-top: 1rem; }
         .form-label-sm { font-size: 0.8em; margin-bottom: 0.25rem; display: block;}
 
-        /* Ensure table link styling if not globally defined */
         .table-link {
-            color: var(--primary-color);
-            text-decoration: none;
+            color: var(--primary-color); text-decoration: none;
         }
-        .table-link:hover {
-            text-decoration: underline;
+        .table-link:hover { text-decoration: underline; }
+        .material-list-display {
+            list-style: none; padding-left: 0; margin-bottom: 0; font-size: 0.9em;
         }
-        .material-list-display { /* For displaying items in sales history */
-            list-style: none;
-            padding-left: 0;
-            margin-bottom: 0;
+        .btn-remove-item {
+            padding: 0.5rem 0.75rem;
+        }
+        .line-total-group input { text-align: right; }
+        #deliverySelectionContainer .form-group { margin-bottom: 0.5rem; }
+        #selectedDeliveryInfo {
             font-size: 0.9em;
+            color: var(--primary-color);
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background-color: #e9f7ef;
+            border-left: 3px solid var(--success-color);
         }
-         .btn-remove-item {
-            padding: 0.5rem 0.75rem; /* Adjust padding for smaller buttons if needed */
-        }
-        .item-discount-group input, .line-total-group input {
-            text-align: right;
+        .form-hint {
+            font-size: 0.85rem;
+            color: var(--text-color-muted);
+            margin-top: 0.5rem;
+            margin-bottom:1rem;
         }
     </style>
 </head>
@@ -88,8 +96,9 @@
                     <a href="raw_tea.html" class="navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Tea</span></a>
                     <a href="packing_material.html" class="navbar-item"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
                     <a href="production.html" class="navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
+                    <a href="delivery.html" class="navbar-item"><i class="fas fa-truck fa-fw"></i> <span>Delivery</span></a>
                     <a href="sales.html" class="navbar-item active"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
-                    <a href="customers.html" class="navbar-item"><i class="fas fa-users fa-fw"></i> <span>Customers</span></a>
+                    <a href="customer.html" class="navbar-item"><i class="fas fa-users fa-fw"></i> <span>Customers</span></a>
                 </div>
             </div>
             <div id="mobile-menu" class="hidden">
@@ -97,8 +106,9 @@
                 <a href="raw_tea.html" class="mobile-navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Tea</span></a>
                 <a href="packing_material.html" class="mobile-navbar-item"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
                 <a href="production.html" class="mobile-navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a> 
+                <a href="delivery.html" class="mobile-navbar-item"><i class="fas fa-truck fa-fw"></i> <span>Delivery</span></a>
                 <a href="sales.html" class="mobile-navbar-item active"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
-                <a href="customers.html" class="mobile-navbar-item"><i class="fas fa-users fa-fw"></i> <span>Customers</span></a>
+                <a href="customer.html" class="mobile-navbar-item"><i class="fas fa-users fa-fw"></i> <span>Customers</span></a>
             </div>
         </nav>
 
@@ -109,6 +119,26 @@
                 <div id="recordSaleFormContainer" class="section-card">
                     <h2 class="section-title"><i class="fas fa-cash-register fa-fw"></i> Record New Sale</h2>
                     <form id="saleForm">
+                        
+                        <div id="deliverySelectionContainer">
+                            <h3 class="form-subsection-title"><i class="fas fa-truck fa-fw"></i> Select Delivery Source</h3>
+                            <div class="form-grid grid-cols-2">
+                                <div class="form-group input-group-relative">
+                                    <label for="deliveryVehicleNumberInput" class="form-label">Vehicle Number:</label>
+                                    <input type="text" id="deliveryVehicleNumberInput" class="form-input" placeholder="Type vehicle number..." autocomplete="off">
+                                    <div id="vehicleSuggestionsList" class="suggestions-dropdown"></div>
+                                </div>
+                                <div class="form-group input-group-relative">
+                                    <label for="driverNameInput" class="form-label">Driver Name:</label>
+                                    <input type="text" id="driverNameInput" class="form-input" placeholder="Type driver name..." autocomplete="off">
+                                    <div id="driverSuggestionsList" class="suggestions-dropdown"></div>
+                                </div>
+                            </div>
+                            <div id="selectedDeliveryInfo" style="display: none;"></div>
+                            <input type="hidden" id="selectedDeliveryLogId"> <p class="form-hint">Sales can only be made from an active delivery vehicle with stock. Select vehicle/driver to load available products.</p>
+                        </div>
+                        <hr class="form-divider">
+
                         <div class="form-grid grid-cols-2">
                             <div class="form-group">
                                 <label for="saleDate" class="form-label">Sale Date:</label>
@@ -126,7 +156,7 @@
                                 <label for="newCityNameInput" class="form-label">Or Add New City:</label>
                                 <input type="text" id="newCityNameInput" class="form-input" placeholder="Type new city name...">
                             </div>
-                            <div class="form-group customer-input-group">
+                            <div class="form-group input-group-relative">
                                 <label for="customerName" class="form-label">Customer Name:</label>
                                 <input type="text" id="customerName" class="form-input" placeholder="Select/Enter City first..." autocomplete="off" required disabled>
                                 <div id="customerSuggestionsList" class="suggestions-dropdown"></div>
@@ -141,7 +171,7 @@
                         <h3 class="form-subsection-title">Items Sold</h3>
                         <div id="saleItemsContainer">
                             </div>
-                        <button type="button" id="addSaleItemButton" class="btn btn-secondary btn-sm mb-1">
+                        <button type="button" id="addSaleItemButton" class="btn btn-secondary btn-sm mb-1" disabled>
                             <i class="fas fa-plus fa-fw"></i> Add Item to Sale
                         </button>
                         <hr class="form-divider">
@@ -192,7 +222,7 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-success btn-block mt-1">
+                        <button type="submit" id="completeSaleButton" class="btn btn-success btn-block mt-1" disabled>
                             <i class="fas fa-check-circle fa-fw"></i> Complete Sale & Update Stock
                         </button>
                     </form>
@@ -201,7 +231,7 @@
                 <div id="salesHistoryDisplay" class="section-card">
                     <h2 class="section-title"><i class="fas fa-history fa-fw"></i> Sales History</h2>
                     <div class="form-group">
-                        <label for="searchSalesInput" class="form-label">Search Sales (by Customer, City or Sale ID):</label>
+                        <label for="searchSalesInput" class="form-label">Search Sales (by Customer, City, Sale ID, Vehicle, Driver):</label>
                         <input type="text" id="searchSalesInput" class="form-input" placeholder="Type to search...">
                     </div>
                     <div class="table-responsive-wrapper">
@@ -211,7 +241,7 @@
                                     <th class="table-header">Sale Date</th>
                                     <th class="table-header">Sale ID</th>
                                     <th class="table-header">Customer (City)</th>
-                                    <th class="table-header">Items</th>
+                                    <th class="table-header">Items (Qty @ Price/Unit)</th> <th class="table-header">Source Vehicle (Driver)</th>
                                     <th class="table-header text-right">Grand Total (Rs.)</th>
                                     <th class="table-header">Payment Method</th>
                                     <th class="table-header text-center">Actions</th>
