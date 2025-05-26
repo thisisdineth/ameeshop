@@ -9,6 +9,69 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="tbs.css">
+    <style>
+        /* Existing styles from tbs.css or your custom styles */
+        .suggestions-dropdown {
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ddd;
+            z-index: 1000;
+            width: calc(100% - 2px); /* Match input width */
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .suggestions-dropdown ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+        .suggestions-dropdown li {
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+        .suggestions-dropdown li:hover {
+            background-color: #f0f0f0;
+        }
+        .customer-input-group {
+            position: relative; /* For suggestions dropdown positioning */
+        }
+        .sale-item-row {
+            grid-template-columns: 2.5fr 0.8fr 1fr 0.8fr 1fr auto; /* Adjusted for item discount */
+            gap: 0.5rem;
+            align-items: flex-end; /* Align items to the bottom for better button alignment */
+            margin-bottom: 0.75rem;
+        }
+        .sale-item-row .form-group {
+            margin-bottom: 0;
+        }
+        .sale-summary-grid {
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        }
+        .mb-1 { margin-bottom: 1rem; }
+        .mt-1 { margin-top: 1rem; }
+        .form-label-sm { font-size: 0.8em; margin-bottom: 0.25rem; display: block;}
+
+        /* Ensure table link styling if not globally defined */
+        .table-link {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+        .table-link:hover {
+            text-decoration: underline;
+        }
+        .material-list-display { /* For displaying items in sales history */
+            list-style: none;
+            padding-left: 0;
+            margin-bottom: 0;
+            font-size: 0.9em;
+        }
+         .btn-remove-item {
+            padding: 0.5rem 0.75rem; /* Adjust padding for smaller buttons if needed */
+        }
+        .item-discount-group input, .line-total-group input {
+            text-align: right;
+        }
+    </style>
 </head>
 <body>
     <div id="app" class="app-container">
@@ -24,8 +87,7 @@
                     <a href="index.html" class="navbar-item"><i class="fas fa-tachometer-alt fa-fw"></i> <span>Dashboard</span></a>
                     <a href="raw_tea.html" class="navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Tea</span></a>
                     <a href="packing_material.html" class="navbar-item"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
-                    <a href="production.html" class="navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
-                    <a href="finished_products.html" class="navbar-item"><i class="fas fa-mug-hot fa-fw"></i> <span>Finished Products</span></a>
+                    <a href="production.html" class="navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a> <a href="finished_products.html" class="navbar-item"><i class="fas fa-mug-hot fa-fw"></i> <span>Finished Products (Legacy)</span></a>
                     <a href="sales.html" class="navbar-item active"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
                     <a href="customers.html" class="navbar-item"><i class="fas fa-users fa-fw"></i> <span>Customers</span></a>
                 </div>
@@ -34,8 +96,7 @@
                 <a href="index.html" class="mobile-navbar-item"><i class="fas fa-tachometer-alt fa-fw"></i> <span>Dashboard</span></a>
                 <a href="raw_tea.html" class="mobile-navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Tea</span></a>
                 <a href="packing_material.html" class="mobile-navbar-item"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
-                <a href="production.html" class="mobile-navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
-                <a href="finished_products.html" class="mobile-navbar-item"><i class="fas fa-mug-hot fa-fw"></i> <span>Finished Products</span></a>
+                <a href="production.html" class="mobile-navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a> <a href="finished_products.html" class="mobile-navbar-item"><i class="fas fa-mug-hot fa-fw"></i> <span>Finished Products (Legacy)</span></a>
                 <a href="sales.html" class="mobile-navbar-item active"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
                 <a href="customers.html" class="mobile-navbar-item"><i class="fas fa-users fa-fw"></i> <span>Customers</span></a>
             </div>
@@ -132,7 +193,7 @@
                         </div>
 
                         <button type="submit" class="btn btn-success btn-block mt-1">
-                            <i class="fas fa-check-circle fa-fw"></i> Complete Sale & Generate Invoice
+                            <i class="fas fa-check-circle fa-fw"></i> Complete Sale & Update Stock
                         </button>
                     </form>
                 </div>
@@ -158,6 +219,7 @@
                             </thead>
                             <tbody id="salesLogTableBody"></tbody>
                         </table>
+                         <p id="noSalesHistoryText" class="text-center" style="display:none; padding: 1rem; color: var(--text-color-muted);">No sales recorded yet.</p>
                     </div>
                 </div>
             </div>
