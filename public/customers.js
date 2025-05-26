@@ -19,23 +19,77 @@ document.addEventListener('DOMContentLoaded', () => {
     const mobileMenu = document.getElementById('mobile-menu');
     if (mobileMenuButton && mobileMenu) {
         mobileMenuButton.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
-        mobileMenu.querySelectorAll('a.mobile-navbar-item').forEach(link => {
-            link.addEventListener('click', () => {
-                if (!mobileMenu.classList.contains('hidden')) mobileMenu.classList.add('hidden');
-            });
-        });
+        // No need for the click listener on individual links as this page doesn't navigate away from itself via the mobile menu for core functionality.
     }
 
     // --- DOM Elements ---
     const customersTableBody = document.getElementById('customersTableBody');
     const searchCustomersInput = document.getElementById('searchCustomersInput');
+    const cityFilterSelect = document.getElementById('cityFilterSelect');
+    const cityTotalPaidDisplay = document.getElementById('cityTotalPaidDisplay');
+    const noCustomersFoundText = document.getElementById('noCustomersFoundText');
 
+
+    // Firebase Paths
     const CUSTOMERS_PATH = 'customers';
-    let allCustomersCache = []; // To store { id, name, createdAt, ... }
+    const CITIES_PATH = 'cities'; // Assuming this path is maintained by sales.js or similar
+    const SALES_LOG_PATH = 'salesLog';
+
+    // Caches
+    let allCustomersCache = []; 
+    let citiesCache = [];
+    let allSalesDataCache = []; // To store all sales log entries
+
+    async function initializeCustomersPage() {
+        await fetchCitiesAndPopulateFilter();
+        await fetchSalesData(); // Fetch all sales data once for calculations
+        loadCustomers(); // This will also trigger initial display
+
+        if (searchCustomersInput) searchCustomersInput.addEventListener('input', displayFilteredCustomers);
+        if (cityFilterSelect) cityFilterSelect.addEventListener('change', displayFilteredCustomers);
+    }
+
+
+    async function fetchCitiesAndPopulateFilter() {
+        try {
+            const snapshot = await db.ref(CITIES_PATH).orderByChild('name').once('value');
+            citiesCache = [];
+            let cityOptionsHTML = '<option value="">-- All Cities --</option>';
+            if (snapshot.exists()) {
+                snapshot.forEach(child => {
+                    const cityData = child.val();
+                    if (cityData && cityData.name) {
+                        citiesCache.push({ id: child.key, name: cityData.name }); // Store city name
+                        cityOptionsHTML += `<option value="${cityData.name}">${cityData.name}</option>`;
+                    }
+                });
+            }
+            if (cityFilterSelect) cityFilterSelect.innerHTML = cityOptionsHTML;
+        } catch (error) {
+            console.error("Error fetching cities:", error);
+            if (cityFilterSelect) cityFilterSelect.innerHTML = '<option value="">-- Error Loading Cities --</option>';
+        }
+    }
+
+    async function fetchSalesData() {
+        try {
+            const snapshot = await db.ref(SALES_LOG_PATH).once('value');
+            allSalesDataCache = [];
+            if (snapshot.exists()) {
+                snapshot.forEach(childSnapshot => {
+                    allSalesDataCache.push({ id: childSnapshot.key, ...childSnapshot.val() });
+                });
+            }
+            console.log("Sales data fetched for city total calculation:", allSalesDataCache.length);
+        } catch (error) {
+            console.error("Error fetching sales data:", error);
+        }
+    }
+
 
     // --- Load Customers ---
     function loadCustomers() {
-        const customersRef = db.ref(CUSTOMERS_PATH).orderByChild('name'); // Order by name
+        const customersRef = db.ref(CUSTOMERS_PATH).orderByChild('name');
         customersRef.on('value', snapshot => {
             allCustomersCache = [];
             if (snapshot.exists()) {
@@ -43,38 +97,72 @@ document.addEventListener('DOMContentLoaded', () => {
                     allCustomersCache.push({ id: childSnapshot.key, ...childSnapshot.val() });
                 });
             }
-            displayFilteredCustomers(); // Initial display
+            // Check if a specific customer ID is in the URL hash (e.g., from sales page link)
+            if (window.location.hash) {
+                const customerIdFromHash = window.location.hash.substring(1);
+                if (customerIdFromHash && searchCustomersInput) {
+                    searchCustomersInput.value = customerIdFromHash; // Pre-fill search
+                    // Potentially highlight or scroll to the customer if needed here
+                }
+            }
+            displayFilteredCustomers(); // Initial display after loading/hash check
+        }, error => {
+            console.error("Error loading customers:", error);
+            allCustomersCache = [];
+            displayFilteredCustomers();
         });
     }
 
     // --- Display Filtered Customers ---
     function displayFilteredCustomers() {
-        if (!customersTableBody) return;
-        customersTableBody.innerHTML = ''; // Clear current rows
-        const searchTerm = searchCustomersInput.value.toLowerCase();
-        let customersDisplayed = false;
+        if (!customersTableBody || !cityTotalPaidDisplay) return;
+        customersTableBody.innerHTML = ''; 
+        const searchTerm = searchCustomersInput.value.toLowerCase().trim();
+        const selectedCity = cityFilterSelect.value;
+        let customersDisplayedCount = 0;
+        let totalPaidForCity = 0;
 
-        allCustomersCache
-            .filter(customer => 
-                customer.name.toLowerCase().includes(searchTerm) || 
-                customer.id.toLowerCase().includes(searchTerm)
-            )
-            .forEach(customer => {
-                renderCustomerRow(customer);
-                customersDisplayed = true;
+        // Filter customers based on search term and selected city
+        const filteredCustomers = allCustomersCache.filter(customer => {
+            const nameMatches = customer.name && customer.name.toLowerCase().includes(searchTerm);
+            const idMatches = (customer.customerId || customer.id).toLowerCase().includes(searchTerm);
+            const cityMatches = !selectedCity || (customer.city && customer.city === selectedCity);
+            return (nameMatches || idMatches) && cityMatches;
+        });
+
+        filteredCustomers.forEach(customer => {
+            renderCustomerRow(customer);
+            customersDisplayedCount++;
+        });
+
+        // Calculate total paid for the selected city (if a city is selected)
+        if (selectedCity) {
+            const customerIdsInCity = allCustomersCache
+                .filter(c => c.city === selectedCity)
+                .map(c => c.customerId || c.id); // Use customerId if present, else fallback to firebase key
+
+            allSalesDataCache.forEach(sale => {
+                if (customerIdsInCity.includes(sale.customerId)) {
+                    totalPaidForCity += parseFloat(sale.grandTotal || 0);
+                }
             });
+            cityTotalPaidDisplay.textContent = `Total business from ${selectedCity}: Rs. ${totalPaidForCity.toFixed(2)}`;
+            cityTotalPaidDisplay.style.display = 'block';
+        } else {
+            cityTotalPaidDisplay.style.display = 'none';
+        }
 
-        if (!customersDisplayed) {
-            const row = customersTableBody.insertRow();
-            const cell = row.insertCell();
-            cell.colSpan = 4; // Customer ID, Name, Date Added, Actions
-            cell.textContent = searchTerm ? 'No customers match your search.' : 'No customers found.';
-            cell.style.textAlign = 'center';
-            cell.style.padding = '1rem';
-            cell.style.color = 'var(--text-color-muted)';
+
+        if (noCustomersFoundText) {
+            if (customersDisplayedCount === 0) {
+                noCustomersFoundText.textContent = (searchTerm || selectedCity) ? 'No customers match your criteria.' : 'No customers found. Add customers via the Sales page.';
+                noCustomersFoundText.style.display = 'block';
+            } else {
+                noCustomersFoundText.style.display = 'none';
+            }
         }
     }
-    if (searchCustomersInput) searchCustomersInput.addEventListener('input', displayFilteredCustomers);
+    
 
     // --- Render a Single Customer Row ---
     function renderCustomerRow(customerData) {
@@ -83,15 +171,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Customer ID
         const idCell = row.insertCell();
-        idCell.textContent = customerData.customerId || customerData.id; // Use stored customerId field if available
+        idCell.textContent = customerData.customerId || customerData.id; 
 
         // Customer Name (Clickable)
         const nameCell = row.insertCell();
         const nameLink = document.createElement('a');
-        nameLink.href = `customer_data.html?id=${customerData.customerId || customerData.id}`;
+        // Assuming customer_data.html is a future page for detailed view
+        nameLink.href = `customer_data.html?id=${customerData.customerId || customerData.id}`; 
         nameLink.textContent = customerData.name || 'N/A';
-        nameLink.classList.add('table-link'); // Add a class for styling if needed
+        nameLink.classList.add('table-link'); 
         nameCell.appendChild(nameLink);
+
+        // City
+        const cityCell = row.insertCell();
+        cityCell.textContent = customerData.city || 'N/A';
 
         // Date Added
         const dateCell = row.insertCell();
@@ -114,23 +207,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Delete Customer ---
-    async function deleteCustomer(customerId, customerName) {
-        if (!customerId) return;
+    async function deleteCustomer(firebaseKey, customerName) { // firebaseKey is the actual key from Firebase snapshot
+        if (!firebaseKey) return;
 
-        if (confirm(`Are you sure you want to delete customer "${customerName}" (ID: ${customerId})?\nThis action cannot be undone. Past sales records will retain the customer name but this profile will be removed.`)) {
+        const customerToDelete = allCustomersCache.find(c => c.id === firebaseKey);
+        const customerIdForDisplay = customerToDelete ? (customerToDelete.customerId || firebaseKey) : firebaseKey;
+
+
+        if (confirm(`Are you sure you want to delete customer "${customerName}" (ID: ${customerIdForDisplay})?\nThis action cannot be undone. Past sales records will retain the customer name but this profile will be removed.`)) {
             try {
-                await db.ref(`${CUSTOMERS_PATH}/${customerId}`).remove();
+                await db.ref(`${CUSTOMERS_PATH}/${firebaseKey}`).remove();
                 console.log(`Customer "${customerName}" deleted successfully.`);
-                // The real-time listener in loadCustomers will automatically refresh the table.
-                // No need to manually call loadCustomers() here.
+                // Real-time listener in loadCustomers will refresh the table.
+                // We also need to re-fetch sales data if we want the city total to update immediately after a customer affecting it is deleted,
+                // although the current logic recalculates on filter change.
+                // For simplicity, let's rely on the next filter change or page reload for city total if a customer is deleted.
                 alert(`Customer "${customerName}" deleted.`);
             } catch (error) {
-                console.error(`Error deleting customer ${customerId}:`, error);
+                console.error(`Error deleting customer ${firebaseKey}:`, error);
                 alert('Error deleting customer. Check console.');
             }
         }
     }
 
     // --- Initial Load ---
-    loadCustomers();
+    initializeCustomersPage();
 });

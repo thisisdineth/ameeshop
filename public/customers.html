@@ -9,6 +9,27 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="tbs.css">
+    <style>
+        /* Add any specific styles for customers.html if needed, or rely on tbs.css */
+        .filter-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            align-items: center;
+        }
+        .filter-controls .form-group {
+            flex-grow: 1;
+            margin-bottom: 0;
+        }
+        #cityTotalPaidDisplay {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background-color: #e9f7ef; /* A light green background */
+            border-left: 4px solid var(--success-color, #28a745);
+            font-weight: 500;
+            border-radius: 4px;
+        }
+    </style>
 </head>
 <body>
     <div id="app" class="app-container">
@@ -25,10 +46,9 @@
                     <a href="raw_tea.html" class="navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Tea</span></a>
                     <a href="packing_material.html" class="navbar-item"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
                     <a href="production.html" class="navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
-<a href="delivery.html" class="navbar-item"><i class="fas fa-truck fa-fw"></i> <span>Delivery</span></a>
+                    <a href="delivery.html" class="navbar-item"><i class="fas fa-truck fa-fw"></i> <span>Delivery</span></a>
                     <a href="sales.html" class="navbar-item"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
                     <a href="customers.html" class="navbar-item active"><i class="fas fa-users fa-fw"></i> <span>Customers</span></a> 
-                   
                 </div>
             </div>
             <div id="mobile-menu" class="hidden">
@@ -36,10 +56,9 @@
                 <a href="raw_tea.html" class="mobile-navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Tea</span></a>
                 <a href="packing_material.html" class="mobile-navbar-item"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
                 <a href="production.html" class="mobile-navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
-              <a href="delivery.html" class="mobile-navbar-item"><i class="fas fa-truck fa-fw"></i> <span>Delivery</span></a>
+                <a href="delivery.html" class="mobile-navbar-item"><i class="fas fa-truck fa-fw"></i> <span>Delivery</span></a>
                 <a href="sales.html" class="mobile-navbar-item"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
-                <a href="customers.html" class="mobile-navbar-item active"><i class="fas fa-users fa-fw"></i> <span>Customers</span></a> {/* Active link */}
-                
+                <a href="customers.html" class="mobile-navbar-item active"><i class="fas fa-users fa-fw"></i> <span>Customers</span></a>
             </div>
         </nav>
 
@@ -49,16 +68,27 @@
 
                 <div class="all-items-list-container section-card">
                     <h2 class="section-title">All Customers</h2>
-                    <div class="form-group">
-                        <label for="searchCustomersInput" class="form-label">Search Customers:</label>
-                        <input type="text" id="searchCustomersInput" class="form-input" placeholder="Search by Name or ID...">
+                    <div class="filter-controls">
+                        <div class="form-group">
+                            <label for="searchCustomersInput" class="form-label">Search Customers (Name or ID):</label>
+                            <input type="text" id="searchCustomersInput" class="form-input" placeholder="Type to search...">
+                        </div>
+                        <div class="form-group">
+                            <label for="cityFilterSelect" class="form-label">Filter by City:</label>
+                            <select id="cityFilterSelect" class="form-input">
+                                <option value="">-- All Cities --</option>
+                                </select>
+                        </div>
                     </div>
+                    <div id="cityTotalPaidDisplay" style="display: none;">Total paid from selected city: Rs. 0.00</div>
+
                     <div class="table-responsive-wrapper">
                         <table id="customersTable" class="data-table">
                             <thead>
                                 <tr>
                                     <th class="table-header">Customer ID</th>
                                     <th class="table-header">Customer Name</th>
+                                    <th class="table-header">City</th>
                                     <th class="table-header">Date Added</th>
                                     <th class="table-header text-center">Actions</th>
                                 </tr>
@@ -66,6 +96,7 @@
                             <tbody id="customersTableBody">
                                 </tbody>
                         </table>
+                         <p id="noCustomersFoundText" class="text-center" style="display:none; padding: 1rem; color: var(--text-color-muted);">No customers found.</p>
                     </div>
                 </div>
             </div>
