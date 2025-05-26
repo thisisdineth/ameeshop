@@ -211,6 +211,49 @@ body {
     color: var(--text-color-muted, #6c757d);
     text-align: center;
 }
+/* Add to delivery.css */
+
+/* Navbar Mobile Menu Styling */
+#mobile-menu {
+    display: none; /* Initially hidden via JS adding/removing .hidden, but good default */
+    flex-direction: column;
+    background-color: var(--navbar-bg, #ffffff); /* Use CSS var or a fallback color */
+    position: absolute;
+    top: 60px; /* Adjust based on your navbar's height */
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* When .hidden class is NOT present, display the menu */
+#mobile-menu:not(.hidden) {
+    display: flex; 
+}
+
+.mobile-navbar-item {
+    padding: 1rem;
+    color: var(--navbar-link-color-mobile, #f8f9fa); /* Use CSS var or a fallback color */
+    text-decoration: none;
+    border-bottom: 1px solid var(--navbar-border-mobile, #495057); /* Use CSS var or a fallback color */
+    display: flex;
+    align-items: center;
+}
+.mobile-navbar-item:last-child {
+    border-bottom: none;
+}
+.mobile-navbar-item .fa-fw {
+    margin-right: 0.75rem;
+}
+.mobile-navbar-item.active { /* Style for the active link */
+    background-color: var(--primary-color, #007bff); /* Use CSS var or a fallback color */
+    color: white;
+}
+
+/* Ensure .hidden class utility if not already globally defined */
+.hidden {
+    display: none !important;
+}
 
 /* Navbar specific if tbs.css doesn't cover mobile */
 .hidden { display: none !important; }
