@@ -46,23 +46,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const SALES_LOG_PATH = 'salesLog';
     const CUSTOMERS_PATH = 'customers';
-    // IMPORTANT: Use the same path as your production_v2.js for finished products
-    const DEFINED_PRODUCTS_PATH = 'definedFinishedProducts_v2';
+    const DEFINED_PRODUCTS_PATH = 'definedFinishedProducts_v2'; // Ensure this matches production.js
     const CITIES_PATH = 'cities';
 
-    let definedProductsCache = [];
+    let definedProductsCache = []; // This will be kept up-to-date by a listener
     let customersCache = [];
     let citiesCache = [];
-    let allSalesData = {}; // For client-side search
+    let allSalesData = {};
 
     async function initializeSalesPage() {
         if (saleDateInput) saleDateInput.valueAsDate = new Date();
         
         await fetchCitiesAndPopulateDropdown();
-        await fetchDefinedProductsForSelect(true); // Force refresh on init
+        // Initial fetch for products; listener will keep it updated
+        await fetchDefinedProductsOnce(); 
+        listenForProductUpdates(); // Setup real-time listener for products
         await fetchCustomersForSuggestions();
 
-        if (saleItemsContainer.children.length === 0) addSaleItemRow();
+        if (saleItemsContainer && saleItemsContainer.children.length === 0) {
+             // Optionally add an initial row if definedProductsCache has items after fetch
+            if (definedProductsCache.length > 0) addSaleItemRow();
+        }
         
         loadSalesLog();
         toggleCustomerNameInputState();
@@ -74,11 +78,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (amountPaidInput) amountPaidInput.addEventListener('input', calculateRemainingBalanceAndUpdateTotals);
         if (overallDiscountValueInput) overallDiscountValueInput.addEventListener('input', calculateTotals);
         if (searchSalesInput) searchSalesInput.addEventListener('input', displayFilteredSales);
-
     }
 
     function handleCityChange() {
-        if (customerCitySelect.value) {
+        if (customerCitySelect && customerCitySelect.value) {
             if (newCityNameInput) newCityNameInput.value = '';
             if (selectedCustomerCityNameInput) selectedCustomerCityNameInput.value = customerCitySelect.value;
         }
@@ -87,9 +90,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleNewCityInput() {
-        if (newCityNameInput.value.trim()) {
+        if (newCityNameInput && newCityNameInput.value.trim()) {
             if (customerCitySelect) customerCitySelect.value = '';
-            // selectedCustomerCityNameInput will be set when new city is confirmed or customer selected
         }
         clearCustomerInput();
         toggleCustomerNameInputState();
@@ -133,71 +135,99 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function fetchDefinedProductsForSelect(forceRefresh = false) {
-        if (!forceRefresh && definedProductsCache.length > 0) {
-            updateAllProductDropdowns(); return;
-        }
+    // Fetches products once, usually on initial load
+    async function fetchDefinedProductsOnce() {
         try {
-            // Fetch from the updated path: definedFinishedProducts_v2
             const snapshot = await db.ref(DEFINED_PRODUCTS_PATH).orderByChild('itemName').once('value');
-            definedProductsCache = [];
+            definedProductsCache = []; // Clear before populating
             if (snapshot.exists()) {
                 snapshot.forEach(child => {
                     const productData = child.val();
-                    // Ensure product has necessary fields for sale, especially currentStock
                     if (productData.productCode && productData.itemName) {
                         definedProductsCache.push({ 
-                            id: child.key, // productCode is typically the key here
+                            id: child.key,
                             ...productData,
-                            currentStock: productData.currentStock || 0 // Ensure currentStock is a number
+                            currentStock: productData.currentStock || 0
                         });
                     }
                 });
+                definedProductsCache.sort((a,b) => (a.itemName || "").localeCompare(b.itemName || ""));
             }
-            updateAllProductDropdowns();
+            updateAllProductDropdowns(); // Update UI after fetch
         } catch (error) { 
-            console.error("Error fetching defined products for sales:", error); 
+            console.error("Error fetching defined products (once):", error); 
             definedProductsCache = []; 
-            updateAllProductDropdowns(); // Still update to show empty or error state
+            updateAllProductDropdowns();
         }
     }
     
-    function updateAllProductDropdowns() {
-        document.querySelectorAll('.sale-item-product').forEach(selectElement => {
-            const currentValue = selectElement.value; // Preserve selected value if possible
-            populateProductSelect(selectElement);
-            // Try to reselect if product still exists and has stock
-            const productExists = definedProductsCache.some(p => p.productCode === currentValue && (p.currentStock || 0) > 0);
-            if (productExists) {
-                selectElement.value = currentValue;
-            } else {
-                selectElement.selectedIndex = 0; // Default to "-- Select Product --"
+    // Sets up a real-time listener for product updates
+    function listenForProductUpdates() {
+        const productsRef = db.ref(DEFINED_PRODUCTS_PATH);
+        productsRef.on('value', snapshot => {
+            console.log("[SALES_PRODUCTS] Product data updated from Firebase via listener.");
+            definedProductsCache = []; // Clear before populating
+            if (snapshot.exists()) {
+                snapshot.forEach(child => {
+                    const productData = child.val();
+                    if (productData.productCode && productData.itemName) {
+                        definedProductsCache.push({
+                            id: child.key, // productCode is the key
+                            ...productData,
+                            currentStock: productData.currentStock || 0
+                        });
+                    }
+                });
+                 definedProductsCache.sort((a,b) => (a.itemName || "").localeCompare(b.itemName || ""));
             }
-             // Trigger change to update price and other dependent fields
+            updateAllProductDropdowns(); // Refresh UI elements that use product data
+        }, error => {
+            console.error("[SALES_PRODUCTS] Error listening to product updates:", error);
+        });
+    }
+    
+    function updateAllProductDropdowns() {
+        if (!document) return; // Guard if document is not available (e.g. testing environment)
+        document.querySelectorAll('.sale-item-product').forEach(selectElement => {
+            const currentSelectedProductCode = selectElement.value;
+            const currentQty = parseInt(selectElement.closest('.sale-item-row')?.querySelector('.sale-item-qty')?.value || 0);
+
+            populateProductSelect(selectElement); // Re-populate with latest definedProductsCache
+
+            const productStillExistsAndHasStock = definedProductsCache.some(p => 
+                p.productCode === currentSelectedProductCode && (p.currentStock || 0) >= currentQty
+            );
+            const productStillExists = definedProductsCache.some(p => p.productCode === currentSelectedProductCode);
+
+            if (productStillExistsAndHasStock) {
+                selectElement.value = currentSelectedProductCode;
+            } else if (productStillExists) { // Exists but maybe not enough stock for current Qty
+                selectElement.value = currentSelectedProductCode; 
+                // The 'change' event will re-evaluate stock for the selected item's quantity
+            } else {
+                 selectElement.value = ""; // Product no longer exists or no stock, reset
+            }
+            // Trigger change to update price, stock limits for qty, and totals
             const event = new Event('change', { bubbles: true });
             selectElement.dispatchEvent(event);
         });
-         if(saleItemsContainer.children.length === 0 && definedProductsCache.length > 0) {
-            // If no items and products are loaded, add an initial row
-           // addSaleItemRow(); // This might be too aggressive, let user click "Add Item"
-        }
+        calculateTotals(); // Recalculate overall totals as item lines might have changed
     }
 
     function populateProductSelect(selectElement) {
         if (!selectElement) return;
-        let optionsHTML = '<option value="" disabled selected>-- Select Product --</option>';
+        let optionsHTML = '<option value="" data-price="0" data-stock="0" data-name="">-- Select Product --</option>';
         if (Array.isArray(definedProductsCache) && definedProductsCache.length > 0) {
             definedProductsCache.forEach(p => {
-                // Only list products with sellable stock > 0
-                if (p && p.productCode && p.itemName && (p.currentStock || 0) > 0) { 
-                    optionsHTML += `<option value="${p.productCode}" data-price="${p.sellingPrice || 0}" data-name="${p.itemName}" data-stock="${p.currentStock || 0}">${p.itemName} (${p.productCode}) - Stock: ${p.currentStock || 0}</option>`;
-                } else if (p && p.productCode && p.itemName && (p.currentStock || 0) <= 0) {
-                    // Optionally show out-of-stock items but disabled
-                    // optionsHTML += `<option value="${p.productCode}" data-price="${p.sellingPrice || 0}" data-name="${p.itemName}" data-stock="0" disabled>${p.itemName} (${p.productCode}) - Out of Stock</option>`;
+                if (p && p.productCode && p.itemName) { 
+                    const stock = p.currentStock || 0;
+                    const disabled = stock <= 0 ? 'disabled' : '';
+                    const stockDisplay = stock <= 0 ? 'Out of Stock' : `Stock: ${stock}`;
+                    optionsHTML += `<option value="${p.productCode}" data-price="${p.sellingPrice || 0}" data-name="${p.itemName}" data-stock="${stock}" ${disabled}>${p.itemName} (${p.productCode}) - ${stockDisplay}</option>`;
                 }
             });
         } else {
-            optionsHTML = '<option value="" disabled selected>-- No Products Available --</option>';
+            optionsHTML = '<option value="" disabled>-- No Products Loaded --</option>';
         }
         selectElement.innerHTML = optionsHTML;
     }
@@ -211,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     customersCache.push({ 
                         id: child.key, 
                         name: child.val().name,
-                        normalizedName: child.val().normalizedName, // Assuming you have this field
+                        normalizedName: child.val().normalizedName, 
                         city: child.val().city || "" 
                     });
                 });
@@ -222,10 +252,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (customerNameInput) {
         customerNameInput.addEventListener('input', () => {
             const searchTerm = customerNameInput.value.toLowerCase();
+            if (!customerSuggestionsListEl || !selectedCustomerIdInput) return;
             customerSuggestionsListEl.innerHTML = '';
             selectedCustomerIdInput.value = ''; 
             
-            const currentCityValue = customerCitySelect.value || newCityNameInput.value.trim();
+            const currentCityValue = (customerCitySelect ? customerCitySelect.value : '') || (newCityNameInput ? newCityNameInput.value.trim() : '');
             const selectedCityNormalized = currentCityValue.toLowerCase();
 
             if (!selectedCityNormalized && searchTerm.length > 0) {
@@ -281,12 +312,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function addSaleItemRow() {
+        if (!saleItemsContainer) return;
         const itemRowDiv = document.createElement('div'); itemRowDiv.classList.add('sale-item-row', 'form-grid');
         
         const productSelectDiv = document.createElement('div'); productSelectDiv.classList.add('form-group');
         productSelectDiv.innerHTML = '<label class="form-label form-label-sm">Product</label>';
         const productSelect = document.createElement('select'); productSelect.classList.add('form-input', 'sale-item-product'); productSelect.required = true;
-        populateProductSelect(productSelect); // Populate with currently cached products
+        populateProductSelect(productSelect);
         productSelectDiv.appendChild(productSelect);
 
         const qtyDiv = document.createElement('div'); qtyDiv.classList.add('form-group');
@@ -320,42 +352,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
         productSelect.addEventListener('change', (e) => {
             const selectedOption = e.target.options[e.target.selectedIndex];
-            if (!selectedOption || !selectedOption.value) { // Handle "-- Select Product --"
-                priceInput.value = '';
-                qtyInput.value = '1';
-                qtyInput.max = ''; // Reset max
-                calculateTotals();
-                return;
+            if (!selectedOption || !selectedOption.value) {
+                priceInput.value = ''; qtyInput.value = '1'; qtyInput.max = '';
+                calculateTotals(); return;
             }
             priceInput.value = parseFloat(selectedOption.dataset.price || 0).toFixed(2);
             const maxStock = parseInt(selectedOption.dataset.stock || 0);
-            qtyInput.max = maxStock; // Set max based on stock
+            qtyInput.max = maxStock;
              if (parseInt(qtyInput.value) > maxStock || parseInt(qtyInput.value) <= 0 ) {
-                qtyInput.value = maxStock > 0 ? 1 : 0; // Default to 1 if stock available, else 0
+                qtyInput.value = maxStock > 0 ? 1 : 0;
             }
             if (maxStock === 0) {
-                qtyInput.value = 0; // Cannot sell if no stock
-                alert(`"${selectedOption.dataset.name}" is out of stock.`);
+                qtyInput.value = 0; 
+                if (selectedOption.dataset.name) alert(`"${selectedOption.dataset.name}" is out of stock.`);
             }
             calculateTotals();
         });
-        // Initialize price if a product is pre-selected (e.g. if logic changes to pre-fill first row)
-        if (productSelect.value) productSelect.dispatchEvent(new Event('change'));
+        
+        if (productSelect.options.length > 1 && productSelect.selectedIndex <= 0) {
+             // If default is "-- Select Product --" and there are other options, select the first actual product
+             // This is tricky, as "first available" might not be desired.
+             // For now, rely on user selection or an explicit "change" trigger if pre-selecting.
+        } else if (productSelect.value) {
+             productSelect.dispatchEvent(new Event('change')); // Trigger for pre-filled or auto-selected
+        }
+
 
         qtyInput.addEventListener('input', calculateTotals); 
         priceInput.addEventListener('input', calculateTotals); 
         itemDiscountInput.addEventListener('input', calculateTotals);
-        if (productSelect.value) { // If a product is selected by default (e.g. first in list with stock)
-             productSelect.dispatchEvent(new Event('change'));
-        }
+        // Initial calculation if product is pre-selected
+        if (productSelect.value) productSelect.dispatchEvent(new Event('change'));
     }
 
     if (addSaleItemButton) {
-        addSaleItemButton.addEventListener('click', async () => {
-            // It's good practice to ensure product list is fresh if it could change often
-            // await fetchDefinedProductsForSelect(true); // Uncomment if you want to force refresh every time
+        addSaleItemButton.addEventListener('click', () => {
+            // Listener should keep definedProductsCache up-to-date.
+            // No need to await fetch here if listener is active.
             if (definedProductsCache.length === 0) {
-                await fetchDefinedProductsForSelect(true); // Fetch if empty
+                console.warn("No products in cache. Adding a row, but product list might be empty.");
             }
             addSaleItemRow();
         });
@@ -363,27 +398,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function calculateTotals() {
         let currentSubTotal = 0;
+        if (!document) return; // Guard
         document.querySelectorAll('.sale-item-row').forEach(row => {
             const productSelect = row.querySelector('.sale-item-product');
             const selectedOption = productSelect ? productSelect.options[productSelect.selectedIndex] : null;
             const currentStock = selectedOption ? parseInt(selectedOption.dataset.stock || 0) : 0;
 
             const qtyInput = row.querySelector('.sale-item-qty');
-            let qty = parseInt(qtyInput.value) || 0;
+            let qty = parseInt(qtyInput?.value || 0); // Use optional chaining and default
             
-            if (qty > currentStock && selectedOption && selectedOption.value) { // Check if a product is actually selected
+            if (qty > currentStock && selectedOption && selectedOption.value && currentStock >= 0) {
                 alert(`Quantity for ${selectedOption.dataset.name} exceeds available stock (${currentStock}). Adjusting to max available.`);
                 qty = currentStock;
-                qtyInput.value = qty;
+                if(qtyInput) qtyInput.value = qty;
             }
-            if (qty < 0) { // Prevent negative quantities
-                qty = 0;
-                qtyInput.value = qty;
-            }
+            if (qty < 0) { qty = 0; if(qtyInput) qtyInput.value = qty; }
 
-
-            const price = parseFloat(row.querySelector('.sale-item-price').value) || 0;
-            const discountPercent = parseFloat(row.querySelector('.sale-item-discount-percent').value) || 0;
+            const price = parseFloat(row.querySelector('.sale-item-price')?.value || 0);
+            const discountPercent = parseFloat(row.querySelector('.sale-item-discount-percent')?.value || 0);
             const lineTotalField = row.querySelector('.sale-item-linetotal');
 
             if (qty > 0 && price >= 0) {
@@ -396,7 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         if(subTotalInput) subTotalInput.value = currentSubTotal.toFixed(2);
         
-        const directDiscountAmount = parseFloat(overallDiscountValueInput.value) || 0;
+        const directDiscountAmount = parseFloat(overallDiscountValueInput?.value || 0);
         const calculatedGrandTotal = currentSubTotal - directDiscountAmount;
         if(grandTotalInput) grandTotalInput.value = calculatedGrandTotal > 0 ? calculatedGrandTotal.toFixed(2) : "0.00";
 
@@ -418,7 +450,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function calculateRemainingBalanceAndUpdateTotals() {
-        calculateTotals(); // Recalculate totals first as grand total might affect this
+        calculateTotals(); 
     }
 
     function calculateRemainingBalance() {
@@ -435,7 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const saleDate = saleDateInput.value;
             let customerNameOriginal = customerNameInput.value.trim();
             let customerId = selectedCustomerIdInput.value;
-            let customerNameToSave = customerNameOriginal; // Default to typed name
+            let customerNameToSave = customerNameOriginal;
 
             let finalCustomerCity = "";
             if (customerCitySelect && customerCitySelect.value) {
@@ -450,35 +482,33 @@ document.addEventListener('DOMContentLoaded', () => {
             finalCustomerCity = finalCustomerCity.trim();
             let cityNormalizedForCheck = normalizeName(finalCustomerCity);
 
-            // Save new city if entered
             const cityExists = citiesCache.some(city => normalizeName(city.name) === cityNormalizedForCheck);
             if (newCityNameInput.value.trim() && !cityExists) {
                  try {
                     const newCityRef = db.ref(CITIES_PATH).push();
                     await newCityRef.set({ name: finalCustomerCity });
-                    await fetchCitiesAndPopulateDropdown(); // Refresh dropdown and cache
+                    await fetchCitiesAndPopulateDropdown(); 
                  } catch (cityError) { console.error("Error saving new city:", cityError); alert("Could not save new city."); return; }
-            } else if (cityExists) { // If city exists, use canonical name from cache
+            } else if (cityExists) { 
                 const existingCityObj = citiesCache.find(city => normalizeName(city.name) === cityNormalizedForCheck);
                 if(existingCityObj) finalCustomerCity = existingCityObj.name;
             }
-
 
             const items = []; let allItemsValid = true;
             document.querySelectorAll('.sale-item-row').forEach(row => {
                 if (!allItemsValid) return;
                 const productSelect = row.querySelector('.sale-item-product');
-                const productCode = productSelect.value;
-                if (!productCode) { return; } // Skip if no product selected in a row
+                const productCode = productSelect?.value;
+                if (!productCode) { return; } 
                 const selectedOption = productSelect.options[productSelect.selectedIndex];
-                const itemName = selectedOption.dataset.name;
-                const currentStock = parseInt(selectedOption.dataset.stock || 0); // Fetched from DEFINED_PRODUCTS_PATH
-                const quantity = parseInt(row.querySelector('.sale-item-qty').value) || 0;
-                const unitPrice = parseFloat(row.querySelector('.sale-item-price').value) || 0;
-                const discountPercent = parseFloat(row.querySelector('.sale-item-discount-percent').value) || 0;
+                const itemName = selectedOption?.dataset.name;
+                const currentStock = parseInt(selectedOption?.dataset.stock || 0);
+                const quantity = parseInt(row.querySelector('.sale-item-qty')?.value || 0);
+                const unitPrice = parseFloat(row.querySelector('.sale-item-price')?.value || 0);
+                const discountPercent = parseFloat(row.querySelector('.sale-item-discount-percent')?.value || 0);
 
                 if (quantity <= 0 ) { alert(`Quantity for ${itemName || 'selected item'} must be > 0.`); allItemsValid = false; return; }
-                if (quantity > currentStock) { alert(`Not enough stock for ${itemName}. Available: ${currentStock}, Requested: ${quantity}.`); allItemsValid = false; return; }
+                if (quantity > currentStock) { alert(`Not enough stock for ${itemName}. Available: ${currentStock}, Requested: ${quantity}. Sale cannot proceed.`); allItemsValid = false; return; }
                 
                 const itemGrossTotal = quantity * unitPrice;
                 const discountPerItemAmount = itemGrossTotal * (discountPercent / 100);
@@ -488,16 +518,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!allItemsValid) return;
             if (items.length === 0) { alert("Please add at least one valid item to the sale."); return; }
 
-            // Customer handling (existing logic seems fine)
             const enteredNormalizedName = normalizeName(customerNameOriginal);
-            if (!customerId) { // New customer OR existing customer typed out fully
+            if (!customerId) { 
                 const existingCustomerInCity = customersCache.find(
                     c => c.normalizedName === enteredNormalizedName && (c.city || '').toLowerCase() === finalCustomerCity.toLowerCase()
                 );
                 if (existingCustomerInCity) {
                     customerId = existingCustomerInCity.id;
-                    customerNameToSave = existingCustomerInCity.name; // Use canonical name
-                } else { // Truly a new customer
+                    customerNameToSave = existingCustomerInCity.name; 
+                } else { 
                     try {
                         const newCustomerRef = db.ref(CUSTOMERS_PATH).push();
                         customerId = newCustomerRef.key;
@@ -505,12 +534,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             customerId, name: customerNameOriginal, normalizedName: enteredNormalizedName, 
                             city: finalCustomerCity, createdAt: firebase.database.ServerValue.TIMESTAMP 
                         });
-                        await fetchCustomersForSuggestions(); // Refresh cache
+                        await fetchCustomersForSuggestions(); 
                     } catch (customerError) { console.error("Error adding new customer:", customerError); alert("Could not save new customer."); return; }
                 }
-            } else { // Customer was selected
+            } else { 
                  const selectedCustomer = customersCache.find(c => c.id === customerId);
-                 if (selectedCustomer) customerNameToSave = selectedCustomer.name; // Use canonical name
+                 if (selectedCustomer) customerNameToSave = selectedCustomer.name;
             }
             
             const saleEntry = {
@@ -531,71 +560,88 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // --- Transactional Stock Update and Sale Record ---
             try {
-                const stockUpdatePromises = items.map(item => {
+                // Phase 1: Attempt all stock update transactions
+                const stockUpdateResults = await Promise.all(items.map(item => {
                     const productRefPath = `${DEFINED_PRODUCTS_PATH}/${item.productCode}`;
                     return db.ref(productRefPath).transaction(currentProductData => {
                         if (currentProductData) {
                             if ((currentProductData.currentStock || 0) < item.quantity) {
-                                // This specific transaction will abort due to insufficient stock.
-                                // The error will be caught by the Promise.all or individual promise.
-                                return; // Abort by returning undefined
+                                // Not enough stock, abort transaction for this item
+                                return; // IMPORTANT: Returning undefined aborts the transaction.
                             }
                             currentProductData.currentStock = (currentProductData.currentStock || 0) - item.quantity;
-                            currentProductData.totalSold = (currentProductData.totalSold || 0) + item.quantity;
+                            currentProductData.totalSold = (currentProductData.totalSold || 0) + item.quantity; // Update totalSold
                             currentProductData.updatedAt = firebase.database.ServerValue.TIMESTAMP;
-                            return currentProductData;
+                            return currentProductData; // Attempt to commit new data
                         }
-                        return undefined; // Product not found, abort
+                        return undefined; // Product not found at path, abort transaction
                     }, (error, committed, snapshot) => {
-                        if (error) throw new Error(`Stock update transaction failed for ${item.itemName}: ${error.message}`);
-                        if (!committed && snapshot && (snapshot.val().currentStock + item.quantity) < item.quantity) { 
-                            // Check if not committed due to stock condition. This check can be tricky.
-                            // A more robust way is to check if the original condition (stock < quantity) was met.
-                            // For simplicity, if !committed, we assume stock issue for now.
-                            throw new Error(`Stock update not committed for ${item.itemName} (likely insufficient stock). Sale cannot proceed.`);
+                        if (error) {
+                            // This callback is for handling the outcome of the transaction attempt.
+                            // We'll throw an error to be caught by Promise.all.
+                            throw new Error(`Stock update transaction failed for ${item.itemName}: ${error.message}`);
                         }
-                         if (!committed && !snapshot) { // Product likely didn't exist at path
-                            throw new Error(`Product ${item.itemName} (${item.productCode}) not found for stock update.`);
+                        if (!committed) {
+                            // If not committed, it could be due to the abort (stock issue) or other reasons.
+                            // Check snapshot.val() if needed to determine why, but the abort condition (currentStock < quantity) is key.
+                            const productData = snapshot ? snapshot.val() : null;
+                            if (productData && (productData.currentStock || 0) < item.quantity) {
+                               throw new Error(`Insufficient stock for ${item.itemName}. Sale cannot proceed.`);
+                            } else if (!productData) {
+                                throw new Error(`Product ${item.itemName} (${item.productCode}) not found for stock update.`);
+                            } else {
+                               // For other non-committed reasons, you might log or throw a generic error.
+                               throw new Error(`Stock update not committed for ${item.itemName} for an unknown reason.`);
+                            }
                         }
+                        // If committed, it's successful for this item.
+                    }, false); // applyLocally = false, to rely on server state.
+                }));
 
-                    }, false); // ApplyLocally set to false if issues with immediate UI updates, true by default
-                });
+                // If we reach here, all transactions in Promise.all attempted.
+                // Check results: The transaction function itself returns a Promise that resolves with an object containing {committed, snapshot}
+                // We need to ensure all 'committed' were true. The error throwing inside the transaction callback is the primary way to stop.
+                // The `stockUpdateResults` will contain the result of each transaction promise.
 
-                await Promise.all(stockUpdatePromises); // Wait for all stock updates
-
-                // If all stock updates were successful (no errors thrown from Promises.all), save the sale.
+                // Phase 2: If all stock updates were successful (no errors thrown from Promises.all), save the sale.
                 const newSaleRef = db.ref(SALES_LOG_PATH).push();
                 saleEntry.saleId = newSaleRef.key;
                 await newSaleRef.set(saleEntry);
 
                 alert(`Sale recorded! ID: ${saleEntry.saleId}`);
-                generateAndShowInvoice(saleEntry); // Generate invoice after successful save
+                generateAndShowInvoice(saleEntry);
                 
-                saleForm.reset(); 
-                saleItemsContainer.innerHTML = ''; 
-                await fetchDefinedProductsForSelect(true); // Refresh product list for next sale (shows updated stock)
-                addSaleItemRow(); // Add a fresh row
+                if(saleForm) saleForm.reset(); 
+                if(saleItemsContainer) saleItemsContainer.innerHTML = ''; 
+                // Product listener will update the cache and dropdowns,
+                // but an explicit addSaleItemRow might be good if the list is empty.
+                if (definedProductsCache.length > 0) addSaleItemRow(); 
+                else if (saleItemsContainer.children.length === 0) {
+                    // If cache is empty maybe prompt or wait for listener
+                    console.log("Product cache empty, not adding initial sale item row yet.");
+                }
+
                 if(saleDateInput) saleDateInput.valueAsDate = new Date();
                 
-                // Reset customer fields
-                customerCitySelect.value = ''; newCityNameInput.value = ''; customerNameInput.value = '';
-                selectedCustomerIdInput.value = ''; selectedCustomerCityNameInput.value = '';
+                if(customerCitySelect) customerCitySelect.value = ''; 
+                if(newCityNameInput) newCityNameInput.value = ''; 
+                if(customerNameInput) customerNameInput.value = '';
+                if(selectedCustomerIdInput) selectedCustomerIdInput.value = ''; 
+                if(selectedCustomerCityNameInput) selectedCustomerCityNameInput.value = '';
                 toggleCustomerNameInputState();
-                handlePaymentMethodChange(); // Reset payment fields
-                calculateTotals(); // Reset totals
+                handlePaymentMethodChange();
+                calculateTotals(); 
 
             } catch (error) { 
                 console.error("Error during sale processing (stock update or sale save):", error); 
-                alert(`Sale not recorded. Error: ${error.message}. Please check stock and try again.`); 
-                // IMPORTANT: Consider if any partial stock updates need manual rollback or a more complex compensation transaction.
-                // For now, it alerts the user that the sale failed.
-                await fetchDefinedProductsForSelect(true); // Refresh product list to show potentially unchanged stock.
+                alert(`Sale not recorded. Error: ${error.message}. Please check stock and try again.`);
+                // The product listener should eventually refresh the UI with correct stock levels.
             }
         });
     }
 
     function loadSalesLog() {
-        const logRef = db.ref(SALES_LOG_PATH).orderByChild('timestamp').limitToLast(100); // Increased limit slightly
+        const logRef = db.ref(SALES_LOG_PATH).orderByChild('timestamp').limitToLast(100); 
         logRef.on('value', snapshot => {
             allSalesData = snapshot.exists() ? snapshot.val() : {};
             displayFilteredSales();
@@ -614,7 +660,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (allSalesData && typeof allSalesData === 'object' && Object.keys(allSalesData).length > 0) {
             const salesArray = Object.keys(allSalesData)
                 .map(key => ({ id: key, ...allSalesData[key] }))
-                .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)); // Newest first
+                .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)); 
 
             salesArray.forEach(sale => {
                 const customerNameMatches = sale.customerName && sale.customerName.toLowerCase().includes(searchTerm);
@@ -625,13 +671,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
-        noSalesHistoryText.style.display = salesDisplayed === 0 ? 'block' : 'none';
-        if (salesDisplayed === 0) {
-            noSalesHistoryText.textContent = searchTerm ? 'No sales match your search.' : 'No sales recorded yet.';
+        if (noSalesHistoryText) {
+            noSalesHistoryText.style.display = salesDisplayed === 0 ? 'block' : 'none';
+            if (salesDisplayed === 0) {
+                noSalesHistoryText.textContent = searchTerm ? 'No sales match your search.' : 'No sales recorded yet.';
+            }
         }
     }
     
-    function renderSaleLogRow(saleKey, data) {
+    function renderSaleLogRow(saleKey, data) { // Unchanged from previous version
         const row = salesLogTableBody.insertRow(); row.setAttribute('data-id', saleKey);
         row.insertCell().textContent = data.saleDate || '';
         row.insertCell().textContent = data.saleId ? data.saleId.slice(-6).toUpperCase() : (saleKey ? saleKey.slice(-6).toUpperCase() : 'N/A');
@@ -640,10 +688,9 @@ document.addEventListener('DOMContentLoaded', () => {
         let customerDisplayText = data.customerName || 'N/A';
         if (data.customerCity) customerDisplayText += ` (${data.customerCity})`;
 
-        if (data.customerId) { // Link to customer details page if available
+        if (data.customerId) { 
             const customerLink = document.createElement('a');
-            // Assuming you might have a customer_details.html or similar
-            customerLink.href = `customers.html#${data.customerId}`; // Link to customers page, could refine to specific customer view
+            customerLink.href = `customers.html#${data.customerId}`; 
             customerLink.textContent = customerDisplayText;
             customerLink.classList.add('table-link');
             customerCell.appendChild(customerLink);
@@ -677,7 +724,7 @@ document.addEventListener('DOMContentLoaded', () => {
         actionsCell.appendChild(invoiceBtn); actionsCell.appendChild(deleteBtn);
     }
 
-    async function deleteSale(saleId, saleData) {
+    async function deleteSale(saleId, saleData) { // Unchanged logic, but stock revert is manual
         if (!saleId) return;
         const confirmationMessage = `DELETE Sale ID: ${saleData.saleId ? saleData.saleId.slice(-6).toUpperCase() : saleId.slice(-6).toUpperCase()} for "${saleData.customerName}"?\n
         !!! IMPORTANT WARNING !!!
@@ -689,19 +736,16 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await db.ref(`${SALES_LOG_PATH}/${saleId}`).remove();
                 alert("Sale log entry deleted. REMEMBER TO MANUALLY ADJUST STOCK LEVELS IF THIS SALE WAS ALREADY ACCOUNTED FOR IN INVENTORY.");
-                // The live listener on salesLog will automatically refresh the table.
-                // Refresh product list to reflect any (manually reverted) stock changes if needed for immediate next sale.
-                await fetchDefinedProductsForSelect(true);
+                // The product listener will update stock display if changed manually in Firebase.
             } catch (error) { console.error(`Error deleting sale ${saleId}:`, error); alert("Error deleting sale log entry."); }
         }
     }
 
-    function generateAndShowInvoice(saleData) {
+    function generateAndShowInvoice(saleData) { // Unchanged from previous version
         const doc = new jsPDF();
         const companyName = "Amee-Tea Pvt Ltd"; const companyAddress = "123 Tea Lane, Colombo, Sri Lanka"; const companyContact = "Phone: +94 11 222 3333 | Email: sales@ameetea.lk";
-        let currentY = 15; // Start Y position
+        let currentY = 15;
         
-        // Header
         doc.setFontSize(18); doc.setFont(undefined, 'bold'); doc.text(companyName, 14, currentY); 
         currentY += 6; doc.setFontSize(10); doc.setFont(undefined, 'normal');
         doc.text(companyAddress, 14, currentY);
@@ -711,9 +755,8 @@ document.addEventListener('DOMContentLoaded', () => {
         doc.setFont(undefined, 'normal'); doc.setFontSize(10);
         doc.text(`Invoice ID: ${saleData.saleId ? saleData.saleId.slice(-10).toUpperCase() : 'N/A'}`, 196, 26, { align: 'right' });
         doc.text(`Date: ${saleData.saleDate}`, 196, 31, { align: 'right' });
-        currentY += 10; // Space after header
+        currentY += 10;
 
-        // Bill To
         doc.setLineWidth(0.2); doc.line(14, currentY, 196, currentY); currentY += 5;
         doc.setFontSize(12); doc.setFont(undefined, 'bold'); doc.text("Bill To:", 14, currentY); 
         doc.setFont(undefined, 'normal'); doc.setFontSize(10); currentY += 5;
@@ -721,9 +764,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (saleData.customerId) customerLine1 += ` (ID: ${saleData.customerId.slice(-6).toUpperCase()})`;
         doc.text(customerLine1, 14, currentY);
         if (saleData.customerCity) { currentY += 5; doc.text(`City: ${saleData.customerCity}`, 14, currentY); }
-        currentY += 8; // Space before table
+        currentY += 8; 
         
-        // Table
         const tableColumn = ["#", "Item Description", "Qty", "Price (Rs.)", "Disc. (%)", "Line Total (Rs.)"];
         const tableRows = []; let itemNumber = 1;
         (saleData.items || []).forEach(item => {
@@ -740,23 +782,17 @@ document.addEventListener('DOMContentLoaded', () => {
             head: [tableColumn], body: tableRows, startY: currentY, 
             theme: 'striped', headStyles: { fillColor: [22, 160, 133], textColor: 255 },
             columnStyles: {
-                0: { cellWidth: 10, halign: 'center' }, // #
-                1: { cellWidth: 'auto' },             // Item
-                2: { cellWidth: 15, halign: 'right' }, // Qty
-                3: { cellWidth: 25, halign: 'right' }, // Price
-                4: { cellWidth: 20, halign: 'right' }, // Disc %
-                5: { cellWidth: 30, halign: 'right' }  // Line Total
+                0: { cellWidth: 10, halign: 'center' }, 1: { cellWidth: 'auto' }, 2: { cellWidth: 15, halign: 'right' },
+                3: { cellWidth: 25, halign: 'right' }, 4: { cellWidth: 20, halign: 'right' }, 5: { cellWidth: 30, halign: 'right' }
             }
         });
         
         let finalY = doc.lastAutoTable.finalY || currentY + 20;
-        finalY += 7; 
-        doc.setFontSize(10); 
+        finalY += 7; doc.setFontSize(10); 
         doc.text(`Subtotal:`, 150, finalY, {align: 'right'}); doc.text(`Rs. ${parseFloat(saleData.subTotal || 0).toFixed(2)}`, 196, finalY, { align: 'right' });
         
         if (saleData.overallDiscountValue > 0) {
-            finalY += 5; 
-            doc.text(`Overall Discount:`, 150, finalY, {align: 'right'}); 
+            finalY += 5; doc.text(`Overall Discount:`, 150, finalY, {align: 'right'}); 
             doc.text(`- Rs. ${parseFloat(saleData.overallDiscountValue || 0).toFixed(2)}`, 196, finalY, { align: 'right' }); 
         }
         finalY += 7; doc.setFontSize(12); doc.setFont(undefined, 'bold'); doc.text(`Grand Total:`, 150, finalY, {align: 'right'}); doc.text(`Rs. ${parseFloat(saleData.grandTotal || 0).toFixed(2)}`, 196, finalY, { align: 'right' }); 
@@ -769,11 +805,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if(saleData.saleNotes){ 
-            finalY += 7; 
-            doc.setFont(undefined, 'bold'); doc.text("Notes:", 14, finalY); doc.setFont(undefined, 'normal');
+            finalY += 7; doc.setFont(undefined, 'bold'); doc.text("Notes:", 14, finalY); doc.setFont(undefined, 'normal');
             const notesLines = doc.splitTextToSize(saleData.saleNotes, 180); 
             doc.text(notesLines, 14, finalY + 4); 
-            finalY += (notesLines.length * 4) + 4; // Adjust Y based on notes length
+            finalY += (notesLines.length * 4) + 4;
         }
         
         const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();

@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const standardWeightInput = document.getElementById('standardWeight');
     const weightUnitSelect = document.getElementById('weightUnit');
     const mrpInput = document.getElementById('mrp');
-    const sellingPriceInput = document.getElementById('sellingPrice');
+    const sellingPriceInput = document.getElementById('sellingPrice'); // This is read by sales.js
 
     const rawMaterialsConsumedContainer = document.getElementById('rawMaterialsConsumedContainer');
     const addRawMaterialButton = document.getElementById('addRawMaterialButton');
@@ -40,18 +40,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const addPackingMaterialButton = document.getElementById('addPackingMaterialButton');
     const productionNotesInput = document.getElementById('productionNotes');
 
-    // Production Log History Table
-    const productionLogTableBody = document.getElementById('productionLogTableBody');
-    const noProductionHistoryText = document.getElementById('noProductionHistoryText');
-
     // Finished Products Inventory Table
     const finishedProductsTableBody = document.getElementById('finishedProductsTableBody');
     const noFinishedProductsText = document.getElementById('noFinishedProductsText');
     const sortFinishedProductsSelect = document.getElementById('sortFinishedProducts');
     const searchFinishedProductsInput = document.getElementById('searchFinishedProducts');
 
-    const PRODUCTION_LOG_PATH = 'productionLog_v2'; // Consider versioning if structure changes
-    const DEFINED_PRODUCTS_PATH = 'definedFinishedProducts_v2'; // Consider versioning
+    // Firebase Paths (must match sales.js for product data)
+    const DEFINED_PRODUCTS_PATH = 'definedFinishedProducts_v2';
     const RAW_TEA_METADATA_PATH = 'rawTeaTableMetadata';
     const RAW_TEA_DATA_PATH = 'rawTeaTableData';
     const PACKING_MATERIAL_METADATA_PATH = 'packingMaterialTableMetadata';
@@ -59,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let rawMaterialTableNames = [];
     let packingMaterialTableNames = [];
-    let allFinishedProducts = []; // For client-side search/sort
+    let allFinishedProducts = []; // Local cache for display
 
     // --- Helper Functions ---
     function formatDate(timestamp) {
@@ -75,20 +71,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalProduced = parseInt(totalQuantityProducedInput.value) || 0;
         const toSellable = parseInt(quantityToAddToSellableStockInput.value) || 0;
         const pending = totalProduced - toSellable;
-        quantityPendingText.textContent = pending >= 0 ? pending : 0;
+        if (quantityPendingText) quantityPendingText.textContent = pending >= 0 ? pending : 0;
     }
+
     if(totalQuantityProducedInput && quantityToAddToSellableStockInput) {
         totalQuantityProducedInput.addEventListener('input', calculatePendingStock);
         quantityToAddToSellableStockInput.addEventListener('input', calculatePendingStock);
     }
 
-
     async function fetchTableNamesForSelect(metadataPath, targetArray, type) {
         try {
             const snapshot = await db.ref(metadataPath).once('value');
+            targetArray.length = 0; // Clear existing
+            if (snapshot.exists()) {
+                targetArray.push(...Object.keys(snapshot.val()));
+            }
+            console.log(`${type} tables fetched:`, targetArray);
+        } catch (error) {
+            console.error(`Error fetching ${type} tables:`, error);
             targetArray.length = 0;
-            if (snapshot.exists()) targetArray.push(...Object.keys(snapshot.val()));
-        } catch (error) { console.error(`Error fetching ${type} tables:`, error); targetArray.length = 0; }
+        }
     }
 
     function createMaterialSelectElement(optionsArray, selectClassName, placeholderText) {
@@ -96,16 +98,25 @@ document.addEventListener('DOMContentLoaded', () => {
         select.classList.add('form-input', selectClassName);
         select.required = true;
         const defaultOption = document.createElement('option');
-        defaultOption.value = ""; defaultOption.textContent = placeholderText; defaultOption.disabled = true; defaultOption.selected = true;
+        defaultOption.value = "";
+        defaultOption.textContent = placeholderText;
+        defaultOption.disabled = true;
+        defaultOption.selected = true;
         select.appendChild(defaultOption);
         optionsArray.forEach(name => {
-            const option = document.createElement('option'); option.value = name; option.textContent = name;
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
             select.appendChild(option);
         });
         return select;
     }
 
     function addMaterialEntryUI(container, tableNames, type) {
+        if (!container) {
+            console.warn(`Container for ${type} not found.`);
+            return;
+        }
         const isRawMaterial = type === 'RawMaterial';
         const placeholder = isRawMaterial ? '-- Select Raw Tea Table --' : '-- Select Packing Table --';
         const qtyUnit = isRawMaterial ? 'Kg' : 'Pcs';
@@ -120,31 +131,64 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (tableNames.length === 0) {
             if (!document.getElementById(noTablesMsgId)) {
-                const msg = document.createElement('p'); msg.id = noTablesMsgId; msg.textContent = noTablesText;
-                msg.style.color = 'var(--text-color-muted)'; msg.style.fontSize = '0.9em';
-                container.parentNode.insertBefore(msg, addButton);
+                const msg = document.createElement('p');
+                msg.id = noTablesMsgId;
+                msg.textContent = noTablesText;
+                msg.style.color = 'var(--text-color-muted)';
+                msg.style.fontSize = '0.9em';
+                if (container.parentNode && addButton) {
+                    container.parentNode.insertBefore(msg, addButton);
+                }
             }
             return;
         }
         const existingMsg = document.getElementById(noTablesMsgId);
         if (existingMsg) existingMsg.remove();
 
-        const entryDiv = document.createElement('div'); entryDiv.classList.add('consumed-material-entry');
-        const sGroup = document.createElement('div'); sGroup.classList.add('form-group');
+        const entryDiv = document.createElement('div');
+        entryDiv.classList.add('consumed-material-entry', 'form-grid', 'grid-cols-4', 'gap-1', 'mb-1'); // Using grid for alignment
+
+        const sGroup = document.createElement('div');
+        sGroup.classList.add('form-group', 'col-span-2'); // Material select takes more space
         sGroup.appendChild(createMaterialSelectElement(tableNames, selectClass, placeholder));
-        const qGroup = document.createElement('div'); qGroup.classList.add('form-group');
-        const qInput = document.createElement('input'); qInput.type = 'number'; qInput.step = qtyStep; qInput.min = qtyMin; qInput.classList.add('form-input', qtyClass); qInput.placeholder = 'Qty Used'; qInput.required = true;
+
+        const qGroup = document.createElement('div');
+        qGroup.classList.add('form-group');
+        const qInput = document.createElement('input');
+        qInput.type = 'number'; qInput.step = qtyStep; qInput.min = qtyMin;
+        qInput.classList.add('form-input', qtyClass); qInput.placeholder = 'Qty Used'; qInput.required = true;
         qGroup.appendChild(qInput);
-        const uGroup = document.createElement('div'); uGroup.classList.add('form-group');
-        const uInput = document.createElement('input'); uInput.type = 'text'; uInput.classList.add('form-input', unitClass); uInput.placeholder = `Unit (e.g., ${qtyUnit})`; uInput.value = qtyUnit; uInput.required = true;
-        uGroup.appendChild(uInput);
-        const rmBtn = document.createElement('button'); rmBtn.type = 'button'; rmBtn.innerHTML = '<i class="fas fa-times"></i>'; rmBtn.classList.add('btn', 'btn-remove-item', 'btn-danger'); rmBtn.title = "Remove"; rmBtn.onclick = () => entryDiv.remove();
-        entryDiv.appendChild(sGroup); entryDiv.appendChild(qGroup); entryDiv.appendChild(uGroup); entryDiv.appendChild(rmBtn);
+
+        const uGroup = document.createElement('div'); // Hidden for now, unit is fixed per type
+        uGroup.classList.add('form-group');
+        uGroup.style.display = 'none'; // Hide unit input, fixed for now
+        const uInput = document.createElement('input');
+        uInput.type = 'text'; uInput.classList.add('form-input', unitClass);
+        uInput.placeholder = `Unit (e.g., ${qtyUnit})`; uInput.value = qtyUnit; uInput.required = true;
+        // uGroup.appendChild(uInput); // Not appending it to keep it hidden
+
+        const rmBtnGroup = document.createElement('div');
+        rmBtnGroup.classList.add('form-group', 'flex', 'items-end'); // Align button
+        const rmBtn = document.createElement('button');
+        rmBtn.type = 'button'; rmBtn.innerHTML = '<i class="fas fa-times"></i>';
+        rmBtn.classList.add('btn', 'btn-remove-item', 'btn-danger', 'btn-sm');
+        rmBtn.title = "Remove";
+        rmBtn.onclick = () => entryDiv.remove();
+        rmBtnGroup.appendChild(rmBtn);
+
+        entryDiv.appendChild(sGroup);
+        entryDiv.appendChild(qGroup);
+        // entryDiv.appendChild(uGroup); // Unit group not added
+        entryDiv.appendChild(rmBtnGroup);
         container.appendChild(entryDiv);
     }
 
-    if (addRawMaterialButton) addRawMaterialButton.addEventListener('click', () => addMaterialEntryUI(rawMaterialsConsumedContainer, rawMaterialTableNames, 'RawMaterial'));
-    if (addPackingMaterialButton) addPackingMaterialButton.addEventListener('click', () => addMaterialEntryUI(packingMaterialsConsumedContainer, packingMaterialTableNames, 'PackingMaterial'));
+    if (addRawMaterialButton) {
+        addRawMaterialButton.addEventListener('click', () => addMaterialEntryUI(rawMaterialsConsumedContainer, rawMaterialTableNames, 'RawMaterial'));
+    }
+    if (addPackingMaterialButton) {
+        addPackingMaterialButton.addEventListener('click', () => addMaterialEntryUI(packingMaterialsConsumedContainer, packingMaterialTableNames, 'PackingMaterial'));
+    }
 
     // --- Log Production Form Submission ---
     if (logProductionForm) {
@@ -158,128 +202,141 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert("Quantity to add to sellable stock cannot exceed total quantity produced.");
                 return;
             }
-             if (toSellableVal < 0) {
+            if (toSellableVal < 0) {
                 alert("Quantity to add to sellable stock cannot be negative.");
                 return;
             }
+            if (isNaN(totalProducedVal) || totalProducedVal <=0) {
+                 alert("Total Quantity Produced must be a positive number."); return;
+            }
+             if (isNaN(toSellableVal) ) {
+                 alert("Quantity to Add to Sellable Stock must be a number."); return;
+            }
 
 
-            const productionRunData = {
+            const productionRunDetails = {
                 productionDate: productionDateInput.value || today,
                 batchNumber: batchNumberInput.value.trim() || null,
                 finishedProductName: finishedProductNameInput.value.trim(),
                 finishedProductCode: finishedProductCodeInput.value.trim().toUpperCase(),
                 totalQuantityProducedInBatch: totalProducedVal,
                 quantityAddedToStockFromThisBatch: toSellableVal,
-                rawMaterialsConsumed: [],
-                packingMaterialConsumed: [],
                 notes: productionNotesInput.value.trim() || null,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
             };
 
-            // Product Definition Data (for definedFinishedProducts node)
             const productDefinitionData = {
-                itemName: productionRunData.finishedProductName,
-                productCode: productionRunData.finishedProductCode,
+                itemName: productionRunDetails.finishedProductName,
+                productCode: productionRunDetails.finishedProductCode,
                 standardWeight: parseFloat(standardWeightInput.value) || 0,
                 weightUnit: weightUnitSelect.value || 'g',
                 mrp: parseFloat(mrpInput.value) || 0,
-                sellingPrice: parseFloat(sellingPriceInput.value) || 0,
+                sellingPrice: parseFloat(sellingPriceInput.value) || 0, // Key field for sales page
             };
 
-            // Basic Validations
-            if (!productionRunData.productionDate || !productionRunData.finishedProductName || !productionRunData.finishedProductCode || !productionRunData.totalQuantityProducedInBatch === undefined) {
-                alert("Please fill all required production details (Date, Product Name, Code, Total Quantity Produced)."); return;
+            if (!productionRunDetails.productionDate || !productionRunDetails.finishedProductName || !productionRunDetails.finishedProductCode ) {
+                alert("Please fill all required production details (Date, Product Name, Code)."); return;
             }
             if (productDefinitionData.mrp < 0 || productDefinitionData.sellingPrice < 0 || productDefinitionData.standardWeight < 0) {
                 alert("MRP, Selling Price, and Standard Weight cannot be negative."); return;
             }
-            if (productDefinitionData.sellingPrice > productDefinitionData.mrp && productDefinitionData.mrp > 0) {
+             if (productDefinitionData.sellingPrice <= 0) {
+                alert("Selling Price must be greater than zero."); return;
+            }
+            if (productDefinitionData.mrp > 0 && productDefinitionData.sellingPrice > productDefinitionData.mrp) {
                  if(!confirm("Warning: Selling Price is greater than MRP. Continue?")) return;
             }
 
 
+            const rawMaterialsConsumedThisBatch = [];
             document.querySelectorAll('#rawMaterialsConsumedContainer .consumed-material-entry').forEach(entry => {
-                const tableName = entry.querySelector('.raw-tea-table-select').value;
-                const quantityUsed = parseFloat(entry.querySelector('.raw-tea-qty').value);
-                const unit = entry.querySelector('.raw-tea-unit').value.trim();
-                if (tableName && quantityUsed > 0 && unit) productionRunData.rawMaterialsConsumed.push({ tableName, quantityUsed, unit });
+                const tableName = entry.querySelector('.raw-tea-table-select')?.value;
+                const quantityUsed = parseFloat(entry.querySelector('.raw-tea-qty')?.value);
+                // const unit = entry.querySelector('.raw-tea-unit')?.value.trim(); // Unit is now fixed as 'Kg'
+                if (tableName && quantityUsed > 0) {
+                    rawMaterialsConsumedThisBatch.push({ tableName, quantityUsed, unit: 'Kg' });
+                }
             });
+
+            const packingMaterialsConsumedThisBatch = [];
             document.querySelectorAll('#packingMaterialsConsumedContainer .consumed-material-entry').forEach(entry => {
-                const tableName = entry.querySelector('.packing-material-table-select').value;
-                const quantityUsed = parseInt(entry.querySelector('.packing-material-qty').value);
-                const unit = entry.querySelector('.packing-material-unit').value.trim();
-                if (tableName && quantityUsed > 0 && unit) productionRunData.packingMaterialConsumed.push({ tableName, quantityUsed, unit });
+                const tableName = entry.querySelector('.packing-material-table-select')?.value;
+                const quantityUsed = parseInt(entry.querySelector('.packing-material-qty')?.value);
+                // const unit = entry.querySelector('.packing-material-unit')?.value.trim(); // Unit is now fixed as 'Pcs'
+                if (tableName && quantityUsed > 0) {
+                    packingMaterialsConsumedThisBatch.push({ tableName, quantityUsed, unit: 'Pcs' });
+                }
             });
 
-            const newProductionLogRef = db.ref(PRODUCTION_LOG_PATH).push();
-            const productionLogId = newProductionLogRef.key;
-            productionRunData.productionLogId = productionLogId;
+            const updates = {}; // For material deductions
 
-            const updates = {};
-            updates[`${PRODUCTION_LOG_PATH}/${productionLogId}`] = productionRunData;
-
-            // Deduct Raw Materials
-            productionRunData.rawMaterialsConsumed.forEach(material => {
+            rawMaterialsConsumedThisBatch.forEach(material => {
                 const outflowKey = db.ref(`${RAW_TEA_DATA_PATH}/${material.tableName}`).push().key;
                 updates[`${RAW_TEA_DATA_PATH}/${material.tableName}/${outflowKey}`] = {
-                    transactionDate: productionRunData.productionDate, transactionType: 'outflow',
-                    outflowProduct: productionRunData.finishedProductName, outflowWeight: material.quantityUsed,
-                    outflowNotes: `Prod. ID: ${productionLogId}, Batch: ${productionRunData.batchNumber || 'N/A'}`,
-                    timestamp: productionRunData.timestamp
+                    transactionDate: productionRunDetails.productionDate,
+                    transactionType: 'outflow',
+                    outflowProduct: productionRunDetails.finishedProductName,
+                    outflowWeight: material.quantityUsed,
+                    outflowNotes: `For Product: ${productionRunDetails.finishedProductCode}, Batch: ${productionRunDetails.batchNumber || 'N/A'}`,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
                 };
             });
-            // Deduct Packing Materials
-            productionRunData.packingMaterialConsumed.forEach(material => {
+            packingMaterialsConsumedThisBatch.forEach(material => {
                 const issueKey = db.ref(`${PACKING_MATERIAL_DATA_PATH}/${material.tableName}`).push().key;
                 updates[`${PACKING_MATERIAL_DATA_PATH}/${material.tableName}/${issueKey}`] = {
-                    transactionDate: productionRunData.productionDate, transactionType: 'issue',
+                    transactionDate: productionRunDetails.productionDate,
+                    transactionType: 'issue',
                     issueQty: material.quantityUsed,
-                    issueReason: `Prod. ID: ${productionLogId}, Batch: ${productionRunData.batchNumber || 'N/A'}`,
-                    timestamp: productionRunData.timestamp
+                    issueReason: `For Product: ${productionRunDetails.finishedProductCode}, Batch: ${productionRunDetails.batchNumber || 'N/A'}`,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
                 };
             });
 
-            const finishedProductRef = db.ref(`${DEFINED_PRODUCTS_PATH}/${productionRunData.finishedProductCode}`);
+            const finishedProductRef = db.ref(`${DEFINED_PRODUCTS_PATH}/${productionRunDetails.finishedProductCode}`);
 
             try {
-                await db.ref().update(updates); // Log production run & deduct materials
+                if (Object.keys(updates).length > 0) {
+                    await db.ref().update(updates); // Deduct materials
+                }
 
-                // Update Finished Product Definition and Stock
                 await finishedProductRef.transaction(currentData => {
-                    const quantityAddedToSellable = productionRunData.quantityAddedToStockFromThisBatch;
-                    const quantityForPending = productionRunData.totalQuantityProducedInBatch - quantityAddedToSellable;
+                    const quantityAddedToSellable = productionRunDetails.quantityAddedToStockFromThisBatch;
+                    const quantityForPending = productionRunDetails.totalQuantityProducedInBatch - quantityAddedToSellable;
 
                     if (currentData === null) { // New product
                         return {
                             ...productDefinitionData,
                             currentStock: quantityAddedToSellable,
                             pendingStock: quantityForPending,
-                            totalSold: 0,
+                            totalSold: 0, // Initialize totalSold for new products
+                            notes: productionRunDetails.notes,
+                            batchNumberOnCreation: productionRunDetails.batchNumber,
                             createdAt: firebase.database.ServerValue.TIMESTAMP,
                             updatedAt: firebase.database.ServerValue.TIMESTAMP
                         };
                     } else { // Existing product
-                        currentData.itemName = productDefinitionData.itemName; // Allow name updates
+                        currentData.itemName = productDefinitionData.itemName; 
                         currentData.standardWeight = productDefinitionData.standardWeight;
                         currentData.weightUnit = productDefinitionData.weightUnit;
                         currentData.mrp = productDefinitionData.mrp;
                         currentData.sellingPrice = productDefinitionData.sellingPrice;
                         currentData.currentStock = (currentData.currentStock || 0) + quantityAddedToSellable;
                         currentData.pendingStock = (currentData.pendingStock || 0) + quantityForPending;
+                        // notes and totalSold are not modified here for existing products by production
                         currentData.updatedAt = firebase.database.ServerValue.TIMESTAMP;
                         return currentData;
                     }
                 });
 
-                alert("Production logged, inventories updated successfully!");
+                alert("Production logged, product inventory updated successfully!");
                 logProductionForm.reset();
-                rawMaterialsConsumedContainer.innerHTML = '';
-                packingMaterialsConsumedContainer.innerHTML = '';
-                quantityPendingText.textContent = '0';
+                if (rawMaterialsConsumedContainer) rawMaterialsConsumedContainer.innerHTML = '';
+                if (packingMaterialsConsumedContainer) packingMaterialsConsumedContainer.innerHTML = '';
+                if (quantityPendingText) quantityPendingText.textContent = '0';
                 if(productionDateInput) productionDateInput.valueAsDate = new Date();
-                if(rawMaterialTableNames.length > 0) addMaterialEntryUI(rawMaterialsConsumedContainer, rawMaterialTableNames, 'RawMaterial');
-                if(packingMaterialTableNames.length > 0) addMaterialEntryUI(packingMaterialsConsumedContainer, packingMaterialTableNames, 'PackingMaterial');
+                
+                // Re-add initial material rows if tables are available
+                if(rawMaterialsConsumedContainer && rawMaterialTableNames.length > 0) addMaterialEntryUI(rawMaterialsConsumedContainer, rawMaterialTableNames, 'RawMaterial');
+                if(packingMaterialsConsumedContainer && packingMaterialTableNames.length > 0) addMaterialEntryUI(packingMaterialsConsumedContainer, packingMaterialTableNames, 'PackingMaterial');
 
             } catch (error) {
                 console.error("Error logging production:", error);
@@ -288,103 +345,31 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Load and Display Production Log History ---
-    function loadProductionLogHistory() {
-        const logRef = db.ref(PRODUCTION_LOG_PATH).orderByChild('timestamp');
-        logRef.on('value', snapshot => {
-            if (!productionLogTableBody) return;
-            productionLogTableBody.innerHTML = '';
-            if (snapshot.exists()) {
-                noProductionHistoryText.style.display = 'none';
-                const entries = [];
-                snapshot.forEach(child => entries.push({ id: child.key, ...child.val() }));
-                entries.reverse(); // Newest first
-                entries.forEach(entry => renderProductionLogRow(entry));
-            } else {
-                noProductionHistoryText.style.display = 'block';
-            }
-        }, err => {
-            console.error("Error loading production log history:", err);
-            noProductionHistoryText.textContent = 'Error loading production history.';
-            noProductionHistoryText.style.display = 'block';
-        });
-    }
-
-    function renderProductionLogRow(data) {
-        const row = productionLogTableBody.insertRow();
-        row.insertCell().textContent = data.productionDate || '';
-        row.insertCell().textContent = data.finishedProductName || '';
-        row.insertCell().textContent = data.finishedProductCode || '';
-        row.insertCell().textContent = data.batchNumber || 'N/A';
-        const totalQtyCell = row.insertCell(); totalQtyCell.textContent = data.totalQuantityProducedInBatch || '0'; totalQtyCell.classList.add('text-center');
-        const addedToStockCell = row.insertCell(); addedToStockCell.textContent = data.quantityAddedToStockFromThisBatch || '0'; addedToStockCell.classList.add('text-center');
-
-        const rmCell = row.insertCell();
-        if (data.rawMaterialsConsumed && data.rawMaterialsConsumed.length > 0) {
-            const ul = document.createElement('ul'); ul.classList.add('material-list-display');
-            data.rawMaterialsConsumed.forEach(rm => {
-                const li = document.createElement('li'); li.textContent = `${rm.tableName}: ${rm.quantityUsed} ${rm.unit || ''}`;
-                ul.appendChild(li);
-            }); rmCell.appendChild(ul);
-        } else { rmCell.textContent = 'N/A'; rmCell.classList.add('text-center'); }
-
-        const pmCell = row.insertCell();
-        if (data.packingMaterialConsumed && data.packingMaterialConsumed.length > 0) {
-            const ul = document.createElement('ul'); ul.classList.add('material-list-display');
-            data.packingMaterialConsumed.forEach(pm => {
-                const li = document.createElement('li'); li.textContent = `${pm.tableName}: ${pm.quantityUsed} ${pm.unit || ''}`;
-                ul.appendChild(li);
-            }); pmCell.appendChild(ul);
-        } else { pmCell.textContent = 'N/A'; pmCell.classList.add('text-center'); }
-
-        const actionsCell = row.insertCell(); actionsCell.classList.add('actions', 'text-center');
-        const deleteBtn = document.createElement('button');
-        deleteBtn.innerHTML = '<i class="fas fa-trash fa-fw"></i>';
-        deleteBtn.classList.add('btn', 'btn-danger', 'btn-sm');
-        deleteBtn.title = "Delete Log (WARNING: Does NOT revert inventory/stock changes automatically)";
-        deleteBtn.onclick = () => deleteProductionLogEntry(data.productionLogId, data);
-        actionsCell.appendChild(deleteBtn);
-    }
-
-    async function deleteProductionLogEntry(logId, entryData) {
-        const confirmationMessage = `Permanently DELETE production batch log for "${entryData.finishedProductName}" (Batch: ${entryData.batchNumber || 'N/A'})?\n
-        !!! IMPORTANT WARNING !!!
-        This action is IRREVERSIBLE and WILL NOT automatically:
-        1. Revert raw material deductions.
-        2. Revert packing material deductions.
-        3. Reduce 'Sellable Stock' or 'Pending Stock' for product code '${entryData.finishedProductCode}'.
-        You MUST manually adjust all related inventories if this log is deleted.\n
-        Are you absolutely sure you want to proceed?`;
-
-        if (confirm(confirmationMessage)) {
-            try {
-                await db.ref(`${PRODUCTION_LOG_PATH}/${logId}`).remove();
-                alert("Production log entry deleted. REMEMBER TO MANUALLY ADJUST ALL RELATED INVENTORIES!");
-            } catch (error) {
-                console.error(`Error deleting production log ${logId}:`, error);
-                alert("Error deleting production log entry.");
-            }
-        }
-    }
-
-
     // --- Load and Display Finished Products Inventory ---
     let currentSortCriteria = 'latestCreated';
     let currentSearchTerm = '';
 
     function loadFinishedProductsInventory() {
         const productsRef = db.ref(DEFINED_PRODUCTS_PATH);
+        // Using .on() for real-time updates from Firebase (e.g., when sales occur)
         productsRef.on('value', snapshot => {
+            console.log("Finished products data received from Firebase for production page.");
             allFinishedProducts = [];
             if (snapshot.exists()) {
                 snapshot.forEach(child => {
-                    allFinishedProducts.push({ id: child.key, ...child.val() });
+                    allFinishedProducts.push({ 
+                        id: child.key, // productCode is the key
+                        productCode: child.key, 
+                        ...child.val() 
+                    });
                 });
             }
-            renderFinishedProductsTable(); // Initial render
+            renderFinishedProductsTable();
         }, err => {
-            console.error("Error loading finished products:", err);
-            finishedProductsTableBody.innerHTML = `<tr><td colspan="12" class="text-center text-danger">Error loading finished products.</td></tr>`;
+            console.error("Error loading finished products on production page:", err);
+            if(finishedProductsTableBody) {
+                 finishedProductsTableBody.innerHTML = `<tr><td colspan="12" class="text-center text-danger">Error loading finished products. Check console.</td></tr>`;
+            }
         });
     }
 
@@ -394,7 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let productsToDisplay = [...allFinishedProducts];
 
-        // Filter
+        // Client-side Filter
         if (currentSearchTerm) {
             productsToDisplay = productsToDisplay.filter(p =>
                 (p.itemName && p.itemName.toLowerCase().includes(currentSearchTerm)) ||
@@ -402,66 +387,80 @@ document.addEventListener('DOMContentLoaded', () => {
             );
         }
 
-        // Sort
+        // Client-side Sort
         switch (currentSortCriteria) {
             case 'latestCreated': productsToDisplay.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); break;
             case 'oldestCreated': productsToDisplay.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)); break;
             case 'topSelling': productsToDisplay.sort((a, b) => (b.totalSold || 0) - (a.totalSold || 0)); break;
             case 'lowestSelling': productsToDisplay.sort((a, b) => (a.totalSold || 0) - (b.totalSold || 0)); break;
-            case 'productNameAZ': productsToDisplay.sort((a, b) => a.itemName.localeCompare(b.itemName)); break;
-            case 'productNameZA': productsToDisplay.sort((a, b) => b.itemName.localeCompare(a.itemName)); break;
+            case 'productNameAZ': productsToDisplay.sort((a, b) => (a.itemName || "").localeCompare(b.itemName || "")); break;
+            case 'productNameZA': productsToDisplay.sort((a, b) => (b.itemName || "").localeCompare(a.itemName || "")); break;
+            default: productsToDisplay.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         }
 
         if (productsToDisplay.length > 0) {
-            noFinishedProductsText.style.display = 'none';
+            if(noFinishedProductsText) noFinishedProductsText.style.display = 'none';
             productsToDisplay.forEach(product => {
                 const row = finishedProductsTableBody.insertRow();
                 row.insertCell().textContent = product.productCode;
                 row.insertCell().textContent = product.itemName;
-                const stdWeightCell = row.insertCell(); stdWeightCell.textContent = product.standardWeight || 'N/A'; stdWeightCell.classList.add('text-right');
+                const stdWeightCell = row.insertCell(); stdWeightCell.textContent = product.standardWeight ? `${product.standardWeight}` : 'N/A'; stdWeightCell.classList.add('text-right');
                 row.insertCell().textContent = product.weightUnit || 'N/A';
                 const mrpCell = row.insertCell(); mrpCell.textContent = formatCurrency(product.mrp); mrpCell.classList.add('text-right');
                 const spCell = row.insertCell(); spCell.textContent = formatCurrency(product.sellingPrice); spCell.classList.add('text-right');
                 
-                const avgIncome = (product.mrp || 0) - (product.sellingPrice || 0);
-                const avgIncomeCell = row.insertCell(); avgIncomeCell.textContent = formatCurrency(avgIncome); avgIncomeCell.classList.add('text-right');
-                if (avgIncome < 0) avgIncomeCell.classList.add('text-danger');
-
+                // "Avg. Income (Rs.)" is actually SP - MRP. If SP > MRP, it's positive.
+                const incomeMetric = (product.sellingPrice || 0) - (product.mrp || 0);
+                const incomeCell = row.insertCell(); incomeCell.textContent = formatCurrency(incomeMetric); incomeCell.classList.add('text-right');
+                if (incomeMetric > 0 && product.mrp > 0) { // If Selling Price is greater than MRP (and MRP is set)
+                     incomeCell.classList.add('text-warning'); 
+                } else if (incomeMetric < 0) { // If Selling Price is less than MRP (discounted)
+                    // incomeCell.classList.add('text-info'); // Optional: style for discounted items
+                }
 
                 const sellableStockCell = row.insertCell(); sellableStockCell.textContent = product.currentStock || 0; sellableStockCell.classList.add('text-center');
                 const pendingStockCell = row.insertCell(); pendingStockCell.textContent = product.pendingStock || 0; pendingStockCell.classList.add('text-center');
-                const totalSoldCell = row.insertCell(); totalSoldCell.textContent = product.totalSold || 0; totalSoldCell.classList.add('text-center');
+                const totalSoldCell = row.insertCell(); totalSoldCell.textContent = product.totalSold || 0; totalSoldCell.classList.add('text-center'); // Updated by sales.js
 
                 row.insertCell().textContent = formatDate(product.createdAt);
 
-                const actionsCell = row.insertCell(); actionsCell.classList.add('text-center');
-                // Placeholder for "Add Pending to Stock" button
+                const actionsCell = row.insertCell(); actionsCell.classList.add('text-center', 'actions-cell');
+                
                 const addPendingBtn = document.createElement('button');
                 addPendingBtn.innerHTML = '<i class="fas fa-plus-square"></i> To Sellable';
                 addPendingBtn.classList.add('btn', 'btn-info', 'btn-sm');
                 addPendingBtn.title = 'Move Pending Stock to Sellable Stock';
-                addPendingBtn.disabled = !(product.pendingStock > 0); // Disable if no pending stock
-                addPendingBtn.onclick = () => handleAddPendingToSellable(product.id, product.pendingStock, product.itemName);
+                addPendingBtn.style.marginRight = '5px';
+                addPendingBtn.disabled = !(product.pendingStock > 0); 
+                addPendingBtn.onclick = () => handleAddPendingToSellable(product.productCode, product.pendingStock, product.itemName);
                 actionsCell.appendChild(addPendingBtn);
-                // Add more actions like "Edit Product Definition" if needed
+
+                const deleteProductBtn = document.createElement('button');
+                deleteProductBtn.innerHTML = '<i class="fas fa-trash"></i> Delete';
+                deleteProductBtn.classList.add('btn', 'btn-danger', 'btn-sm');
+                deleteProductBtn.title = `Delete product: ${product.itemName}`;
+                deleteProductBtn.onclick = () => handleDeleteFinishedProduct(product.productCode, product.itemName);
+                actionsCell.appendChild(deleteProductBtn);
             });
         } else {
-            noFinishedProductsText.style.display = 'block';
-             noFinishedProductsText.textContent = currentSearchTerm ? 'No products match your search.' : 'No finished products defined yet.';
+            if(noFinishedProductsText) {
+                noFinishedProductsText.style.display = 'block';
+                noFinishedProductsText.textContent = currentSearchTerm ? 'No products match your search.' : 'No finished products defined yet. Log a production run to add products.';
+            }
         }
     }
     
-    async function handleAddPendingToSellable(productId, pendingQty, itemName) {
+    async function handleAddPendingToSellable(productCode, pendingQty, itemName) {
         if (!pendingQty || pendingQty <= 0) {
             alert("No pending stock to move.");
             return;
         }
-        const qtyToMove = prompt(`How many units of "${itemName}" (Pending: ${pendingQty}) do you want to move to Sellable Stock?`, pendingQty);
-        if (qtyToMove === null) return; // User cancelled
+        const qtyToMoveStr = prompt(`How many units of "${itemName}" (Pending: ${pendingQty}) do you want to move to Sellable Stock?`, pendingQty);
+        if (qtyToMoveStr === null) return; // User cancelled
 
-        const numQtyToMove = parseInt(qtyToMove);
+        const numQtyToMove = parseInt(qtyToMoveStr);
         if (isNaN(numQtyToMove) || numQtyToMove <= 0) {
-            alert("Invalid quantity entered.");
+            alert("Invalid quantity entered. Please enter a positive number.");
             return;
         }
         if (numQtyToMove > pendingQty) {
@@ -469,7 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const productRef = db.ref(`${DEFINED_PRODUCTS_PATH}/${productId}`);
+        const productRef = db.ref(`${DEFINED_PRODUCTS_PATH}/${productCode}`);
         try {
             await productRef.transaction(currentData => {
                 if (currentData) {
@@ -478,41 +477,69 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentData.updatedAt = firebase.database.ServerValue.TIMESTAMP;
                     return currentData;
                 }
-                return currentData; // Abort if product somehow deleted
+                return currentData; // Abort if product somehow deleted during transaction
             });
             alert(`${numQtyToMove} units of "${itemName}" moved to sellable stock.`);
+            // Table will update via Firebase listener
         } catch (error) {
             console.error("Error moving pending stock:", error);
             alert("Failed to move pending stock. Check console.");
         }
     }
 
+    async function handleDeleteFinishedProduct(productCode, productName) {
+        const confirmationMessage = `Are you sure you want to permanently delete the finished product "${productName}" (Code: ${productCode})?\n
+        This action is IRREVERSIBLE and will remove the product definition and its stock details.\n
+        Associated raw material and packing material deduction records will NOT be automatically deleted or reverted.`;
+
+        if (confirm(confirmationMessage)) {
+            try {
+                await db.ref(`${DEFINED_PRODUCTS_PATH}/${productCode}`).remove();
+                alert(`Product "${productName}" deleted successfully.`);
+                // Table will update via Firebase listener
+            } catch (error) {
+                console.error(`Error deleting product ${productCode}:`, error);
+                alert(`Error deleting product "${productName}". Check console for details.`);
+            }
+        }
+    }
 
     if (sortFinishedProductsSelect) {
         sortFinishedProductsSelect.addEventListener('change', (e) => {
             currentSortCriteria = e.target.value;
-            renderFinishedProductsTable();
+            renderFinishedProductsTable(); // Re-render with new sort
         });
     }
     if (searchFinishedProductsInput) {
         searchFinishedProductsInput.addEventListener('input', (e) => {
             currentSearchTerm = e.target.value.toLowerCase().trim();
-            renderFinishedProductsTable(); // Debounce this for better performance on large lists if needed
+            renderFinishedProductsTable(); // Re-render with new search term
         });
     }
-
 
     // --- Initial Page Load ---
     async function initializePage() {
         if(productionDateInput) productionDateInput.valueAsDate = new Date();
-        await fetchTableNamesForSelect(RAW_TEA_METADATA_PATH, rawMaterialTableNames, "Raw Tea");
+        
+        // Fetch material table names for the production form
+        await fetchTableNamesForSelect(RAW_TEA_METADATA_PATH, rawMaterialTableNames, "Raw Material");
         await fetchTableNamesForSelect(PACKING_MATERIAL_METADATA_PATH, packingMaterialTableNames, "Packing Material");
 
-        if(rawMaterialTableNames.length > 0) addMaterialEntryUI(rawMaterialsConsumedContainer, rawMaterialTableNames, 'RawMaterial');
-        if(packingMaterialTableNames.length > 0) addMaterialEntryUI(packingMaterialsConsumedContainer, packingMaterialTableNames, 'PackingMaterial');
+        // Add initial material entry rows if tables are available
+        if(rawMaterialsConsumedContainer && rawMaterialTableNames.length > 0) {
+            addMaterialEntryUI(rawMaterialsConsumedContainer, rawMaterialTableNames, 'RawMaterial');
+        } else if (rawMaterialsConsumedContainer) { // Show "no tables" message if container exists but no tables
+            addMaterialEntryUI(rawMaterialsConsumedContainer, [], 'RawMaterial');
+        }
         
-        loadProductionLogHistory();
-        loadFinishedProductsInventory();
+        if(packingMaterialsConsumedContainer && packingMaterialTableNames.length > 0) {
+            addMaterialEntryUI(packingMaterialsConsumedContainer, packingMaterialTableNames, 'PackingMaterial');
+        } else if (packingMaterialsConsumedContainer) { // Show "no tables" message
+            addMaterialEntryUI(packingMaterialsConsumedContainer, [], 'PackingMaterial');
+        }
+        
+        // Start listening for finished product updates and render the table
+        loadFinishedProductsInventory(); 
     }
 
     initializePage();
