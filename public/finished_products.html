@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" href="tealeaf.png" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="tbs.css"> 
+    <link rel="stylesheet" href="tbs.css">
 </head>
 <body>
     <div id="app" class="app-container">
@@ -27,7 +27,7 @@
                     <a href="production.html" class="navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
                     <a href="finished_products.html" class="navbar-item active"><i class="fas fa-mug-hot fa-fw"></i> <span>Finished Products</span></a>
                     <a href="sales.html" class="navbar-item"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
-                    <a href="customers.html" class="navbar-item"><i class="fas fa-users fa-fw"></i> <span>Customers</span></a> 
+                    <a href="customers.html" class="navbar-item"><i class="fas fa-users fa-fw"></i> <span>Customers</span></a>
                 </div>
             </div>
             <div id="mobile-menu" class="hidden">
@@ -37,7 +37,7 @@
                 <a href="production.html" class="mobile-navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
                 <a href="finished_products.html" class="mobile-navbar-item active"><i class="fas fa-mug-hot fa-fw"></i> <span>Finished Products</span></a>
                 <a href="sales.html" class="mobile-navbar-item"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
-                <a href="customers.html" class="mobile-navbar-item"><i class="fas fa-users fa-fw"></i> <span>Customers</span></a> 
+                <a href="customers.html" class="mobile-navbar-item"><i class="fas fa-users fa-fw"></i> <span>Customers</span></a>
             </div>
         </nav>
 
@@ -53,7 +53,7 @@
                         <div class="modal-content">
                             <span class="modal-close-button">&times;</span>
                             <h2 class="modal-title" id="productFormTitle">Add New Finished Product</h2>
-                            
+
                             <div class="lookup-section">
                                 <h4 class="lookup-title">Optional: Lookup from Production Log to Pre-fill Code & Name</h4>
                                 <div class="form-grid grid-cols-3">
@@ -109,9 +109,9 @@
                                     <label for="unitOfMeasure" class="form-label">Unit of Measure (for stock/sale):</label>
                                     <input type="text" id="unitOfMeasure" class="form-input" placeholder="e.g., Pack, Box, Bottle" required>
                                 </div>
-                                
-                                <div class="form-group" id="currentStockEditGroup"> 
-                                    <label for="currentStockEditInput" class="form-label" id="stockInputLabel">Opening Stock Quantity:</label> 
+
+                                <div class="form-group" id="currentStockEditGroup">
+                                    <label for="currentStockEditInput" class="form-label" id="stockInputLabel">Opening Stock Quantity:</label>
                                     <input type="number" step="1" id="currentStockEditInput" class="form-input" placeholder="0">
                                     <p class="form-hint" id="stockAdjustHint">Enter initial stock for a new product. For existing products, this is the current stock and can be adjusted (use with caution).</p>
                                 </div>
@@ -123,12 +123,26 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="all-items-list-container section-card">
                     <h3 class="section-title">Defined Finished Products</h3>
-                    <div class="form-group">
-                        <label for="searchProductsInput" class="form-label">Search Products:</label>
-                        <input type="text" id="searchProductsInput" class="form-input" placeholder="Search by Code or Name...">
+                    <div class="form-grid grid-cols-2" style="align-items: end; margin-bottom: 1rem;">
+                        <div class="form-group">
+                            <label for="searchProductsInput" class="form-label">Search Products:</label>
+                            <input type="text" id="searchProductsInput" class="form-input" placeholder="Search by Code or Name...">
+                        </div>
+                        <div class="form-group">
+                            <label for="sortProductsSelect" class="form-label">Sort By:</label>
+                            <select id="sortProductsSelect" class="form-input">
+                                <option value="name_asc">Name (A-Z)</option>
+                                <option value="name_desc">Name (Z-A)</option>
+                                <option value="latest">Latest Updated</option>
+                                <option value="stock_high_low">Stock (High to Low)</option>
+                                <option value="stock_low_high">Stock (Low to High)</option>
+                                <option value="sold_high_low">Total Sold (High to Low)</option>
+                                <option value="sold_low_high">Total Sold (Low to High)</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="table-responsive-wrapper">
                         <table id="finishedProductsTable" class="data-table">

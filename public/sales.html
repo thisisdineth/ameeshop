@@ -53,20 +53,33 @@
                                 <label for="saleDate" class="form-label">Sale Date:</label>
                                 <input type="date" id="saleDate" class="form-input" required>
                             </div>
-                            <div class="form-group customer-input-group">
-                                <label for="customerName" class="form-label">Customer Name:</label>
-                                <input type="text" id="customerName" class="form-input" placeholder="Type customer name..." autocomplete="off" required>
-                                <div id="customerSuggestionsList" class="suggestions-dropdown"></div> 
-                                <input type="hidden" id="selectedCustomerId"> 
-                                <p class="form-hint">New customers will be saved automatically.</p>
+                            <div class="form-group">
+                                <label for="customerCitySelect" class="form-label">Customer City:</label>
+                                <select id="customerCitySelect" class="form-input">
+                                    <option value="">-- Select City First --</option>
+                                    </select>
                             </div>
                         </div>
+                        <div class="form-grid grid-cols-2">
+                             <div class="form-group">
+                                <label for="newCityNameInput" class="form-label">Or Add New City:</label>
+                                <input type="text" id="newCityNameInput" class="form-input" placeholder="Type new city name...">
+                            </div>
+                            <div class="form-group customer-input-group">
+                                <label for="customerName" class="form-label">Customer Name:</label>
+                                <input type="text" id="customerName" class="form-input" placeholder="Select/Enter City first..." autocomplete="off" required disabled>
+                                <div id="customerSuggestionsList" class="suggestions-dropdown"></div>
+                                <input type="hidden" id="selectedCustomerId">
+                                <input type="hidden" id="selectedCustomerCityName">
+                            </div>
+                        </div>
+                        <p class="form-hint">New customers are saved with the selected/newly typed city. Ensure city is selected or entered.</p>
+
 
                         <hr class="form-divider">
                         <h3 class="form-subsection-title">Items Sold</h3>
                         <div id="saleItemsContainer">
-                           
-                        </div>
+                            </div>
                         <button type="button" id="addSaleItemButton" class="btn btn-secondary btn-sm mb-1">
                             <i class="fas fa-plus fa-fw"></i> Add Item to Sale
                         </button>
@@ -78,16 +91,16 @@
                                 <input type="text" id="subTotal" class="form-input" placeholder="0.00" readonly>
                             </div>
                             <div class="form-group">
-                                <label for="overallDiscountPercent" class="form-label">Overall Discount (%):</label> 
-                                <input type="number" step="0.01" id="overallDiscountPercent" class="form-input" placeholder="0" value="0"> 
-                                <input type="hidden" id="overallDiscountAmount"> 
+                                <label for="overallDiscountValueInput" class="form-label">Overall Discount (Rs.):</label>
+                                <input type="number" step="0.01" id="overallDiscountValueInput" class="form-input" placeholder="0.00" value="0">
                             </div>
                             <div class="form-group">
                                 <label for="grandTotal" class="form-label">Grand Total (Rs.):</label>
                                 <input type="text" id="grandTotal" class="form-input" placeholder="0.00" readonly>
                             </div>
                         </div>
-                         <div class="form-grid grid-cols-2">
+
+                        <div class="form-grid grid-cols-1">
                             <div class="form-group">
                                 <label for="paymentMethod" class="form-label">Payment Method:</label>
                                 <select id="paymentMethod" class="form-input">
@@ -96,10 +109,23 @@
                                     <option value="Bank Transfer">Bank Transfer</option>
                                     <option value="Cheque">Cheque</option>
                                     <option value="Online">Online</option>
+                                    <option value="Installment">Installment</option>
                                     <option value="Other">Other</option>
                                 </select>
                             </div>
-                             <div class="form-group">
+                        </div>
+                        <div id="installmentFieldsContainer" class="form-grid grid-cols-2" style="display: none;">
+                            <div class="form-group">
+                                <label for="amountPaid" class="form-label">Amount Paid (Rs.):</label>
+                                <input type="number" step="0.01" id="amountPaid" class="form-input" placeholder="0.00" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="remainingBalance" class="form-label">Remaining Balance (Rs.):</label>
+                                <input type="text" id="remainingBalance" class="form-input" placeholder="0.00" readonly>
+                            </div>
+                        </div>
+                         <div class="form-grid grid-cols-1">
+                            <div class="form-group">
                                 <label for="saleNotes" class="form-label">Sale Notes (Optional):</label>
                                 <input type="text" id="saleNotes" class="form-input" placeholder="Any notes for this sale...">
                             </div>
@@ -114,7 +140,7 @@
                 <div id="salesHistoryDisplay" class="section-card">
                     <h2 class="section-title"><i class="fas fa-history fa-fw"></i> Sales History</h2>
                     <div class="form-group">
-                        <label for="searchSalesInput" class="form-label">Search Sales (by Customer or Sale ID):</label>
+                        <label for="searchSalesInput" class="form-label">Search Sales (by Customer, City or Sale ID):</label>
                         <input type="text" id="searchSalesInput" class="form-input" placeholder="Type to search...">
                     </div>
                     <div class="table-responsive-wrapper">
@@ -123,7 +149,7 @@
                                 <tr>
                                     <th class="table-header">Sale Date</th>
                                     <th class="table-header">Sale ID</th>
-                                    <th class="table-header">Customer</th>
+                                    <th class="table-header">Customer (City)</th>
                                     <th class="table-header">Items</th>
                                     <th class="table-header text-right">Grand Total (Rs.)</th>
                                     <th class="table-header">Payment Method</th>

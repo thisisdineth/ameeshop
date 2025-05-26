@@ -1,8 +1,6 @@
-// === finished_products.js ===
-
 document.addEventListener('DOMContentLoaded', () => {
     const firebaseConfig = {
-        apiKey: "AIzaSyA-M8XsFZaZPu_lBIx0TbqcmzhTXeHRjQM",
+        apiKey: "AIzaSyA-M8XsFZaZPu_lBIx0TbqcmzhTXeHRjQM", // Replace with your actual API key
         authDomain: "ecommerceapp-dab53.firebaseapp.com",
         databaseURL: "https://ecommerceapp-dab53-default-rtdb.asia-southeast1.firebasedatabase.app",
         projectId: "ecommerceapp-dab53",
@@ -42,15 +40,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const sellingPriceInput = document.getElementById('sellingPrice');
     const unitOfMeasureInput = document.getElementById('unitOfMeasure');
     
-    const stockInputGroup = document.getElementById('currentStockEditGroup'); // Group DIV
-    const stockInputLabel = document.getElementById('stockInputLabel');   // Label for the stock input
-    const stockInputField = document.getElementById('currentStockEditInput'); // The stock input field
-    const stockAdjustHintEl = document.getElementById('stockAdjustHint');     // Hint text
+    const stockInputGroup = document.getElementById('currentStockEditGroup');
+    const stockInputLabel = document.getElementById('stockInputLabel');
+    const stockInputField = document.getElementById('currentStockEditInput');
+    const stockAdjustHintEl = document.getElementById('stockAdjustHint');
 
     const productEditIdInput = document.getElementById('productEditId');
 
     const finishedProductsTableBody = document.getElementById('finishedProductsTableBody');
     const searchProductsInput = document.getElementById('searchProductsInput');
+    const sortProductsSelect = document.getElementById('sortProductsSelect'); // New Sort Select Element
 
     const lookupProductCodeInput = document.getElementById('lookupProductCode');
     const lookupProductNameInput = document.getElementById('lookupProductName');
@@ -161,29 +160,78 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Load and Display Defined Finished Products ---
     function loadDefinedProducts() {
-        const productsRef = db.ref(DEFINED_PRODUCTS_PATH).orderByChild('itemName');
+        const productsRef = db.ref(DEFINED_PRODUCTS_PATH); // No initial sort here, will sort in display
         productsRef.on('value', snapshot => {
-            allDefinedProducts = snapshot.val() || {}; displayFilteredProducts();
+            allDefinedProducts = snapshot.val() || {}; 
+            displayFilteredProducts(); // Display with default sort
         });
     }
 
     function displayFilteredProducts() {
+        if (!finishedProductsTableBody || !searchProductsInput || !sortProductsSelect) return;
         finishedProductsTableBody.innerHTML = '';
         const searchTerm = searchProductsInput.value.toLowerCase();
-        let productDisplayed = false;
-        Object.keys(allDefinedProducts).sort((a,b) => allDefinedProducts[a].itemName.localeCompare(allDefinedProducts[b].itemName)).forEach(productCode => {
-            const product = allDefinedProducts[productCode];
-            if (product.itemName.toLowerCase().includes(searchTerm) || product.productCode.toLowerCase().includes(searchTerm)) {
-                renderProductRow(productCode, product); productDisplayed = true;
-            }
+        const sortBy = sortProductsSelect.value;
+
+        let productsArray = Object.keys(allDefinedProducts).map(key => {
+            return { ...allDefinedProducts[key], id: key }; // 'id' is the original productCode (key)
         });
-        if(!productDisplayed){
-            const row = finishedProductsTableBody.insertRow(); const cell = row.insertCell(); cell.colSpan = 8;
-            cell.textContent = searchTerm ? 'No products match search.' : 'No finished products defined.';
-            cell.style.textAlign = 'center'; cell.style.padding = '1rem'; cell.style.color = 'var(--text-color-muted)';
+
+        // 1. Filter by search term
+        let filteredArray = productsArray.filter(product =>
+            (product.itemName || '').toLowerCase().includes(searchTerm) ||
+            (product.productCode || '').toLowerCase().includes(searchTerm)
+        );
+
+        // 2. Sort the filtered array
+        switch (sortBy) {
+            case 'name_asc':
+                filteredArray.sort((a, b) => (a.itemName || '').localeCompare(b.itemName || ''));
+                break;
+            case 'name_desc':
+                filteredArray.sort((a, b) => (b.itemName || '').localeCompare(a.itemName || ''));
+                break;
+            case 'latest': // Assumes 'updatedAt' is a Unix timestamp
+                filteredArray.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+                break;
+            case 'stock_high_low':
+                filteredArray.sort((a, b) => (b.currentStock || 0) - (a.currentStock || 0));
+                break;
+            case 'stock_low_high':
+                filteredArray.sort((a, b) => (a.currentStock || 0) - (b.currentStock || 0));
+                break;
+            case 'sold_high_low':
+                filteredArray.sort((a, b) => (b.totalSold || 0) - (a.totalSold || 0));
+                break;
+            case 'sold_low_high':
+                filteredArray.sort((a, b) => (a.totalSold || 0) - (b.totalSold || 0));
+                break;
+            default:
+                filteredArray.sort((a, b) => (a.itemName || '').localeCompare(b.itemName || '')); // Default sort
+                break;
+        }
+        
+        let productDisplayed = false;
+        if (filteredArray.length > 0) {
+            filteredArray.forEach(product => {
+                renderProductRow(product.id, product); // product.id is the productCode
+                productDisplayed = true;
+            });
+        }
+
+        if (!productDisplayed) {
+            const row = finishedProductsTableBody.insertRow(); 
+            const cell = row.insertCell(); 
+            cell.colSpan = 8; // Adjust to your table's column count
+            cell.textContent = (searchTerm || sortBy !== 'name_asc') ? 'No products match your criteria.' : 'No finished products defined yet.';
+            cell.style.textAlign = 'center'; 
+            cell.style.padding = '1rem'; 
+            cell.style.color = 'var(--text-color-muted)';
         }
     }
     if(searchProductsInput) searchProductsInput.addEventListener('input', displayFilteredProducts);
+    if(sortProductsSelect) sortProductsSelect.addEventListener('change', displayFilteredProducts);
+
 
     function renderProductRow(productCode, data) {
         const row = finishedProductsTableBody.insertRow(); row.setAttribute('data-id', productCode);
@@ -218,15 +266,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 mrp: parseFloat(mrpInput.value) || 0,
                 sellingPrice: parseFloat(sellingPriceInput.value),
                 unitOfMeasure: unitOfMeasureInput.value.trim(),
-                updatedAt: firebase.database.ServerValue.TIMESTAMP
+                updatedAt: firebase.database.ServerValue.TIMESTAMP // Ensure this is set for "latest" sort
             };
 
             try {
                 if (editId && editId === code) { // Updating existing product
                     const existingProduct = allDefinedProducts[editId];
-                    productData.currentStock = parseInt(stockInputField.value) || 0; // Get adjusted stock from input
-                    productData.totalSold = existingProduct.totalSold || 0; // Preserve totalSold
-                    productData.createdAt = existingProduct.createdAt || firebase.database.ServerValue.TIMESTAMP;
+                    productData.currentStock = parseInt(stockInputField.value) || 0; 
+                    productData.totalSold = existingProduct.totalSold || 0; 
+                    productData.createdAt = existingProduct.createdAt || firebase.database.ServerValue.TIMESTAMP; // Preserve createdAt
                     await db.ref(`${DEFINED_PRODUCTS_PATH}/${editId}`).update(productData);
                     alert(`Product "${itemName}" updated successfully!`);
                 } else { // Adding new product
@@ -234,8 +282,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (existingProductSnapshot.exists()) {
                         alert(`Product Code "${code}" already exists. Cannot add duplicate.`); productCodeInput.focus(); return;
                     }
-                    productData.createdAt = firebase.database.ServerValue.TIMESTAMP;
-                    productData.currentStock = parseInt(stockInputField.value) || 0; // Use opening/current stock from input
+                    productData.createdAt = firebase.database.ServerValue.TIMESTAMP; // Set createdAt for new
+                    productData.currentStock = parseInt(stockInputField.value) || 0; 
                     productData.totalSold = 0;
                     await db.ref(`${DEFINED_PRODUCTS_PATH}/${code}`).set(productData);
                     alert(`Product "${itemName}" added successfully with stock of ${productData.currentStock}!`);
@@ -260,18 +308,17 @@ document.addEventListener('DOMContentLoaded', () => {
         sellingPriceInput.value = data.sellingPrice || '';
         unitOfMeasureInput.value = data.unitOfMeasure || '';
         
-        if (stockInputGroup) stockInputGroup.style.display = 'block'; // Make sure it's visible for edits
+        if (stockInputGroup) stockInputGroup.style.display = 'block';
         if (stockInputLabel) stockInputLabel.textContent = 'Current Available Stock (Adjust if needed):';
-        if (stockInputField) stockInputField.value = data.currentStock || '0'; // Populate with current stock
+        if (stockInputField) stockInputField.value = data.currentStock || '0';
         if (stockAdjustHintEl) stockAdjustHintEl.textContent = 'Adjust current stock directly. Use with caution.';
-
 
         lookupSuggestionsListEl.innerHTML = ''; 
         lookupProductCodeInput.value = ''; lookupProductNameInput.value = ''; lookupBatchNumberInput.value = '';
         productFormModal.style.display = 'flex';
     }
 
-    // --- Delete Product Definition (Keep as is) ---
+    // --- Delete Product Definition ---
     async function deleteProduct(productCode, itemName, currentStock) {
         if (!productCode) return;
         let confirmMessage = `DELETE product definition for "${itemName}" (Code: ${productCode})? This cannot be undone.`;
@@ -282,6 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await db.ref(`${DEFINED_PRODUCTS_PATH}/${productCode}`).remove();
                 alert(`Product "${itemName}" definition deleted.`);
+                // The .on('value') listener in loadDefinedProducts will auto-refresh the table
             } catch (error) { console.error("Error deleting product:", error); alert('Error deleting.'); }
         }
     }

@@ -195,6 +195,33 @@ textarea.form-input { min-height: 60px; }
     padding: 0.4rem 0.6rem;
 }
 
+        .mt-half { margin-top: 0.5rem; }
+        .suggestions-dropdown ul { list-style-type: none; margin: 0; padding: 0; border: 1px solid #ddd; background-color: white; max-height: 150px; overflow-y: auto; }
+        .suggestions-dropdown li { padding: 8px 12px; cursor: pointer; }
+        .suggestions-dropdown li:hover { background-color: #f0f0f0; }
+        .form-label-sm { font-size: 0.8em; margin-bottom: 0.2rem; display: block; }
+        .item-discount-group, .line-total-group { display: flex; flex-direction: column; justify-content: flex-end;}
+        .sale-item-row { grid-template-columns: 3fr 1fr 1.5fr 1.5fr 1.5fr 0.5fr !important; align-items: flex-end; gap: 0.5rem !important;}
+        .btn-remove-item { padding: 0.5rem; line-height: 1; height: fit-content;}
+        .sale-summary-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;}
+
+                .hidden { display: none !important; }
+        .profile-pic-img { max-width: 150px; max-height: 150px; object-fit: cover; border-radius: 50%; margin-bottom: 0.5rem; }
+        .hidden-file-input { display: none; }
+        .phone-number-entry { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;}
+        .phone-number-entry .form-input { flex-grow: 1; }
+        .mt-1 { margin-top: 1rem; }
+        .mb-1 { margin-bottom: 1rem; }
+        .text-center { text-align: center; }
+        .text-danger { color: #dc3545; } /* Bootstrap-like danger color */
+        .text-success { color: #28a745; } /* Bootstrap-like success color */
+        .text-warning { color: #ffc107; } /* Bootstrap-like warning color */
+        .font-weight-bold { font-weight: bold; }
+        .grid-cols-custom-customer { display: grid; grid-template-columns: 150px 1fr; gap: 1.5rem; align-items: start;}
+        @media (max-width: 768px) {
+            .grid-cols-custom-customer { grid-template-columns: 1fr; text-align: center; }
+            .profile-pic-container { margin: 0 auto; }
+        }
 /* Ensure item list styles for search results are distinct if needed */
 .item-list li .item-actions .btn-sm { /* From previous packing/raw_tea css */
     margin-left: 0.5rem;
@@ -593,3 +620,5 @@ form-subsection-title { /* Used in sales form for "Items Sold" */
             border-bottom: 1px solid var(--border-color-light);
             padding-bottom: 0.5rem;
          }
+
+         

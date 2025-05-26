@@ -8,11 +8,23 @@
     <link rel="icon" type="image/png" href="tealeaf.png" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="tbs.css"> 
+    <link rel="stylesheet" href="tbs.css">
+
 </head>
 <body>
     <div id="app" class="app-container">
- 
+        <nav id="top-navbar">
+            <div class="container nav-container">
+                <div class="nav-brand">
+                    <a href="index.html" class="nav-logo-link"><i class="fas fa-leaf nav-logo-icon"></i> Amee-Tea</a>
+                </div>
+                <div id="desktop-nav-links">
+                    <a href="index.html" class="navbar-item">Dashboard</a>
+                    <a href="sales.html" class="navbar-item">Sales</a>
+                    <a href="customers.html" class="navbar-item active">Customers</a>
+                </div>
+            </div>
+        </nav>
 
         <main class="main-content">
             <div class="container">
@@ -27,7 +39,7 @@
                             <h2 class="section-title" id="customerCardTitle">Customer Information</h2>
                             <div class="form-grid grid-cols-custom-customer">
                                 <div class="profile-pic-container">
-                                    <img id="profilePicPreview" src="placeholder-profile.png" alt="Profile Picture" class="profile-pic-img"> 
+                                    <img id="profilePicPreview" src="customer.png" alt="Profile Picture" class="profile-pic-img">
                                     <label for="profilePicInput" class="btn btn-secondary btn-sm btn-block mt-1">
                                         <i class="fas fa-upload fa-fw"></i> Change Picture
                                     </label>
@@ -42,6 +54,10 @@
                                     <div class="form-group">
                                         <label class="form-label">Customer ID:</label>
                                         <p id="customerIdDisplay" class="form-static-text">-</p>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">City:</label>
+                                        <p id="customerCityDisplay" class="form-static-text">-</p>
                                     </div>
                                     <div class="form-group">
                                         <label class="form-label">Date Joined:</label>
@@ -63,7 +79,7 @@
                             </div>
                             <div class="form-group">
                                 <label for="googleMapsLinkInput" class="form-label">Google Maps Link:</label>
-                                <input type="url" id="googleMapsLinkInput" class="form-input" placeholder="https://maps.app.goo.gl/yourlink">
+                                <input type="url" id="googleMapsLinkInput" class="form-input" placeholder="e.g., https://maps.app.goo.gl/xxxx">
                             </div>
                             <button type="submit" id="saveCustomerDetailsBtn" class="btn btn-success btn-block">
                                 <i class="fas fa-save fa-fw"></i> Save Customer Details
@@ -86,8 +102,8 @@
                     </div>
 
                     <div class="section-card sales-history-card">
-                        <h2 class="section-title"><i class="fas fa-history fa-fw"></i> Sales History</h2>
-                         <p class="spending-summary">Total Spent by Customer: <strong id="customerTotalSpent" class="text-success">Rs. 0.00</strong></p>
+                        <h2 class="section-title"><i class="fas fa-history fa-fw"></i> General Sales History</h2>
+                         <p class="spending-summary">Total Spent by Customer (All Sales): <strong id="customerTotalSpent" class="text-success">Rs. 0.00</strong></p>
                         <div class="table-responsive-wrapper">
                             <table id="customerSalesTable" class="data-table">
                                 <thead>
@@ -103,6 +119,28 @@
                             </table>
                         </div>
                     </div>
+
+                    <div class="section-card installment-history-card">
+                        <h2 class="section-title"><i class="fas fa-tasks fa-fw"></i> Installment Payments Overview</h2>
+                        <div class="table-responsive-wrapper">
+                            <table id="customerInstallmentsTable" class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th class="table-header">Sale Date</th>
+                                        <th class="table-header">Sale ID</th>
+                                        <th class="table-header text-right">Total Sale (Rs.)</th>
+                                        <th class="table-header text-right">Paid (Rs.)</th>
+                                        <th class="table-header text-right">Remaining (Rs.)</th>
+                                        <th class="table-header">Status</th>
+                                        <th class="table-header text-center">Invoice</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="customerInstallmentsTableBody"></tbody>
+                            </table>
+                        </div>
+                        <p id="noInstallmentsMessage" class="text-center text-muted mt-1 hidden">This customer has no installment payment records.</p>
+                    </div>
+
                 </div>
                 <div id="loadingIndicator" class="section-card text-center">
                     <p><i class="fas fa-spinner fa-spin"></i> Loading customer data...</p>
