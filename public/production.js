@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function createMaterialSelectElement(optionsArray, selectClassName, placeholderText) {
         const select = document.createElement('select');
         select.classList.add('form-input', selectClassName);
-        select.required = true;
+        // select.required = true; // REMOVED: Making this optional
         const defaultOption = document.createElement('option');
         defaultOption.value = "";
         defaultOption.textContent = placeholderText;
@@ -156,7 +156,8 @@ document.addEventListener('DOMContentLoaded', () => {
         qGroup.classList.add('form-group');
         const qInput = document.createElement('input');
         qInput.type = 'number'; qInput.step = qtyStep; qInput.min = qtyMin;
-        qInput.classList.add('form-input', qtyClass); qInput.placeholder = 'Qty Used'; qInput.required = true;
+        qInput.classList.add('form-input', qtyClass); qInput.placeholder = 'Qty Used';
+        // qInput.required = true; // REMOVED: Making this optional
         qGroup.appendChild(qInput);
 
         const uGroup = document.createElement('div'); // Hidden for now, unit is fixed per type
@@ -164,7 +165,8 @@ document.addEventListener('DOMContentLoaded', () => {
         uGroup.style.display = 'none'; // Hide unit input, fixed for now
         const uInput = document.createElement('input');
         uInput.type = 'text'; uInput.classList.add('form-input', unitClass);
-        uInput.placeholder = `Unit (e.g., ${qtyUnit})`; uInput.value = qtyUnit; uInput.required = true;
+        uInput.placeholder = `Unit (e.g., ${qtyUnit})`; uInput.value = qtyUnit; 
+        // uInput.required = true; // REMOVED: Making this optional
         // uGroup.appendChild(uInput); // Not appending it to keep it hidden
 
         const rmBtnGroup = document.createElement('div');
@@ -251,9 +253,13 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('#rawMaterialsConsumedContainer .consumed-material-entry').forEach(entry => {
                 const tableName = entry.querySelector('.raw-tea-table-select')?.value;
                 const quantityUsed = parseFloat(entry.querySelector('.raw-tea-qty')?.value);
-                // const unit = entry.querySelector('.raw-tea-unit')?.value.trim(); // Unit is now fixed as 'Kg'
+                // Validate only if a table name is selected and quantity is provided
                 if (tableName && quantityUsed > 0) {
                     rawMaterialsConsumedThisBatch.push({ tableName, quantityUsed, unit: 'Kg' });
+                } else if (tableName && (isNaN(quantityUsed) || quantityUsed <= 0)) {
+                    // Optional: alert if a table is selected but quantity is invalid
+                    alert(`Raw material "${tableName}" has an invalid quantity. Please correct or remove the entry.`);
+                    e.preventDefault(); // Prevent form submission
                 }
             });
 
@@ -261,9 +267,13 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('#packingMaterialsConsumedContainer .consumed-material-entry').forEach(entry => {
                 const tableName = entry.querySelector('.packing-material-table-select')?.value;
                 const quantityUsed = parseInt(entry.querySelector('.packing-material-qty')?.value);
-                // const unit = entry.querySelector('.packing-material-unit')?.value.trim(); // Unit is now fixed as 'Pcs'
+                // Validate only if a table name is selected and quantity is provided
                 if (tableName && quantityUsed > 0) {
                     packingMaterialsConsumedThisBatch.push({ tableName, quantityUsed, unit: 'Pcs' });
+                } else if (tableName && (isNaN(quantityUsed) || quantityUsed <= 0)) {
+                    // Optional: alert if a table is selected but quantity is invalid
+                    alert(`Packing material "${tableName}" has an an invalid quantity. Please correct or remove the entry.`);
+                    e.preventDefault(); // Prevent form submission
                 }
             });
 
@@ -339,8 +349,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(productionDateInput) productionDateInput.valueAsDate = new Date();
                 
                 // Re-add initial material rows if tables are available
-                if(rawMaterialsConsumedContainer && rawMaterialTableNames.length > 0) addMaterialEntryUI(rawMaterialsConsumedContainer, rawMaterialTableNames, 'RawMaterial');
-                if(packingMaterialsConsumedContainer && packingMaterialTableNames.length > 0) addMaterialEntryUI(packingMaterialsConsumedContainer, packingMaterialTableNames, 'PackingMaterial');
+                // No longer adding initial rows automatically, as it's optional.
+                // If the user wants to add, they click the button.
 
             } catch (error) {
                 console.error("Error logging production:", error);
@@ -520,18 +530,8 @@ document.addEventListener('DOMContentLoaded', () => {
         await fetchTableNamesForSelect(RAW_TEA_METADATA_PATH, rawMaterialTableNames, "Raw Material");
         await fetchTableNamesForSelect(PACKING_MATERIAL_METADATA_PATH, packingMaterialTableNames, "Packing Material");
 
-        // Add initial material entry rows if tables are available
-        if(rawMaterialsConsumedContainer && rawMaterialTableNames.length > 0) {
-            addMaterialEntryUI(rawMaterialsConsumedContainer, rawMaterialTableNames, 'RawMaterial');
-        } else if (rawMaterialsConsumedContainer) { // Show "no tables" message if container exists but no tables
-            addMaterialEntryUI(rawMaterialsConsumedContainer, [], 'RawMaterial');
-        }
-        
-        if(packingMaterialsConsumedContainer && packingMaterialTableNames.length > 0) {
-            addMaterialEntryUI(packingMaterialsConsumedContainer, packingMaterialTableNames, 'PackingMaterial');
-        } else if (packingMaterialsConsumedContainer) { // Show "no tables" message
-            addMaterialEntryUI(packingMaterialsConsumedContainer, [], 'PackingMaterial');
-        }
+        // No longer adding initial material rows automatically
+        // as the selection is now optional. The user will click 'Add' if needed.
         
         // Start listening for finished product updates and render the table
         loadFinishedProductsInventory(); 

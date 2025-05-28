@@ -229,7 +229,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
 
-                const actionsCell = row.insertCell(); actionsCell.classList.add('text-center');
+                const actionsCell = row.insertCell(); actionsCell.classList.add('text-center', 'actions-cell-multi-btn'); // Add a class for potential styling if buttons stack
+
+                // UNLOAD STOCK BUTTON
+                const unloadBtn = document.createElement('button');
+                unloadBtn.innerHTML = '<i class="fas fa-undo fa-fw"></i> Unload';
+                unloadBtn.classList.add('btn', 'btn-secondary', 'btn-sm');
+                unloadBtn.title = 'Unload stock from vehicle back to production';
+                unloadBtn.style.marginRight = '5px'; // Add some spacing between buttons
+                // Disable if stock in vehicle is 0 or less
+                unloadBtn.disabled = !(log.stockInVehicle > 0); 
+                unloadBtn.onclick = () => handleUnloadStock(log.id, log.productCode, log.productName, log.stockInVehicle);
+                actionsCell.appendChild(unloadBtn);
+
+
                 const deleteBtn = document.createElement('button');
                 deleteBtn.innerHTML = '<i class="fas fa-trash-alt fa-fw"></i> Delete';
                 deleteBtn.classList.add('btn', 'btn-danger', 'btn-sm');
@@ -287,6 +300,62 @@ This is a sensitive operation. Proceed with caution.`
                 console.error("Error deleting delivery log and reverting stock:", error);
                 alert("Error deleting delivery log. Stock might not have been reverted correctly. Check console and Firebase data.");
             }
+        }
+    }
+
+    // --- NEW: Handle Unload Stock from Vehicle to Production ---
+    async function handleUnloadStock(logId, productCode, productName, stockInVehicle) {
+        if (stockInVehicle <= 0) {
+            alert(`No stock to unload for ${productName} in this delivery log.`);
+            return;
+        }
+
+        const qtyToUnloadStr = prompt(`How many units of "${productName}" (Stock in Vehicle: ${stockInVehicle}) do you want to unload back to production?`, stockInVehicle);
+        if (qtyToUnloadStr === null) return; // User cancelled
+
+        const numQtyToUnload = parseInt(qtyToUnloadStr);
+        if (isNaN(numQtyToUnload) || numQtyToUnload <= 0) {
+            alert("Invalid quantity entered. Please enter a positive number.");
+            return;
+        }
+        if (numQtyToUnload > stockInVehicle) {
+            alert(`Cannot unload more than available stock in vehicle (${stockInVehicle}).`);
+            return;
+        }
+
+        const deliveryLogRef = db.ref(`${DELIVERY_LOGS_PATH}/${logId}`);
+        const productRef = db.ref(`${DEFINED_PRODUCTS_PATH}/${productCode}`);
+
+        try {
+            // Transaction to update the delivery log's stockInVehicle
+            await deliveryLogRef.transaction(currentLog => {
+                if (currentLog) {
+                    currentLog.stockInVehicle = (currentLog.stockInVehicle || 0) - numQtyToUnload;
+                    return currentLog;
+                }
+                return currentLog; // Abort if log somehow deleted during transaction
+            });
+
+            // Transaction to add stock back to the main product inventory
+            await productRef.transaction(productData => {
+                if (productData) {
+                    productData.currentStock = (productData.currentStock || 0) + numQtyToUnload;
+                    // Also reduce 'addedToDelivery' for accurate tracking
+                    productData.addedToDelivery = (productData.addedToDelivery || 0) - numQtyToUnload;
+                    if (productData.addedToDelivery < 0) productData.addedToDelivery = 0; // Prevent negative
+                    productData.updatedAt = firebase.database.ServerValue.TIMESTAMP;
+                    return productData;
+                }
+                return productData; // Abort if product deleted mid-transaction
+            });
+
+            alert(`${numQtyToUnload} units of "${productName}" unloaded from vehicle and moved back to production stock.`);
+            // The table will re-render automatically due to Firebase listeners
+            loadProductsForSelect(); // Refresh available stock in the "Add Stock" dropdown
+
+        } catch (error) {
+            console.error("Error unloading stock:", error);
+            alert("Failed to unload stock. Check console for details. Data might be inconsistent.");
         }
     }
 
