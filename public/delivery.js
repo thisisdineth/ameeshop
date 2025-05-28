@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const driverName = driverNameInput.value.trim();
             const productCode = productToLoadSelect.value;
             const quantityToLoad = parseInt(quantityToLoadInput.value);
-            const deliveryDate = deliveryDateInput.value;
+            const deliveryDate = deliveryDateInput.value; // YYYY-MM-DD format
 
             if (!vehicleNumber || !driverName || !productCode || !quantityToLoad || !deliveryDate) {
                 alert("Please fill all fields: Vehicle No., Driver, Product, Quantity, and Date.");
@@ -118,36 +118,86 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const deliveryLogRef = db.ref(DELIVERY_LOGS_PATH).push(); // Generate new unique ID for the log
             const productRef = db.ref(`${DEFINED_PRODUCTS_PATH}/${productCode}`);
 
             try {
-                // 1. Update main product inventory (definedFinishedProducts_v2)
-                await productRef.transaction(productData => {
-                    if (productData) {
-                        productData.currentStock = (productData.currentStock || 0) - quantityToLoad;
-                        productData.addedToDelivery = (productData.addedToDelivery || 0) + quantityToLoad;
-                        productData.updatedAt = firebase.database.ServerValue.TIMESTAMP;
+                // Check for an existing delivery log entry for this vehicle, driver, product, and date
+                const existingLogSnapshot = await db.ref(DELIVERY_LOGS_PATH)
+                    .orderByChild('vehicleNumber').equalTo(vehicleNumber)
+                    .once('value');
+
+                let existingLogToUpdate = null;
+
+                if (existingLogSnapshot.exists()) {
+                    existingLogSnapshot.forEach(childSnapshot => {
+                        const log = childSnapshot.val();
+                        // Match vehicle, driver, product, and delivery date
+                        if (log.driverName === driverName &&
+                            log.productCode === productCode &&
+                            log.deliveryDate === deliveryDate) {
+                            existingLogToUpdate = { id: childSnapshot.key, ...log };
+                            return true; // Break forEach
+                        }
+                    });
+                }
+
+                if (existingLogToUpdate) {
+                    // Update existing log entry
+                    const logToUpdateRef = db.ref(`${DELIVERY_LOGS_PATH}/${existingLogToUpdate.id}`);
+                    await logToUpdateRef.transaction(currentLogData => {
+                        if (currentLogData) {
+                            currentLogData.quantityLoaded = (currentLogData.quantityLoaded || 0) + quantityToLoad;
+                            currentLogData.stockInVehicle = (currentLogData.stockInVehicle || 0) + quantityToLoad;
+                            // quantitySold remains unchanged here, as it's handled by sales.js
+                            return currentLogData;
+                        }
+                        return currentLogData; // Abort if log deleted mid-transaction
+                    });
+
+                    // Update main product inventory (similar to before)
+                    await productRef.transaction(productData => {
+                        if (productData) {
+                            productData.currentStock = (productData.currentStock || 0) - quantityToLoad;
+                            productData.addedToDelivery = (productData.addedToDelivery || 0) + quantityToLoad;
+                            productData.updatedAt = firebase.database.ServerValue.TIMESTAMP;
+                            return productData;
+                        }
                         return productData;
-                    }
-                    return productData; // Abort if product deleted mid-transaction
-                });
+                    });
 
-                // 2. Create the new delivery log entry
-                const deliveryLogData = {
-                    deliveryLogId: deliveryLogRef.key,
-                    vehicleNumber: vehicleNumber,
-                    driverName: driverName,
-                    productCode: productCode,
-                    productName: selectedProduct.itemName,
-                    quantityLoaded: quantityToLoad,
-                    stockInVehicle: quantityToLoad, // Initially, stockInVehicle is same as quantityLoaded
-                    deliveryDate: deliveryDate, // Storing as YYYY-MM-DD string
-                    loadedAtTimestamp: firebase.database.ServerValue.TIMESTAMP
-                };
-                await deliveryLogRef.set(deliveryLogData);
+                    alert(`${quantityToLoad} units of ${selectedProduct.itemName} added to existing entry for vehicle ${vehicleNumber}.`);
 
-                alert(`${quantityToLoad} units of ${selectedProduct.itemName} added to vehicle ${vehicleNumber}.`);
+                } else {
+                    // Create a new delivery log entry
+                    const deliveryLogRef = db.ref(DELIVERY_LOGS_PATH).push();
+                    const deliveryLogData = {
+                        deliveryLogId: deliveryLogRef.key,
+                        vehicleNumber: vehicleNumber,
+                        driverName: driverName,
+                        productCode: productCode,
+                        productName: selectedProduct.itemName,
+                        quantityLoaded: quantityToLoad,
+                        quantitySold: 0, // Initialize sold quantity to 0
+                        stockInVehicle: quantityToLoad, // Initially, stockInVehicle is same as quantityLoaded
+                        deliveryDate: deliveryDate, // Storing as YYYY-MM-DD string
+                        loadedAtTimestamp: firebase.database.ServerValue.TIMESTAMP
+                    };
+                    await deliveryLogRef.set(deliveryLogData);
+
+                    // Update main product inventory (similar to before)
+                    await productRef.transaction(productData => {
+                        if (productData) {
+                            productData.currentStock = (productData.currentStock || 0) - quantityToLoad;
+                            productData.addedToDelivery = (productData.addedToDelivery || 0) + quantityToLoad;
+                            productData.updatedAt = firebase.database.ServerValue.TIMESTAMP;
+                            return productData;
+                        }
+                        return productData;
+                    });
+
+                    alert(`${quantityToLoad} units of ${selectedProduct.itemName} added to NEW entry for vehicle ${vehicleNumber}.`);
+                }
+
                 logDeliveryForm.reset();
                 availableStockForProductText.textContent = "Available for loading: 0";
                 if(deliveryDateInput) deliveryDateInput.valueAsDate = new Date(); // Reset date to today
@@ -155,8 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } catch (error) {
                 console.error("Error adding stock to delivery:", error);
-                alert("Error adding stock to delivery. Main product inventory might not have been updated if log creation failed. Check console.");
-                // Potentially implement a rollback or compensating transaction if critical
+                alert("Error adding stock to delivery. Check console for details.");
             }
         });
     }
@@ -178,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, err => {
             console.error("Error loading delivery logs:", err);
             if (deliveryLogsTableBody) {
-                deliveryLogsTableBody.innerHTML = `<tr><td colspan="8" class="text-center text-danger">Error loading delivery logs.</td></tr>`;
+                deliveryLogsTableBody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">Error loading delivery logs.</td></tr>`; // Updated colspan
             }
         });
     }
@@ -208,14 +257,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 row.insertCell().textContent = log.productCode;
                 row.insertCell().textContent = log.productName;
                 const loadedCell = row.insertCell(); loadedCell.textContent = log.quantityLoaded; loadedCell.classList.add('text-right');
-                
-                const stockInVehicleCell = row.insertCell(); 
-                stockInVehicleCell.textContent = log.stockInVehicle; 
+
+                // NEW SOLD CELL
+                const soldCell = row.insertCell();
+                soldCell.textContent = log.quantitySold || 0; // Display quantitySold, default to 0
+                soldCell.classList.add('text-right');
+                soldCell.id = `sold-${log.id}`; // For potential real-time updates
+
+                // Listen for real-time updates to quantitySold for this specific log entry
+                const soldRef = db.ref(`${DELIVERY_LOGS_PATH}/${log.id}/quantitySold`);
+                soldRef.on('value', soldSnapshot => {
+                    const updatedSold = soldSnapshot.val();
+                    const cell = document.getElementById(`sold-${log.id}`);
+                    if (cell) {
+                        cell.textContent = updatedSold !== null ? updatedSold : 0;
+                        const cachedLog = allDeliveryLogs.find(l => l.id === log.id);
+                        if (cachedLog) cachedLog.quantitySold = updatedSold;
+                    }
+                });
+
+                const stockInVehicleCell = row.insertCell();
+                stockInVehicleCell.textContent = log.stockInVehicle;
                 stockInVehicleCell.classList.add('text-right');
                 stockInVehicleCell.id = `stock-${log.id}`; // For potential real-time updates
 
                 // Listen for real-time updates to stockInVehicle for this specific log entry
-                // This is useful if sales.js (or another part) updates this value
                 const stockRef = db.ref(`${DELIVERY_LOGS_PATH}/${log.id}/stockInVehicle`);
                 stockRef.on('value', stockSnapshot => {
                     const updatedStock = stockSnapshot.val();
@@ -225,6 +291,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Update the local cache if needed, though 'allDeliveryLogs' is refreshed on any top-level change too
                         const cachedLog = allDeliveryLogs.find(l => l.id === log.id);
                         if (cachedLog) cachedLog.stockInVehicle = updatedStock;
+                        // Also update the unload button state
+                        const unloadBtn = row.querySelector('.unload-btn');
+                        if (unloadBtn) {
+                            unloadBtn.disabled = !(updatedStock > 0);
+                        }
                     }
                 });
 
@@ -234,11 +305,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 // UNLOAD STOCK BUTTON
                 const unloadBtn = document.createElement('button');
                 unloadBtn.innerHTML = '<i class="fas fa-undo fa-fw"></i> Unload';
-                unloadBtn.classList.add('btn', 'btn-secondary', 'btn-sm');
+                unloadBtn.classList.add('btn', 'btn-secondary', 'btn-sm', 'unload-btn'); // Add a class for easy selection
                 unloadBtn.title = 'Unload stock from vehicle back to production';
                 unloadBtn.style.marginRight = '5px'; // Add some spacing between buttons
-                // Disable if stock in vehicle is 0 or less
-                unloadBtn.disabled = !(log.stockInVehicle > 0); 
+                // Disable if stock in vehicle is 0 or less (initial state)
+                unloadBtn.disabled = !(log.stockInVehicle > 0);
                 unloadBtn.onclick = () => handleUnloadStock(log.id, log.productCode, log.productName, log.stockInVehicle);
                 actionsCell.appendChild(unloadBtn);
 
@@ -247,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 deleteBtn.innerHTML = '<i class="fas fa-trash-alt fa-fw"></i> Delete';
                 deleteBtn.classList.add('btn', 'btn-danger', 'btn-sm');
                 deleteBtn.title = 'Delete this delivery log entry';
-                deleteBtn.onclick = () => handleDeleteDeliveryLog(log.id, log.productCode, log.quantityLoaded, log.productName, log.vehicleNumber);
+                deleteBtn.onclick = () => handleDeleteDeliveryLog(log.id, log.productCode, log.quantityLoaded, log.productName, log.vehicleNumber, log.stockInVehicle); // Pass stockInVehicle
                 actionsCell.appendChild(deleteBtn);
             });
         } else {
@@ -258,15 +329,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function handleDeleteDeliveryLog(logId, productCode, quantityLoaded, productName, vehicleNumber) {
+    async function handleDeleteDeliveryLog(logId, productCode, quantityLoaded, productName, vehicleNumber, currentStockInVehicle) {
         const confirmation = confirm(
 `Are you sure you want to delete this delivery log?
 Vehicle: ${vehicleNumber}
-Product: ${productName} (Qty: ${quantityLoaded})
+Product: ${productName} (Qty Loaded: ${quantityLoaded}, Qty Currently in Vehicle: ${currentStockInVehicle})
 
 This action will attempt to:
 1. Delete the delivery log entry.
-2. Add ${quantityLoaded} units back to the main stock for ${productName} (${productCode}).
+2. Add ${currentStockInVehicle} units (the remaining stock in vehicle) back to the main stock for ${productName} (${productCode}).
 3. Reduce the global 'Added to Delivery' count for ${productCode} by ${quantityLoaded}.
 
 This is a sensitive operation. Proceed with caution.`
@@ -280,8 +351,8 @@ This is a sensitive operation. Proceed with caution.`
                 // Transaction to revert stock changes in definedFinishedProducts_v2
                 await productRef.transaction(productData => {
                     if (productData) {
-                        productData.currentStock = (productData.currentStock || 0) + quantityLoaded;
-                        productData.addedToDelivery = (productData.addedToDelivery || 0) - quantityLoaded;
+                        productData.currentStock = (productData.currentStock || 0) + currentStockInVehicle; // Revert only the stock still in vehicle
+                        productData.addedToDelivery = (productData.addedToDelivery || 0) - quantityLoaded; // Decrease by total loaded
                         if (productData.addedToDelivery < 0) productData.addedToDelivery = 0; // Ensure it doesn't go negative
                         productData.updatedAt = firebase.database.ServerValue.TIMESTAMP;
                         return productData;
@@ -303,7 +374,7 @@ This is a sensitive operation. Proceed with caution.`
         }
     }
 
-    // --- NEW: Handle Unload Stock from Vehicle to Production ---
+    // --- Handle Unload Stock from Vehicle to Production ---
     async function handleUnloadStock(logId, productCode, productName, stockInVehicle) {
         if (stockInVehicle <= 0) {
             alert(`No stock to unload for ${productName} in this delivery log.`);

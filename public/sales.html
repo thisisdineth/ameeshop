@@ -79,6 +79,14 @@
             margin-top: 0.5rem;
             margin-bottom:1rem;
         }
+        .installment-due {
+            color: var(--danger-color);
+            font-weight: bold;
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background-color: #ffe0e0;
+            border-left: 3px solid var(--danger-color);
+        }
     </style>
 </head>
 <body>
@@ -145,27 +153,27 @@
                                 <input type="date" id="saleDate" class="form-input" required>
                             </div>
                             <div class="form-group">
-                                <label for="customerCitySelect" class="form-label">Customer City:</label>
+                                <label for="customerCitySelect" class="form-label">Customer route:</label>
                                 <select id="customerCitySelect" class="form-input">
-                                    <option value="">-- Select City First --</option>
+                                    <option value="">-- Select route First --</option>
                                     </select>
                             </div>
                         </div>
                         <div class="form-grid grid-cols-2">
                              <div class="form-group">
-                                <label for="newCityNameInput" class="form-label">Or Add New City:</label>
-                                <input type="text" id="newCityNameInput" class="form-input" placeholder="Type new city name...">
+                                <label for="newCityNameInput" class="form-label">Or Add New route:</label>
+                                <input type="text" id="newCityNameInput" class="form-input" placeholder="Type new route name...">
                             </div>
                             <div class="form-group input-group-relative">
                                 <label for="customerName" class="form-label">Customer Name:</label>
-                                <input type="text" id="customerName" class="form-input" placeholder="Select/Enter City first..." autocomplete="off" required disabled>
+                                <input type="text" id="customerName" class="form-input" placeholder="Select/Enter route first..." autocomplete="off" required disabled>
                                 <div id="customerSuggestionsList" class="suggestions-dropdown"></div>
                                 <input type="hidden" id="selectedCustomerId">
                                 <input type="hidden" id="selectedCustomerCityName">
                             </div>
                         </div>
-                        <p class="form-hint">New customers are saved with the selected/newly typed city. Ensure city is selected or entered.</p>
-
+                        <p class="form-hint">New customers are saved with the selected/newly typed route. Ensure route is selected or entered.</p>
+                        <div id="installmentDueMessage" class="installment-due" style="display: none;"></div>
 
                         <hr class="form-divider">
                         <h3 class="form-subsection-title">Items Sold</h3>
@@ -231,7 +239,7 @@
                 <div id="salesHistoryDisplay" class="section-card">
                     <h2 class="section-title"><i class="fas fa-history fa-fw"></i> Sales History</h2>
                     <div class="form-group">
-                        <label for="searchSalesInput" class="form-label">Search Sales (by Customer, City, Sale ID, Vehicle, Driver):</label>
+                        <label for="searchSalesInput" class="form-label">Search Sales (by Customer, route, Sale ID, Vehicle, Driver):</label>
                         <input type="text" id="searchSalesInput" class="form-input" placeholder="Type to search...">
                     </div>
                     <div class="table-responsive-wrapper">
@@ -239,9 +247,10 @@
                             <thead>
                                 <tr>
                                     <th class="table-header">Sale Date</th>
-                                    <th class="table-header">Sale ID</th>
-                                    <th class="table-header">Customer (City)</th>
-                                    <th class="table-header">Items (Qty @ Price/Unit)</th> <th class="table-header">Source Vehicle (Driver)</th>
+                                    <th class="table-header">Customer</th>
+                                    <th class="table-header">Customer route</th>
+                                    <th class="table-header">Items (Qty @ Price/Unit)</th> 
+                                    <th class="table-header">Source Vehicle (Driver)</th>
                                     <th class="table-header text-right">Grand Total (Rs.)</th>
                                     <th class="table-header">Payment Method</th>
                                     <th class="table-header text-center">Actions</th>

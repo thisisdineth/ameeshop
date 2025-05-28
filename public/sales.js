@@ -37,7 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const customerSuggestionsListEl = document.getElementById('customerSuggestionsList');
     const selectedCustomerIdInput = document.getElementById('selectedCustomerId');
     const selectedCustomerCityNameInput = document.getElementById('selectedCustomerCityName');
-    
+    const installmentDueMessage = document.getElementById('installmentDueMessage'); // New: for installment due
+
     const saleItemsContainer = document.getElementById('saleItemsContainer');
     const addSaleItemButton = document.getElementById('addSaleItemButton');
     const completeSaleButton = document.getElementById('completeSaleButton');
@@ -50,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const amountPaidInput = document.getElementById('amountPaid');
     const remainingBalanceInput = document.getElementById('remainingBalance');
     const saleNotesInput = document.getElementById('saleNotes');
-    
+
     // Sales History
     const salesLogTableBody = document.getElementById('salesLogTableBody');
     const searchSalesInput = document.getElementById('searchSalesInput');
@@ -76,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function initializeSalesPage() {
         if (saleDateInput) saleDateInput.valueAsDate = new Date();
-        
+
         await fetchCitiesAndPopulateDropdown();
         await fetchDefinedProductsOnce(); // For prices, names
         await fetchDeliveryLogs();        // For vehicle stock and selection
@@ -87,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Initial state: disable sale actions until vehicle is selected
         if (addSaleItemButton) addSaleItemButton.disabled = true;
         if (completeSaleButton) completeSaleButton.disabled = true;
-        
+
         loadSalesLog(); // Sales history
         toggleCustomerNameInputState(); // Customer input logic
         handlePaymentMethodChange();    // Payment method logic
@@ -95,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Event Listeners
         if (deliveryVehicleNumberInput) deliveryVehicleNumberInput.addEventListener('input', () => handleDeliveryInput(deliveryVehicleNumberInput, 'vehicleNumber', vehicleSuggestionsListEl));
         if (driverNameInput) driverNameInput.addEventListener('input', () => handleDeliveryInput(driverNameInput, 'driverName', driverSuggestionsListEl));
-        
+
         // Click outside to close suggestions
         document.addEventListener('click', (event) => {
             if (vehicleSuggestionsListEl && deliveryVehicleNumberInput && !deliveryVehicleNumberInput.contains(event.target) && !vehicleSuggestionsListEl.contains(event.target)) {
@@ -111,6 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (customerCitySelect) customerCitySelect.addEventListener('change', handleCityChange);
         if (newCityNameInput) newCityNameInput.addEventListener('input', handleNewCityInput);
+        if (customerNameInput) customerNameInput.addEventListener('change', checkCustomerInstallmentStatus); // New listener
         if (paymentMethodInput) paymentMethodInput.addEventListener('change', handlePaymentMethodChange);
         if (amountPaidInput) amountPaidInput.addEventListener('input', calculateRemainingBalanceAndUpdateTotals);
         if (overallDiscountValueInput) overallDiscountValueInput.addEventListener('input', calculateTotals);
@@ -166,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
-        
+
         if (suggestions.length > 0) {
             const ul = document.createElement('ul');
             suggestions.slice(0, 7).forEach(sugg => { // Limit suggestions
@@ -193,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
             clearDeliverySelection();
         }
     }
-    
+
     function clearDeliverySelection() {
         selectedDeliveryVehicleContext = null;
         productsAvailableInSelectedVehicle = [];
@@ -215,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
             clearDeliverySelection();
             return;
         }
-        
+
         // Filter logs that match BOTH vehicle AND driver if both are provided, or just one if only one is.
         const relevantLogs = deliveryLogsCache.filter(log => {
             const vehicleMatch = vehicleNo ? (log.vehicleNumber || '').toLowerCase() === vehicleNo.toLowerCase() : true;
@@ -254,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadedAtTimestamp: log.loadedAtTimestamp // For FIFO if needed later
             });
         });
-        
+
         // Sort source logs by timestamp for consistent FIFO-like deduction later
         for (const code in aggregatedStock) {
             aggregatedStock[code].sourceDeliveryLogDetails.sort((a,b) => (a.loadedAtTimestamp || 0) - (b.loadedAtTimestamp || 0));
@@ -269,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
             driverName: relevantLogs[0].driverName,
             // products: productsAvailableInSelectedVehicle // This is now separate
         };
-        
+
         if (selectedDeliveryInfoEl) {
              selectedDeliveryInfoEl.textContent = `Selected Vehicle: ${selectedDeliveryVehicleContext.vehicleNumber}, Driver: ${selectedDeliveryVehicleContext.driverName}. ${productsAvailableInSelectedVehicle.length} product(s) available.`;
              selectedDeliveryInfoEl.style.display = 'block';
@@ -277,22 +279,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (addSaleItemButton) addSaleItemButton.disabled = productsAvailableInSelectedVehicle.length === 0;
         if (completeSaleButton) completeSaleButton.disabled = productsAvailableInSelectedVehicle.length === 0;
-        
+
         // Clear existing sale items and update dropdowns if any
         if(saleItemsContainer) saleItemsContainer.innerHTML = '';
         updateAllProductDropdownsBasedOnVehicle(); // Update any existing or new rows
         calculateTotals();
-        
+
         if (productsAvailableInSelectedVehicle.length === 0) {
              if(selectedDeliveryInfoEl) selectedDeliveryInfoEl.textContent += " No items with stock found.";
         }
     }
-    
+
     function updateAllProductDropdownsBasedOnVehicle() {
-        document.querySelectorAll('.sale-item-product').forEach(selectElement => {
+        document.querySelectorAll('.sale-item-row').forEach(selectElement => {
             const currentSelectedProductCode = selectElement.value;
             // const currentDeliveryLogId = selectElement.dataset.deliveryLogId; // If we were selecting specific log entries
-            
+
             populateProductSelectFromVehicle(selectElement);
 
             // Try to re-select, or reset if not available
@@ -310,7 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function populateProductSelectFromVehicle(selectElement) {
         if (!selectElement) return;
         let optionsHTML = '<option value="" data-price="0" data-stock="0" data-name="">-- Select Product from Vehicle --</option>';
-        
+
         if (productsAvailableInSelectedVehicle.length > 0) {
             productsAvailableInSelectedVehicle.forEach(p => {
                 // p structure: {productCode, productName, totalStockInVehicle, sellingPrice, sourceDeliveryLogDetails}
@@ -318,10 +320,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const disabled = stock <= 0 ? 'disabled' : '';
                 const stockDisplay = stock <= 0 ? 'Out of Stock' : `Stock: ${stock}`;
                 // The value is productCode. We'll figure out which deliveryLogId to debit from during sale submission.
-                optionsHTML += `<option value="${p.productCode}" 
-                                       data-price="${p.sellingPrice || 0}" 
-                                       data-name="${p.productName}" 
-                                       data-stock="${stock}" 
+                optionsHTML += `<option value="${p.productCode}"
+                                       data-price="${p.sellingPrice || 0}"
+                                       data-name="${p.productName}"
+                                       data-stock="${stock}"
                                        ${disabled}>
                                        ${p.productName} (${p.productCode}) - ${stockDisplay}
                                 </option>`;
@@ -331,14 +333,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         selectElement.innerHTML = optionsHTML;
     }
-    
+
     function addSaleItemRow() {
         if (!saleItemsContainer || !selectedDeliveryVehicleContext || productsAvailableInSelectedVehicle.length === 0) {
             alert("Please select a delivery vehicle with available stock first.");
             return;
         }
         const itemRowDiv = document.createElement('div'); itemRowDiv.classList.add('sale-item-row', 'form-grid');
-        
+
         const productSelectDiv = document.createElement('div'); productSelectDiv.classList.add('form-group');
         productSelectDiv.innerHTML = '<label class="form-label form-label-sm">Product (from Vehicle)</label>';
         const productSelect = document.createElement('select'); productSelect.classList.add('form-input', 'sale-item-product'); productSelect.required = true;
@@ -354,20 +356,20 @@ document.addEventListener('DOMContentLoaded', () => {
         priceDiv.innerHTML = '<label class="form-label form-label-sm">Price/Unit</label>';
         const priceInput = document.createElement('input'); priceInput.type = 'number'; priceInput.step = '0.01'; priceInput.classList.add('form-input', 'sale-item-price'); priceInput.placeholder = 'Price'; priceInput.required = true; // Price can be edited
         priceDiv.appendChild(priceInput);
-        
+
         const lineTotalDiv = document.createElement('div'); lineTotalDiv.classList.add('form-group', 'line-total-group');
         lineTotalDiv.innerHTML = '<label class="form-label form-label-sm">Line Total</label>';
         const lineTotalInput = document.createElement('input'); lineTotalInput.type = 'text'; lineTotalInput.classList.add('form-input', 'sale-item-linetotal'); lineTotalInput.placeholder = 'Total'; lineTotalInput.readOnly = true;
         lineTotalDiv.appendChild(lineTotalInput);
 
-        const removeBtnDiv = document.createElement('div'); removeBtnDiv.classList.add('form-group'); 
-        removeBtnDiv.style.paddingTop = '1.5em'; 
+        const removeBtnDiv = document.createElement('div'); removeBtnDiv.classList.add('form-group');
+        removeBtnDiv.style.paddingTop = '1.5em';
         const removeBtn = document.createElement('button'); removeBtn.type = 'button'; removeBtn.innerHTML = '<i class="fas fa-times"></i>'; removeBtn.classList.add('btn', 'btn-remove-item', 'btn-danger', 'btn-sm'); removeBtn.title="Remove Item";
-        removeBtn.onclick = () => { itemRowDiv.remove(); calculateTotals(); }; 
+        removeBtn.onclick = () => { itemRowDiv.remove(); calculateTotals(); };
         removeBtnDiv.appendChild(removeBtn);
 
         // Order: Product, Qty, Price, Line Total, Button
-        itemRowDiv.appendChild(productSelectDiv); itemRowDiv.appendChild(qtyDiv); itemRowDiv.appendChild(priceDiv); itemRowDiv.appendChild(lineTotalDiv); itemRowDiv.appendChild(removeBtnDiv);
+        itemRowDiv.appendChild(productSelectDiv); itemRowDiv.appendChild(qtyDiv); itemRowDiv.appendChild(priceDiv); itemRowDiv.appendChild(lineTotalDiv); itemRowDiv.appendChild(removeBtn);
         saleItemsContainer.appendChild(itemRowDiv);
 
         productSelect.addEventListener('change', (e) => {
@@ -383,14 +385,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 qtyInput.value = maxStockInVehicle > 0 ? 1 : 0;
             }
             if (maxStockInVehicle === 0) { // Should be filtered out by populateProductSelectFromVehicle, but as a safeguard
-                qtyInput.value = 0; 
+                qtyInput.value = 0;
                 if (selectedOption.dataset.name) alert(`"${selectedOption.dataset.name}" is out of stock in this vehicle.`);
             }
             calculateTotals();
         });
-        
-        qtyInput.addEventListener('input', calculateTotals); 
-        priceInput.addEventListener('input', calculateTotals); 
+
+        qtyInput.addEventListener('input', calculateTotals);
+        priceInput.addEventListener('input', calculateTotals);
         if (productSelect.value) productSelect.dispatchEvent(new Event('change')); // Trigger for pre-filled
     }
 
@@ -398,15 +400,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Calculation Logic (Item Discount Removed) ---
     function calculateTotals() {
         let currentSubTotal = 0;
-        if (!document) return; 
+        if (!document) return;
         document.querySelectorAll('.sale-item-row').forEach(row => {
             const productSelect = row.querySelector('.sale-item-product');
             const selectedOption = productSelect ? productSelect.options[productSelect.selectedIndex] : null;
             const stockInVehicleForProduct = selectedOption ? parseInt(selectedOption.dataset.stock || 0) : 0;
 
             const qtyInput = row.querySelector('.sale-item-qty');
-            let qty = parseInt(qtyInput?.value || 0); 
-            
+            let qty = parseInt(qtyInput?.value || 0);
+
             if (qty > stockInVehicleForProduct && selectedOption && selectedOption.value && stockInVehicleForProduct >= 0) {
                 alert(`Quantity for ${selectedOption.dataset.name} exceeds available stock in vehicle (${stockInVehicleForProduct}). Adjusting to max available.`);
                 qty = stockInVehicleForProduct;
@@ -419,12 +421,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (qty > 0 && price >= 0) {
                 const itemNetTotal = qty * price; // No item-level discount
-                if(lineTotalField) lineTotalField.value = itemNetTotal.toFixed(2); 
+                if(lineTotalField) lineTotalField.value = itemNetTotal.toFixed(2);
                 currentSubTotal += itemNetTotal;
             } else { if(lineTotalField) lineTotalField.value = "0.00"; }
         });
         if(subTotalInput) subTotalInput.value = currentSubTotal.toFixed(2);
-        
+
         const directDiscountAmount = parseFloat(overallDiscountValueInput?.value || 0);
         const calculatedGrandTotal = currentSubTotal - directDiscountAmount;
         if(grandTotalInput) grandTotalInput.value = calculatedGrandTotal > 0 ? calculatedGrandTotal.toFixed(2) : "0.00";
@@ -434,7 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Form Submission (Modified for Delivery Stock) ---
+    // --- Form Submission (Modified for Delivery Stock and Sold Quantity) ---
     async function handleSaleFormSubmit(e) {
         e.preventDefault();
         if (!selectedDeliveryVehicleContext) {
@@ -466,17 +468,17 @@ document.addEventListener('DOMContentLoaded', () => {
              try {
                 const newCityRef = db.ref(CITIES_PATH).push();
                 await newCityRef.set({ name: finalCustomerCity });
-                await fetchCitiesAndPopulateDropdown(); 
+                await fetchCitiesAndPopulateDropdown();
              } catch (cityError) { console.error("Error saving new city:", cityError); alert("Could not save new city."); return; }
-        } else if (cityExists) { 
+        } else if (cityExists) {
             const existingCityObj = citiesCache.find(city => normalizeName(city.name) === cityNormalizedForCheck);
             if(existingCityObj) finalCustomerCity = existingCityObj.name;
         }
 
-        const itemsToSave = []; 
+        const itemsToSave = [];
         let allItemsValid = true;
-        // This array will hold {productCode, itemName, quantity, unitPrice, lineTotal, sourceLogDetails: [{deliveryLogId, qtyToDeduct}]}
-        
+        // This array will hold {productCode, itemName, quantity, unitPrice, lineTotal, sourceLogDebits: [{deliveryLogId, qtyToDeduct}]}
+
         document.querySelectorAll('.sale-item-row').forEach(row => {
             if (!allItemsValid) return;
             const productSelect = row.querySelector('.sale-item-product');
@@ -486,16 +488,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const selectedOption = productSelect.options[productSelect.selectedIndex];
             const itemName = selectedOption?.dataset.name;
             const stockInVehicleForThisProduct = parseInt(selectedOption?.dataset.stock || 0); // Total stock for this product code in vehicle
-            
+
             let quantity = parseInt(row.querySelector('.sale-item-qty')?.value || 0);
             const unitPrice = parseFloat(row.querySelector('.sale-item-price')?.value || 0);
 
             if (quantity <= 0 ) { alert(`Quantity for ${itemName || 'selected item'} must be > 0.`); allItemsValid = false; return; }
-            if (quantity > stockInVehicleForThisProduct) { 
-                alert(`Not enough stock in vehicle for ${itemName}. Available: ${stockInVehicleForThisProduct}, Requested: ${quantity}. Sale cannot proceed.`); 
-                allItemsValid = false; return; 
+            if (quantity > stockInVehicleForThisProduct) {
+                alert(`Not enough stock in vehicle for ${itemName}. Available: ${stockInVehicleForThisProduct}, Requested: ${quantity}. Sale cannot proceed.`);
+                allItemsValid = false; return;
             }
-            
+
             // Determine which deliveryLogIds to debit from for this productCode (FIFO based on sourceDeliveryLogDetails)
             const productAggregatedInfo = productsAvailableInSelectedVehicle.find(p => p.productCode === productCode);
             if (!productAggregatedInfo) {
@@ -516,10 +518,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert(`Error allocating stock for ${itemName}. Please refresh and try again.`);
                 allItemsValid = false; return;
             }
-            
-            itemsToSave.push({ 
-                productCode, itemName, quantity, unitPrice, 
-                lineTotal: quantity * unitPrice, 
+
+            itemsToSave.push({
+                productCode, itemName, quantity, unitPrice,
+                lineTotal: quantity * unitPrice,
                 sourceLogDebits // Store which delivery logs to update
             });
         });
@@ -529,34 +531,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- Customer Saving/Lookup (same as before) ---
         const enteredNormalizedName = normalizeName(customerNameOriginal);
-        if (!customerId) { 
+        if (!customerId) {
             const existingCustomerInCity = customersCache.find(
                 c => c.normalizedName === enteredNormalizedName && (c.city || '').toLowerCase() === finalCustomerCity.toLowerCase()
             );
             if (existingCustomerInCity) {
                 customerId = existingCustomerInCity.id;
-                customerNameToSave = existingCustomerInCity.name; 
-            } else { 
+                customerNameToSave = existingCustomerInCity.name;
+            } else {
                 try {
                     const newCustomerRef = db.ref(CUSTOMERS_PATH).push();
                     customerId = newCustomerRef.key;
-                    await newCustomerRef.set({ 
-                        customerId, name: customerNameOriginal, normalizedName: enteredNormalizedName, 
-                        city: finalCustomerCity, createdAt: firebase.database.ServerValue.TIMESTAMP 
+                    await newCustomerRef.set({
+                        customerId, name: customerNameOriginal, normalizedName: enteredNormalizedName,
+                        city: finalCustomerCity, createdAt: firebase.database.ServerValue.TIMESTAMP
                     });
-                    await fetchCustomersForSuggestions(); 
+                    await fetchCustomersForSuggestions();
                 } catch (customerError) { console.error("Error adding new customer:", customerError); alert("Could not save new customer."); return; }
             }
-        } else { 
+        } else {
              const selectedCustomer = customersCache.find(c => c.id === customerId);
              if (selectedCustomer) customerNameToSave = selectedCustomer.name;
         }
 
+        let currentCustomerPreviousDue = 0;
+        if (installmentDueMessage && installmentDueMessage.style.display === 'block') {
+            const dueText = installmentDueMessage.textContent;
+            const match = dueText.match(/Rs\. ([\d,]+\.\d{2})/);
+            if (match && match[1]) {
+                currentCustomerPreviousDue = parseFloat(match[1].replace(/,/g, ''));
+            }
+        }
 
         const saleEntry = {
-            saleDate: saleDateVal, customerId, customerName: customerNameToSave, customerCity: finalCustomerCity, 
+            saleDate: saleDateVal, customerId, customerName: customerNameToSave, customerCity: finalCustomerCity,
             items: itemsToSave.map(item => ({ // Storing simplified item data in sale log
-                productCode: item.productCode, itemName: item.itemName, 
+                productCode: item.productCode, itemName: item.itemName,
                 quantity: item.quantity, unitPrice: item.unitPrice, lineTotal: item.lineTotal
             })),
             sourceVehicleNumber: selectedDeliveryVehicleContext.vehicleNumber, // Store source vehicle
@@ -566,6 +576,7 @@ document.addEventListener('DOMContentLoaded', () => {
             grandTotal: parseFloat(grandTotalInput.value),
             paymentMethod: paymentMethodInput.value,
             saleNotes: saleNotesInput.value.trim() || null,
+            previousInstallmentDue: currentCustomerPreviousDue, // Store the previous due amount
             timestamp: firebase.database.ServerValue.TIMESTAMP
         };
         // Installment logic (same as before)
@@ -579,36 +590,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- Transactional Stock Update (Delivery Logs & Main Product TotalSold) and Sale Record ---
         try {
-            const updates = {};
-            // Prepare updates for deliveryLog stockInVehicle
-            itemsToSave.forEach(item => {
-                item.sourceLogDebits.forEach(debit => {
-                    const logStockRefPath = `${DELIVERY_LOGS_PATH}/${debit.deliveryLogId}/stockInVehicle`;
-                    // We'll read current stock and subtract in transaction
-                    updates[logStockRefPath] = { qtyToDeduct: debit.qtyToDeduct }; // Placeholder, will be handled by transaction
-                });
-                // Prepare updates for main product totalSold
-                const productTotalSoldRefPath = `${DEFINED_PRODUCTS_PATH}/${item.productCode}/totalSold`;
-                const productUpdatedAtRefPath = `${DEFINED_PRODUCTS_PATH}/${item.productCode}/updatedAt`;
-                 updates[productTotalSoldRefPath] = { qtyToAdd: item.quantity }; // Placeholder
-                 updates[productUpdatedAtRefPath] = firebase.database.ServerValue.TIMESTAMP; // Direct update
-            });
-
-            // Firebase multi-path transaction logic
             const transactionPromises = [];
 
-            // Transactions for deliveryLog stockInVehicle
+            // Transactions for deliveryLog stockInVehicle AND quantitySold
             itemsToSave.forEach(item => {
                 item.sourceLogDebits.forEach(debit => {
-                    const logStockRef = db.ref(`${DELIVERY_LOGS_PATH}/${debit.deliveryLogId}/stockInVehicle`);
+                    const logRef = db.ref(`${DELIVERY_LOGS_PATH}/${debit.deliveryLogId}`);
                     transactionPromises.push(
-                        logStockRef.transaction(currentStock => {
-                            if (currentStock === null || typeof currentStock === 'undefined') return 0; // Or handle as error
-                            const newStock = (currentStock || 0) - debit.qtyToDeduct;
-                            return newStock < 0 ? 0 : newStock; // Ensure stock doesn't go negative
+                        logRef.transaction(currentLog => {
+                            if (currentLog) {
+                                currentLog.stockInVehicle = (currentLog.stockInVehicle || 0) - debit.qtyToDeduct;
+                                currentLog.quantitySold = (currentLog.quantitySold || 0) + debit.qtyToDeduct; // Increment quantitySold
+                                return currentLog;
+                            }
+                            return currentLog; // Abort if log somehow deleted during transaction
                         }, (error, committed, snapshot) => {
-                             if (error) throw new Error(`Failed to update stock for log ${debit.deliveryLogId}: ${error.message}`);
-                             if (!committed) throw new Error(`Stock update not committed for log ${debit.deliveryLogId}. Stock may be insufficient or item removed.`);
+                             if (error) throw new Error(`Failed to update stock/sold for log ${debit.deliveryLogId}: ${error.message}`);
+                             if (!committed) throw new Error(`Stock/sold update not committed for log ${debit.deliveryLogId}. Stock may be insufficient or item removed.`);
                         }, false)
                     );
                 });
@@ -639,27 +637,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
             alert(`Sale recorded! ID: ${saleEntry.saleId}`);
             generateAndShowInvoice(saleEntry);
-            
+
             // Reset form and state
-            if(saleForm) saleForm.reset(); 
-            if(saleItemsContainer) saleItemsContainer.innerHTML = ''; 
+            if(saleForm) saleForm.reset();
+            if(saleItemsContainer) saleItemsContainer.innerHTML = '';
             if(saleDateInput) saleDateInput.valueAsDate = new Date();
-            if(customerCitySelect) customerCitySelect.value = ''; 
-            if(newCityNameInput) newCityNameInput.value = ''; 
+            if(customerCitySelect) customerCitySelect.value = '';
+            if(newCityNameInput) newCityNameInput.value = '';
             if(customerNameInput) customerNameInput.value = '';
-            if(selectedCustomerIdInput) selectedCustomerIdInput.value = ''; 
+            if(selectedCustomerIdInput) selectedCustomerIdInput.value = '';
             if(selectedCustomerCityNameInput) selectedCustomerCityNameInput.value = '';
-            
+
             // Reset delivery selection UI
             if(deliveryVehicleNumberInput) deliveryVehicleNumberInput.value = '';
             if(driverNameInput) driverNameInput.value = '';
-            clearDeliverySelection(); 
-            
+            clearDeliverySelection();
+
             await fetchDeliveryLogs(); // Re-fetch delivery logs to get updated stock
-            
+
             toggleCustomerNameInputState();
             handlePaymentMethodChange(); // Resets installment fields
             calculateTotals(); // Recalculates and resets summary fields
+            displayInstallmentDueMessage(0); // Hide installment message
 
         } catch (error) {
             console.error("Error during sale processing:", error);
@@ -676,65 +675,66 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderSaleLogRow(saleKey, data) {
         const row = salesLogTableBody.insertRow(); row.setAttribute('data-id', saleKey);
         row.insertCell().textContent = data.saleDate || '';
-        row.insertCell().textContent = data.saleId ? data.saleId.slice(-6).toUpperCase() : (saleKey ? saleKey.slice(-6).toUpperCase() : 'N/A');
-        
-        const customerCell = row.insertCell();
-        let customerDisplayText = data.customerName || 'N/A';
-        if (data.customerCity) customerDisplayText += ` (${data.customerCity})`;
-        // Customer Link (same as before)
-        if (data.customerId) { 
+        // Removed Sale ID column from display
+
+        const customerNameCell = row.insertCell(); // New: Customer Name only
+        let customerNameDisplayText = data.customerName || 'N/A';
+        if (data.customerId) {
             const customerLink = document.createElement('a');
-            customerLink.href = `customer.html#${data.customerId}`; // Corrected to customer.html
-            customerLink.textContent = customerDisplayText;
+            customerLink.href = `customer.html#${data.customerId}`;
+            customerLink.textContent = customerNameDisplayText;
             customerLink.classList.add('table-link');
-            customerCell.appendChild(customerLink);
+            customerNameCell.appendChild(customerLink);
         } else {
-            customerCell.textContent = customerDisplayText;
+            customerNameCell.textContent = customerNameDisplayText;
         }
+
+        const customerCityCell = row.insertCell(); // New: Customer City
+        customerCityCell.textContent = data.customerCity || 'N/A';
 
         const itemsCell = row.insertCell(); // "Items (Qty @ Price/Unit)"
         if (data.items && data.items.length > 0) {
-            const ul = document.createElement('ul'); ul.classList.add('material-list-display'); 
-            data.items.forEach(item => { 
-                const li = document.createElement('li'); 
+            const ul = document.createElement('ul'); ul.classList.add('material-list-display');
+            data.items.forEach(item => {
+                const li = document.createElement('li');
                 // Updated display for item price
-                li.textContent = `${item.itemName || 'Item'} (Qty: ${item.quantity || 0} @ Rs. ${parseFloat(item.unitPrice || 0).toFixed(2)}/unit)`; 
-                ul.appendChild(li); 
+                li.textContent = `${item.itemName || 'Item'} (Qty: ${item.quantity || 0} @ Rs. ${parseFloat(item.unitPrice || 0).toFixed(2)}/unit)`;
+                ul.appendChild(li);
             });
             itemsCell.appendChild(ul);
         } else itemsCell.textContent = 'N/A';
-        
+
         // Source Vehicle Cell
         const vehicleCell = row.insertCell();
         vehicleCell.textContent = `${data.sourceVehicleNumber || 'N/A'} (${data.sourceDriverName || 'N/A'})`;
 
         const totalCell = row.insertCell(); totalCell.textContent = data.grandTotal ? parseFloat(data.grandTotal).toFixed(2) : '0.00'; totalCell.classList.add('text-right');
-        
+
         const paymentCell = row.insertCell();
         // Payment method display (same as before)
         let paymentMethodText = data.paymentMethod || 'N/A';
         if (data.paymentMethod === 'Installment') {
-            paymentMethodText += ` (Paid: ${parseFloat(data.amountPaid || 0).toFixed(2)}, Due: ${parseFloat(data.remainingBalance || 0).toFixed(2)})`;
+            paymentMethodText += ` (Paid: ${parseFloat(data.amountPaid || 0).toFixed(2)}, To be paid: ${parseFloat(data.remainingBalance || 0).toFixed(2)})`;
         }
         paymentCell.textContent = paymentMethodText;
 
         const actionsCell = row.insertCell(); actionsCell.classList.add('actions', 'text-center');
         // Action buttons (same as before)
-        const invoiceBtn = document.createElement('button'); invoiceBtn.innerHTML = '<i class="fas fa-file-pdf fa-fw"></i>'; invoiceBtn.classList.add('btn', 'btn-primary', 'btn-sm'); invoiceBtn.title="View/Print Invoice"; invoiceBtn.onclick = () => generateAndShowInvoice(data); 
+        const invoiceBtn = document.createElement('button'); invoiceBtn.innerHTML = '<i class="fas fa-file-pdf fa-fw"></i>'; invoiceBtn.classList.add('btn', 'btn-primary', 'btn-sm'); invoiceBtn.title="View/Print Invoice"; invoiceBtn.onclick = () => generateAndShowInvoice(data);
         const deleteBtn = document.createElement('button'); deleteBtn.innerHTML = '<i class="fas fa-trash fa-fw"></i>'; deleteBtn.classList.add('btn', 'btn-danger', 'btn-sm');  deleteBtn.title="Delete Sale"; deleteBtn.onclick = () => deleteSale(saleKey, data);
         actionsCell.appendChild(invoiceBtn); actionsCell.appendChild(deleteBtn);
     }
-    
+
     function displayFilteredSales() { // Updated to include vehicle/driver search
         if (!salesLogTableBody) return;
-        salesLogTableBody.innerHTML = ''; 
+        salesLogTableBody.innerHTML = '';
         const searchTerm = searchSalesInput ? searchSalesInput.value.toLowerCase().trim() : "";
         let salesDisplayed = 0;
 
         if (allSalesData && typeof allSalesData === 'object' && Object.keys(allSalesData).length > 0) {
             const salesArray = Object.keys(allSalesData)
                 .map(key => ({ id: key, ...allSalesData[key] }))
-                .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)); 
+                .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
             salesArray.forEach(sale => {
                 const customerNameMatches = sale.customerName && sale.customerName.toLowerCase().includes(searchTerm);
@@ -757,30 +757,58 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- PDF Invoice (Updated Table Columns) ---
-    function generateAndShowInvoice(saleData) {
+    async function generateAndShowInvoice(saleData) {
         const doc = new jsPDF();
         // Company Info (same)
-        const companyName = "Amee-Tea Pvt Ltd"; const companyAddress = "123 Tea Lane, Colombo, Sri Lanka"; const companyContact = "Phone: +94 11 222 3333 | Email: sales@ameetea.lk";
+        const companyName = "Amee-Tea Pvt Ltd"; const companyAddress = "123 Tea Lane, Panadura, Western Province, Sri Lanka"; const companyContact = "Phone: +94 11 222 3333 | Email: sales@ameetea.lk";
         let currentY = 15;
-        doc.setFontSize(18); doc.setFont(undefined, 'bold'); doc.text(companyName, 14, currentY); 
+        doc.setFontSize(18); doc.setFont(undefined, 'bold'); doc.text(companyName, 14, currentY);
         currentY += 6; doc.setFontSize(10); doc.setFont(undefined, 'normal');
         doc.text(companyAddress, 14, currentY);
         currentY += 5; doc.text(companyContact, 14, currentY);
-        
-        doc.setFontSize(20); doc.setFont(undefined, 'bold'); doc.text("INVOICE", 196, 18, { align: 'right' }); 
+
+        doc.setFontSize(20); doc.setFont(undefined, 'bold'); doc.text("INVOICE", 196, 18, { align: 'right' });
         doc.setFont(undefined, 'normal'); doc.setFontSize(10);
         doc.text(`Invoice ID: ${saleData.saleId ? saleData.saleId.slice(-10).toUpperCase() : 'N/A'}`, 196, 26, { align: 'right' });
         doc.text(`Date: ${saleData.saleDate}`, 196, 31, { align: 'right' });
         currentY += 10;
 
         doc.setLineWidth(0.2); doc.line(14, currentY, 196, currentY); currentY += 5;
-        doc.setFontSize(12); doc.setFont(undefined, 'bold'); doc.text("Bill To:", 14, currentY); 
+        doc.setFontSize(12); doc.setFont(undefined, 'bold'); doc.text("Bill To:", 14, currentY);
         doc.setFont(undefined, 'normal'); doc.setFontSize(10); currentY += 5;
         let customerLine1 = saleData.customerName;
         if (saleData.customerId) customerLine1 += ` (ID: ${saleData.customerId.slice(-6).toUpperCase()})`;
         doc.text(customerLine1, 14, currentY);
         if (saleData.customerCity) { currentY += 5; doc.text(`City: ${saleData.customerCity}`, 14, currentY); }
         currentY += 5;
+
+        // Fetch the *current* total due for the customer for the invoice
+        let customerTotalDue = 0;
+        if (saleData.customerId) {
+            const snapshot = await db.ref(SALES_LOG_PATH)
+                                     .orderByChild('customerId')
+                                     .equalTo(saleData.customerId)
+                                     .once('value');
+            if (snapshot.exists()) {
+                snapshot.forEach(saleSnapshot => {
+                    const sale = saleSnapshot.val();
+                    if (sale.paymentMethod === 'Installment' && sale.remainingBalance > 0) {
+                        customerTotalDue += (sale.remainingBalance || 0);
+                    }
+                });
+            }
+        }
+
+        if (customerTotalDue > 0) {
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(255, 0, 0); // Red color for due amount
+            doc.text(`CUSTOMER OWES: Rs. ${customerTotalDue.toFixed(2)} (from previous installments)`, 14, currentY);
+            doc.setTextColor(0, 0, 0); // Reset color to black
+            doc.setFont(undefined, 'normal');
+            currentY += 5;
+        }
+
         // Source vehicle
         if (saleData.sourceVehicleNumber) {
              doc.text(`Source Vehicle: ${saleData.sourceVehicleNumber || ''} (Driver: ${saleData.sourceDriverName || ''})`, 14, currentY);
@@ -788,72 +816,72 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             currentY +=3; // smaller gap if no vehicle info
         }
-        
+
         // Updated Table Columns for Invoice
         const tableColumn = ["#", "Item Description", "Qty", "Price/Unit (Rs.)", "Line Total (Rs.)"];
         const tableRows = []; let itemNumber = 1;
         (saleData.items || []).forEach(item => {
             tableRows.push([
-                itemNumber++, 
-                `${item.itemName || 'N/A'} (${item.productCode || 'N/A'})`, 
-                item.quantity, 
+                itemNumber++,
+                `${item.itemName || 'N/A'} (${item.productCode || 'N/A'})`,
+                item.quantity,
                 parseFloat(item.unitPrice || 0).toFixed(2), // This is the sold price per unit
                 parseFloat(item.lineTotal || 0).toFixed(2)
             ]);
         });
-        doc.autoTable({ 
-            head: [tableColumn], body: tableRows, startY: currentY, 
+        doc.autoTable({
+            head: [tableColumn], body: tableRows, startY: currentY,
             theme: 'striped', headStyles: { fillColor: [22, 160, 133], textColor: 255 },
             columnStyles: { // Adjusted column styles
-                0: { cellWidth: 10, halign: 'center' }, 
-                1: { cellWidth: 'auto' }, 
+                0: { cellWidth: 10, halign: 'center' },
+                1: { cellWidth: 'auto' },
                 2: { cellWidth: 15, halign: 'right' },
                 3: { cellWidth: 30, halign: 'right' }, // Price/Unit
                 4: { cellWidth: 35, halign: 'right' }  // Line Total
             }
         });
-        
+
         // Summary (same as before)
         let finalY = doc.lastAutoTable.finalY || currentY + 20;
-        finalY += 7; doc.setFontSize(10); 
+        finalY += 7; doc.setFontSize(10);
         doc.text(`Subtotal:`, 150, finalY, {align: 'right'}); doc.text(`Rs. ${parseFloat(saleData.subTotal || 0).toFixed(2)}`, 196, finalY, { align: 'right' });
         if (saleData.overallDiscountValue > 0) {
-            finalY += 5; doc.text(`Overall Discount:`, 150, finalY, {align: 'right'}); 
-            doc.text(`- Rs. ${parseFloat(saleData.overallDiscountValue || 0).toFixed(2)}`, 196, finalY, { align: 'right' }); 
+            finalY += 5; doc.text(`Overall Discount:`, 150, finalY, {align: 'right'});
+            doc.text(`- Rs. ${parseFloat(saleData.overallDiscountValue || 0).toFixed(2)}`, 196, finalY, { align: 'right' });
         }
-        finalY += 7; doc.setFontSize(12); doc.setFont(undefined, 'bold'); doc.text(`Grand Total:`, 150, finalY, {align: 'right'}); doc.text(`Rs. ${parseFloat(saleData.grandTotal || 0).toFixed(2)}`, 196, finalY, { align: 'right' }); 
+        finalY += 7; doc.setFontSize(12); doc.setFont(undefined, 'bold'); doc.text(`Grand Total:`, 150, finalY, {align: 'right'}); doc.text(`Rs. ${parseFloat(saleData.grandTotal || 0).toFixed(2)}`, 196, finalY, { align: 'right' });
         doc.setFont(undefined, 'normal'); doc.setFontSize(10);
-        
+
         // Payment Method & Notes (same as before)
         finalY += 10; doc.text(`Payment Method: ${saleData.paymentMethod || 'N/A'}`, 14, finalY);
         if (saleData.paymentMethod === 'Installment') {
             finalY += 5; doc.text(`Amount Paid: Rs. ${parseFloat(saleData.amountPaid || 0).toFixed(2)}`, 14, finalY);
             finalY += 5; doc.text(`Remaining Balance: Rs. ${parseFloat(saleData.remainingBalance || 0).toFixed(2)}`, 14, finalY);
         }
-        if(saleData.saleNotes){ 
+        if(saleData.saleNotes){
             finalY += 7; doc.setFont(undefined, 'bold'); doc.text("Notes:", 14, finalY); doc.setFont(undefined, 'normal');
-            const notesLines = doc.splitTextToSize(saleData.saleNotes, 180); 
-            doc.text(notesLines, 14, finalY + 4); 
+            const notesLines = doc.splitTextToSize(saleData.saleNotes, 180);
+            doc.text(notesLines, 14, finalY + 4);
             finalY += (notesLines.length * 4) + 4;
         }
-        
+
         // Footer (same)
         const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
         const footerY = pageHeight - 15;
         doc.setLineWidth(0.2); doc.line(14, footerY - 2, 196, footerY - 2);
-        doc.setFontSize(8); doc.text("Thank you for your business!", 14, footerY); 
+        doc.setFontSize(8); doc.text("Thank you for your business!", 14, footerY);
         doc.text("Generated: " + new Date().toLocaleString(), 196, footerY, {align: 'right'});
-        
+
         doc.save(`Invoice-${(saleData.saleId || 'SALE').slice(-6)}-${(saleData.customerName || 'Customer').replace(/\s/g, '_')}-${saleData.saleDate}.pdf`);
     }
 
     // --- Functions to be reused (customer, city, product fetching, normalizeName, etc.) ---
     // These would be similar to your existing sales.js, adapted where needed
-    // e.g., fetchCitiesAndPopulateDropdown, fetchDefinedProductsOnce, listenForProductUpdates, 
+    // e.g., fetchCitiesAndPopulateDropdown, fetchDefinedProductsOnce, listenForProductUpdates,
     // fetchCustomersForSuggestions, handleCityChange, handleNewCityInput, toggleCustomerNameInputState,
     // handlePaymentMethodChange, calculateRemainingBalance, calculateRemainingBalanceAndUpdateTotals,
     // normalizeName, deleteSale (warning about stock revert would be even more critical here for delivery logs)
-    
+
     // Simplified placeholder for fetchDefinedProductsOnce (used for price lookup)
     async function fetchDefinedProductsOnce() {
         try {
@@ -882,7 +910,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const snapshot = await db.ref(CITIES_PATH).orderByChild('name').once('value');
             citiesCache = [];
-            let cityOptionsHTML = '<option value="">-- Select City First --</option>';
+            let cityOptionsHTML = '<option value="">-- Select route First --</option>';
             if (snapshot.exists()) {
                 snapshot.forEach(child => {
                     const cityData = child.val();
@@ -905,17 +933,17 @@ document.addEventListener('DOMContentLoaded', () => {
             customersCache = [];
             if (snapshot.exists()) {
                 snapshot.forEach(child => {
-                    customersCache.push({ 
-                        id: child.key, 
+                    customersCache.push({
+                        id: child.key,
                         name: child.val().name,
-                        normalizedName: child.val().normalizedName, 
-                        city: child.val().city || "" 
+                        normalizedName: child.val().normalizedName,
+                        city: child.val().city || ""
                     });
                 });
             }
         } catch (error) { console.error("Error fetching customers:", error); }
     }
-    
+
     function normalizeName(name) { // (Same as before)
         if (typeof name !== 'string') return "";
         return name.trim().toLowerCase().replace(/\s+/g, ' ').replace(/[.#$[\]]/g, '_');
@@ -928,6 +956,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         clearCustomerInput();
         toggleCustomerNameInputState();
+        displayInstallmentDueMessage(0); // Clear message when city changes
     }
 
     function handleNewCityInput() { // (Same as before)
@@ -936,12 +965,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         clearCustomerInput();
         toggleCustomerNameInputState();
+        displayInstallmentDueMessage(0); // Clear message when new city entered
     }
-    
+
     function clearCustomerInput(){ // (Same as before)
         if(customerNameInput) customerNameInput.value = '';
         if(customerSuggestionsListEl) customerSuggestionsListEl.innerHTML = '';
         if(selectedCustomerIdInput) selectedCustomerIdInput.value = '';
+        displayInstallmentDueMessage(0); // Clear message when customer input is cleared
     }
 
     function toggleCustomerNameInputState() { // (Same as before)
@@ -950,7 +981,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (customerNameInput) {
             const isDisabled = !(citySelected || newCityEntered);
             customerNameInput.disabled = isDisabled;
-            customerNameInput.placeholder = isDisabled ? "Select/Enter City first..." : "Type customer name...";
+            customerNameInput.placeholder = isDisabled ? "Select/Enter route first..." : "Type customer name...";
             if (isDisabled) clearCustomerInput();
         }
     }
@@ -958,8 +989,9 @@ document.addEventListener('DOMContentLoaded', () => {
         customerNameInput.addEventListener('input', () => {
             const searchTerm = customerNameInput.value.toLowerCase();
             customerSuggestionsListEl.innerHTML = '';
-            selectedCustomerIdInput.value = ''; 
-            
+            selectedCustomerIdInput.value = '';
+            displayInstallmentDueMessage(0); // Clear message on input change
+
             const currentCityValue = (customerCitySelect ? customerCitySelect.value : '') || (newCityNameInput ? newCityNameInput.value.trim() : '');
             const selectedCityNormalized = currentCityValue.toLowerCase();
 
@@ -975,7 +1007,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const cityMatch = customerCityLower === selectedCityNormalized;
                 const nameMatch = customer.name && customer.name.toLowerCase().includes(searchTerm);
                 return cityMatch && nameMatch;
-            }).slice(0, 5); 
+            }).slice(0, 5);
 
             if (filteredCustomers.length > 0) {
                 const ul = document.createElement('ul');
@@ -983,9 +1015,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     const li = document.createElement('li'); li.textContent = `${customer.name} (${customer.city || 'N/A'})`;
                     li.addEventListener('click', () => {
                         customerNameInput.value = customer.name;
-                        selectedCustomerIdInput.value = customer.id; 
+                        selectedCustomerIdInput.value = customer.id;
                         if(selectedCustomerCityNameInput) selectedCustomerCityNameInput.value = customer.city;
-                        
+
                         if (customerCitySelect && customer.city && citiesCache.some(c => c.name === customer.city)) {
                             customerCitySelect.value = customer.city;
                             if (newCityNameInput) newCityNameInput.value = '';
@@ -994,11 +1026,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (customerCitySelect) customerCitySelect.value = '';
                         }
                         customerSuggestionsListEl.style.display = 'none'; customerSuggestionsListEl.innerHTML = '';
+                        checkCustomerInstallmentStatus(); // Check status after selecting customer
                     });
                     ul.appendChild(li);
                 });
                 customerSuggestionsListEl.appendChild(ul); customerSuggestionsListEl.style.display = 'block';
-            } else { 
+            } else {
                 customerSuggestionsListEl.innerHTML = `<li>No customers matching "${customerNameInput.value}" in ${currentCityValue || 'this city'}. Type full name to add.</li>`;
                 customerSuggestionsListEl.style.display = 'block';
             }
@@ -1006,20 +1039,63 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
+    // Check for uncompleted installment payments for the selected customer
+    async function checkCustomerInstallmentStatus() {
+        const customerId = selectedCustomerIdInput.value;
+        if (!customerId) {
+            displayInstallmentDueMessage(0);
+            return;
+        }
+
+        try {
+            const snapshot = await db.ref(SALES_LOG_PATH)
+                                     .orderByChild('customerId')
+                                     .equalTo(customerId)
+                                     .once('value');
+            let totalDue = 0;
+            if (snapshot.exists()) {
+                snapshot.forEach(saleSnapshot => {
+                    const sale = saleSnapshot.val();
+                    if (sale.paymentMethod === 'Installment' && sale.remainingBalance > 0) {
+                        totalDue += (sale.remainingBalance || 0);
+                    }
+                });
+            }
+            displayInstallmentDueMessage(totalDue);
+        } catch (error) {
+            console.error("Error checking customer installment status:", error);
+            displayInstallmentDueMessage(0); // Hide on error
+        }
+    }
+
+    // Display the installment due message
+    function displayInstallmentDueMessage(amount) {
+        if (installmentDueMessage) {
+            if (amount > 0) {
+                installmentDueMessage.textContent = `CUSTOMER OWES: Rs. ${amount.toFixed(2)} (from previous installments)`;
+                installmentDueMessage.style.display = 'block';
+            } else {
+                installmentDueMessage.style.display = 'none';
+                installmentDueMessage.textContent = '';
+            }
+        }
+    }
+
+
     function handlePaymentMethodChange() { // (Same as before)
         if (!paymentMethodInput || !installmentFieldsContainer) return;
         if (paymentMethodInput.value === 'Installment') {
             installmentFieldsContainer.style.display = 'grid';
-            calculateRemainingBalance(); 
+            calculateRemainingBalance();
         } else {
             installmentFieldsContainer.style.display = 'none';
             if(amountPaidInput) amountPaidInput.value = '0';
             if(remainingBalanceInput) remainingBalanceInput.value = '0.00';
         }
     }
-    
+
     function calculateRemainingBalanceAndUpdateTotals() { // (Same as before)
-        calculateTotals(); 
+        calculateTotals();
     }
 
     function calculateRemainingBalance() { // (Same as before)
@@ -1029,33 +1105,54 @@ document.addEventListener('DOMContentLoaded', () => {
         const balance = grandTotal - paidAmount;
         remainingBalanceInput.value = balance.toFixed(2);
     }
-    
+
     function loadSalesLog() { // (Same as before)
-        const logRef = db.ref(SALES_LOG_PATH).orderByChild('timestamp').limitToLast(100); 
+        const logRef = db.ref(SALES_LOG_PATH).orderByChild('timestamp').limitToLast(100);
         logRef.on('value', snapshot => {
             allSalesData = snapshot.exists() ? snapshot.val() : {};
             displayFilteredSales(); // Will re-render with the new column format
         }, error => {
             console.error("Error listening to sales log:", error);
-            allSalesData = {}; displayFilteredSales(); 
+            allSalesData = {}; displayFilteredSales();
         });
     }
-    
+
     async function deleteSale(saleId, saleData) { // (Same warning logic as before, but stock revert is now more complex as it involves deliveryLogs)
         if (!saleId) return;
         const confirmationMessage = `DELETE Sale ID: ${saleData.saleId ? saleData.saleId.slice(-6).toUpperCase() : saleId.slice(-6).toUpperCase()} for "${saleData.customerName}"?\n
         !!! CRITICAL WARNING !!!
         This action is IRREVERSIBLE and WILL NOT automatically revert stock levels in the delivery vehicle logs OR the main product's 'Total Sold' count.
         If this sale is deleted, you must MANUALLY ADJUST:
-        1. The 'stockInVehicle' for each product in its original delivery log(s).
+        1. The 'stockInVehicle' AND 'quantitySold' for each product in its original delivery log(s).
         2. The 'totalSold' for each product in the main product definitions.
-        
+
         Are you absolutely sure you want to proceed with deleting this sale log? This can lead to data inconsistency if manual adjustments are not made correctly.`;
 
         if (confirm(confirmationMessage)) {
             try {
+                // If a sale is deleted, you need to revert the 'stockInVehicle' and 'quantitySold'
+                // in the corresponding delivery logs. This involves iterating through `saleData.items`
+                // and for each item, its `sourceLogDebits` (which aren't stored in the saleData directly,
+                // but would have been used during creation).
+                // For simplicity here, we're adding a placeholder of where you'd add this logic,
+                // as `saleData` only contains simplified item info. You might need to store
+                // `sourceLogDebits` within the `salesLog` entry itself if you want to
+                // automate this reversal.
+
+                // Manual Reversal Logic Placeholder:
+                console.warn("Manual reversal of delivery log stockInVehicle and quantitySold, and main product totalSold is REQUIRED for this deleted sale.");
+                saleData.items.forEach(item => {
+                    // You would need to query deliveryLogs for the specific item sold
+                    // from this sale's vehicle/driver and then increment stockInVehicle
+                    // and decrement quantitySold for the quantity sold.
+                    // This is complex because `saleData` doesn't directly contain the `deliveryLogId`
+                    // from which the stock was deducted.
+                    // A robust solution would be to store the `sourceLogDebits` array within the `sale.items`
+                    // for each item when the sale is made.
+                });
+
                 await db.ref(`${SALES_LOG_PATH}/${saleId}`).remove();
-                alert("Sale log entry deleted. REMEMBER TO MANUALLY ADJUST DELIVERY VEHICLE STOCK AND MAIN PRODUCT TOTALS SOLD.");
+                alert("Sale log entry deleted. REMEMBER TO MANUALLY ADJUST DELIVERY VEHICLE STOCK, QUANTITY SOLD, AND MAIN PRODUCT TOTALS SOLD.");
             } catch (error) { console.error(`Error deleting sale ${saleId}:`, error); alert("Error deleting sale log entry."); }
         }
     }
