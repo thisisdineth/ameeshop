@@ -10,7 +10,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="tbs.css">
     <style>
-        /* Add any specific styles for customers.html if needed, or rely on tbs.css */
         .filter-controls {
             display: flex;
             gap: 1rem;
@@ -24,10 +23,15 @@
         #cityTotalPaidDisplay {
             margin-top: 1rem;
             padding: 0.75rem;
-            background-color: #e9f7ef; /* A light green background */
+            background-color: #e9f7ef;
             border-left: 4px solid var(--success-color, #28a745);
             font-weight: 500;
             border-radius: 4px;
+        }
+        /* Styles for the new form */
+        #addCustomerContainer .form-grid {
+            grid-template-columns: 1fr 1fr; /* Two columns */
+            gap: 1rem;
         }
     </style>
 </head>
@@ -66,6 +70,28 @@
             <div class="container">
                 <h1 class="page-title"><i class="fas fa-users fa-fw"></i> Customer Management</h1>
 
+                <div id="addCustomerContainer" class="section-card">
+                    <h2 class="section-title"><i class="fas fa-user-plus fa-fw"></i> Add New Customer</h2>
+                    <form id="addCustomerForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="newCustomerNameInput" class="form-label">Customer Name</label>
+                                <input type="text" id="newCustomerNameInput" class="form-input" placeholder="Enter full name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="newCustomerCitySelect" class="form-label">Select City/Route</label>
+                                <select id="newCustomerCitySelect" class="form-input">
+                                    <option value="">-- Choose existing city --</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                             <label for="addNewCityInput" class="form-label">Or Add New City/Route</label>
+                             <input type="text" id="addNewCityInput" class="form-input" placeholder="Type new city name if not in list">
+                        </div>
+                        <button type="submit" class="btn btn-success" style="margin-top: 1rem;"><i class="fas fa-check fa-fw"></i> Save Customer</button>
+                    </form>
+                </div>
                 <div class="all-items-list-container section-card">
                     <h2 class="section-title">All Customers</h2>
                     <div class="filter-controls">
@@ -77,7 +103,7 @@
                             <label for="cityFilterSelect" class="form-label">Filter by City:</label>
                             <select id="cityFilterSelect" class="form-input">
                                 <option value="">-- All Cities --</option>
-                                </select>
+                            </select>
                         </div>
                     </div>
                     <div id="cityTotalPaidDisplay" style="display: none;">Total paid from selected city: Rs. 0.00</div>
@@ -94,7 +120,7 @@
                                 </tr>
                             </thead>
                             <tbody id="customersTableBody">
-                                </tbody>
+                            </tbody>
                         </table>
                          <p id="noCustomersFoundText" class="text-center" style="display:none; padding: 1rem; color: var(--text-color-muted);">No customers found.</p>
                     </div>

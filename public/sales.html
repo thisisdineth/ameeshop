@@ -8,6 +8,7 @@
     <link rel="icon" type="image/png" href="tealeaf.png" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="tbs.css">
     <style>
         /* Existing styles from tbs.css or your custom styles */
@@ -235,7 +236,21 @@
                         </button>
                     </form>
                 </div>
+<button id="unlockExportButton" class="btn btn-warning" onclick="
+    const password = prompt('Enter password to export:');
+    if(password === '567894') {
+        const exportBtn = document.getElementById('exportSalesHistoryButton');
+        exportBtn.disabled = false;
+        exportBtn.style.opacity = '1';
+        alert('Export unlocked! You can now click Export.');
+    } else {
+        alert('Incorrect password!');
+    }
+">Admin Unlock</button>
 
+<button id="exportSalesHistoryButton" class="btn btn-secondary" disabled style="opacity: 0.6;">
+    <i class="fas fa-file-excel mr-2"></i>Export to Excel
+</button>
                 <div id="salesHistoryDisplay" class="section-card">
                     <h2 class="section-title"><i class="fas fa-history fa-fw"></i> Sales History</h2>
                     <div class="form-group">
@@ -264,6 +279,7 @@
             </div>
         </main>
     </div>
+
 
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-database-compat.js"></script>
