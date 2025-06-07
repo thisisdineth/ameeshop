@@ -224,10 +224,11 @@ async function generateAndPrintReceipt(saleData) {
 
         // Add Logo at the top
         try {
+            // Updated to use .jpeg
             doc.addImage('logo.jpeg', 'jpeg', 31, currentY, 18, 18);
             currentY += 24;
         } catch (e) {
-            console.error("Could not add logo.png. Make sure the file exists.", e);
+            console.error("Could not add logo.jpeg. Make sure the file exists.", e);
             currentY += 5;
         }
 
@@ -236,14 +237,15 @@ async function generateAndPrintReceipt(saleData) {
         centerText('Amee tea (PVT) LTD', currentY);
         currentY += 6;
 
-doc.setFontSize(FONT_SIZE_NORMAL);
-doc.setFont(undefined, 'normal');
-centerText('110/J/1 Sri Saddhananda Mawatha,', currentY);
-currentY += 4;
-centerText('Katuwela, Boralesgamuwa', currentY);
-currentY += 4;
-centerText('Phone: +94 701010018 | Fax: +94 112 518 386', currentY);
-currentY += 7;
+        doc.setFontSize(FONT_SIZE_NORMAL);
+        doc.setFont(undefined, 'normal');
+        // Updated company contact info
+        centerText('110/J/1 Sri Saddhananda Mawatha,', currentY);
+        currentY += 4;
+        centerText('Katuwela, Boralesgamuwa', currentY);
+        currentY += 4;
+        centerText('Phone: +94 701010018 | Fax: +94 112 518 386', currentY);
+        currentY += 7;
 
         drawLine(currentY);
         currentY += 5;
@@ -255,11 +257,6 @@ currentY += 7;
 
         drawLine(currentY);
         currentY += 2;
-
-
-        // --- NEW ITEM DISPLAY METHOD ---
-        // This section is completely new to match your image.
-        // It iterates through each item and prints it in a two-line format.
         
         (saleData.items || []).forEach(item => {
             currentY += 4;
@@ -270,31 +267,27 @@ currentY += 7;
             doc.text(item.itemName || 'N/A', MARGIN_LEFT, currentY);
             currentY += 5;
 
+            // --- CHANGE: Simplified layout with 3 columns (Qty, U/Price, Amount) ---
             // Line 2: Headers for the numerical details
             doc.setFont(undefined, 'normal');
             doc.setFontSize(FONT_SIZE_SMALL);
             doc.text('Qty', MARGIN_LEFT, currentY);
-            doc.text('U/Price', 25, currentY);
-            doc.text('Discount', 45, currentY);
-            doc.text('Amount', 65, currentY);
+            doc.text('U/Price', 40, currentY); // Centered position
+            rightAlignedText('Amount', MARGIN_RIGHT, currentY); // Right-aligned
             currentY += 4;
 
             // Line 3: Values for the numerical details
             doc.setFontSize(FONT_SIZE_NORMAL);
-            // Using .toFixed(3) for quantity as shown in your example image
-            doc.text(parseFloat(item.quantity || 0).toFixed(3), MARGIN_LEFT, currentY);
-            doc.text(parseFloat(item.unitPrice || 0).toFixed(2), 25, currentY);
-            // Per-item discount is not in the system, so it's shown as 0.00.
-            doc.text('0.00', 45, currentY);
-            doc.text(parseFloat(item.lineTotal || 0).toFixed(2), 65, currentY);
+            // --- CHANGE: Quantity is now a whole number ---
+            doc.text(String(parseInt(item.quantity || 0)), MARGIN_LEFT, currentY);
+            doc.text(parseFloat(item.unitPrice || 0).toFixed(2), 40, currentY);
+            rightAlignedText(parseFloat(item.lineTotal || 0).toFixed(2), MARGIN_RIGHT, currentY);
             
             currentY += 5;
-            drawLine(currentY); // Separator line after each item
+            drawLine(currentY);
         });
-        // --- END OF NEW ITEM DISPLAY METHOD ---
 
-
-        currentY += 5; // Space after the last item
+        currentY += 5;
 
         doc.setFont(undefined, 'normal');
         doc.setFontSize(FONT_SIZE_NORMAL);
@@ -321,13 +314,13 @@ currentY += 7;
             doc.text('Paid (this bill)', MARGIN_LEFT, currentY);
             rightAlignedText(parseFloat(saleData.amountPaid || 0).toFixed(2), MARGIN_RIGHT, currentY);
             currentY += 5;
-            doc.text('Due (this bill)', MARGIN_LEFT, currentY);
+            doc.text('To paid (this bill)', MARGIN_LEFT, currentY);
             rightAlignedText(parseFloat(saleData.remainingBalance || 0).toFixed(2), MARGIN_RIGHT, currentY);
             currentY += 5;
         }
 
         if (saleData.previousInstallmentDue > 0) {
-            doc.text('Previous Due', MARGIN_LEFT, currentY);
+            doc.text('To paid (previous)', MARGIN_LEFT, currentY);
             rightAlignedText(saleData.previousInstallmentDue.toFixed(2), MARGIN_RIGHT, currentY);
             currentY += 5;
         }
