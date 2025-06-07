@@ -198,141 +198,167 @@ document.addEventListener('DOMContentLoaded', () => {
     /**
      * Generates a 58mm x 100mm PDF receipt.
      */
-    async function generateAndPrintReceipt(saleData) {
+async function generateAndPrintReceipt(saleData) {
+    try {
+        // Using an 80mm wide format with a long page for dynamic height on thermal printers.
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [80, 297] });
+        
+        const FONT_SIZE_NORMAL = 8;
+        const FONT_SIZE_SMALL = 7;
+        const FONT_SIZE_TOTAL = 10;
+
+        const MARGIN_LEFT = 4;
+        const MARGIN_RIGHT = 76;
+        let currentY = 5;
+
+        const centerText = (text, y) => {
+            const textWidth = doc.getStringUnitWidth(text) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+            doc.text(text, (80 - textWidth) / 2, y);
+        };
+        const rightAlignedText = (text, x, y) => doc.text(text, x, y, { align: 'right' });
+        const drawLine = (y) => {
+            doc.setLineDashPattern([0.5, 0.5], 0);
+            doc.line(MARGIN_LEFT, y, MARGIN_RIGHT, y);
+            doc.setLineDashPattern([], 0);
+        };
+
+        // Add Logo at the top
         try {
-            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [58, 100] });
-            
-            const FONT_SIZE_NORMAL = 8;
-            const MARGIN_LEFT = 3;
-            const MARGIN_RIGHT = 55;
-            let currentY = 5;
-
-            const centerText = (text, y) => {
-                const textWidth = doc.getStringUnitWidth(text) * doc.internal.getFontSize() / doc.internal.scaleFactor;
-                doc.text(text, (58 - textWidth) / 2, y);
-            };
-            const rightAlignedText = (text, y) => doc.text(text, MARGIN_RIGHT, y, { align: 'right' });
-            const drawLine = (y) => {
-                doc.setLineDashPattern([0.5, 0.5], 0);
-                doc.line(MARGIN_LEFT, y, MARGIN_RIGHT, y);
-                doc.setLineDashPattern([], 0);
-            };
-
-            doc.setFontSize(12);
-            doc.setFont(undefined, 'bold');
-            centerText('Amee tea (PVT) LTD', currentY);
+            doc.addImage('logo.jpeg', 'jpeg', 31, currentY, 18, 18);
+            currentY += 24;
+        } catch (e) {
+            console.error("Could not add logo.png. Make sure the file exists.", e);
             currentY += 5;
-
-            doc.setFontSize(FONT_SIZE_NORMAL);
-            doc.setFont(undefined, 'normal');
-            centerText('123 Tea Lane, Panadura, Sri Lanka', currentY);
-            currentY += 4;
-            centerText('Phone: +94 11 222 3333', currentY);
-            currentY += 6;
-
-            drawLine(currentY);
-            currentY += 4;
-
-            doc.text(`Date: ${saleData.saleDate || ''}`, MARGIN_LEFT, currentY);
-            currentY += 4;
-            doc.text(`Customer: ${saleData.customerName || 'N/A'}`, MARGIN_LEFT, currentY);
-            currentY += 4;
-            doc.text(`City: ${saleData.customerCity || 'N/A'}`, MARGIN_LEFT, currentY);
-            currentY += 4;
-            doc.text(`Vehicle/Driver: ${saleData.sourceVehicleNumber || ''} / ${saleData.sourceDriverName || ''}`, MARGIN_LEFT, currentY);
-            currentY += 5;
-
-            drawLine(currentY);
-            currentY += 4;
-
-            doc.setFont(undefined, 'bold');
-            doc.text('Description', MARGIN_LEFT, currentY);
-            doc.text('Qty', 30, currentY);
-            doc.text('Price', 38, currentY);
-            rightAlignedText('Total', currentY);
-            doc.setFont(undefined, 'normal');
-            currentY += 2;
-            drawLine(currentY);
-            currentY += 4;
-
-            (saleData.items || []).forEach(item => {
-                const itemNameLines = doc.splitTextToSize(item.itemName || 'N/A', 25);
-                doc.text(itemNameLines, MARGIN_LEFT, currentY);
-                doc.text(String(item.quantity), 31, currentY, { align: 'center' });
-                doc.text(parseFloat(item.unitPrice || 0).toFixed(2), 40, currentY, { align: 'center' });
-                rightAlignedText(parseFloat(item.lineTotal || 0).toFixed(2), currentY);
-                currentY += (itemNameLines.length * 3.5) + 1;
-            });
-
-            currentY += 2;
-            drawLine(currentY);
-            currentY += 4;
-
-            // --- FIX: Display Subtotal, Discount, and Grand Total ---
-            doc.setFont(undefined, 'normal');
-            doc.text('Subtotal', MARGIN_LEFT, currentY);
-            rightAlignedText(parseFloat(saleData.subTotal || 0).toFixed(2), currentY);
-            currentY += 4;
-
-            // Only show discount if it's greater than zero
-            if (saleData.overallDiscountValue > 0) {
-                doc.text('Discount', MARGIN_LEFT, currentY);
-                rightAlignedText(`- ${parseFloat(saleData.overallDiscountValue).toFixed(2)}`, currentY);
-                currentY += 4;
-            }
-
-            doc.setFont(undefined, 'bold');
-            doc.text('Grand Total', MARGIN_LEFT, currentY);
-            rightAlignedText(parseFloat(saleData.grandTotal || 0).toFixed(2), currentY);
-            currentY += 4;
-            doc.setFont(undefined, 'normal');
-            
-            drawLine(currentY);
-            currentY += 4;
-            // --- End of Fix ---
-
-            if (saleData.paymentMethod === 'Installment') {
-                doc.text('Paid (this bill)', MARGIN_LEFT, currentY);
-                rightAlignedText(parseFloat(saleData.amountPaid || 0).toFixed(2), currentY);
-                currentY += 4;
-                doc.text('Due (this bill)', MARGIN_LEFT, currentY);
-                rightAlignedText(parseFloat(saleData.remainingBalance || 0).toFixed(2), currentY);
-                currentY += 4;
-            }
-
-            if (saleData.previousInstallmentDue > 0) {
-                doc.text('Previous Due', MARGIN_LEFT, currentY);
-                rightAlignedText(saleData.previousInstallmentDue.toFixed(2), currentY);
-                currentY += 4;
-            }
-
-            drawLine(currentY);
-            currentY += 4;
-
-            doc.setFontSize(10);
-            doc.setFont(undefined, 'bold');
-            const finalTotalToBePaid = (saleData.remainingBalance || 0) + (saleData.previousInstallmentDue || 0);
-            doc.text('TOTAL DUE', MARGIN_LEFT, currentY);
-            rightAlignedText(finalTotalToBePaid.toFixed(2), currentY);
-            currentY += 6;
-            doc.setFont(undefined, 'normal');
-            doc.setFontSize(FONT_SIZE_NORMAL);
-
-            doc.text(`Payment Method: ${saleData.paymentMethod || 'N/A'}`, MARGIN_LEFT, currentY);
-            currentY += 8;
-
-            centerText('Thank You for shopping with us!', currentY);
-            currentY += 4;
-            centerText('Guarantee time date: ' + new Date().toLocaleDateString(), currentY);
-
-            const fileName = `Receipt-${(saleData.saleId || 'SALE').slice(-6)}-${saleData.saleDate}.pdf`;
-            doc.save(fileName);
-
-        } catch (error) {
-            console.error("Error generating PDF receipt:", error);
-            alert("Could not generate the PDF receipt.");
         }
+
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        centerText('Amee tea (PVT) LTD', currentY);
+        currentY += 6;
+
+doc.setFontSize(FONT_SIZE_NORMAL);
+doc.setFont(undefined, 'normal');
+centerText('110/J/1 Sri Saddhananda Mawatha,', currentY);
+currentY += 4;
+centerText('Katuwela, Boralesgamuwa', currentY);
+currentY += 4;
+centerText('Phone: +94 701010018 | Fax: +94 112 518 386', currentY);
+currentY += 7;
+
+        drawLine(currentY);
+        currentY += 5;
+
+        doc.text(`Date: ${saleData.saleDate || ''}`, MARGIN_LEFT, currentY);
+        currentY += 5;
+        doc.text(`Customer: ${saleData.customerName || 'N/A'}`, MARGIN_LEFT, currentY);
+        currentY += 6;
+
+        drawLine(currentY);
+        currentY += 2;
+
+
+        // --- NEW ITEM DISPLAY METHOD ---
+        // This section is completely new to match your image.
+        // It iterates through each item and prints it in a two-line format.
+        
+        (saleData.items || []).forEach(item => {
+            currentY += 4;
+
+            // Line 1: Item Description
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(FONT_SIZE_NORMAL);
+            doc.text(item.itemName || 'N/A', MARGIN_LEFT, currentY);
+            currentY += 5;
+
+            // Line 2: Headers for the numerical details
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(FONT_SIZE_SMALL);
+            doc.text('Qty', MARGIN_LEFT, currentY);
+            doc.text('U/Price', 25, currentY);
+            doc.text('Discount', 45, currentY);
+            doc.text('Amount', 65, currentY);
+            currentY += 4;
+
+            // Line 3: Values for the numerical details
+            doc.setFontSize(FONT_SIZE_NORMAL);
+            // Using .toFixed(3) for quantity as shown in your example image
+            doc.text(parseFloat(item.quantity || 0).toFixed(3), MARGIN_LEFT, currentY);
+            doc.text(parseFloat(item.unitPrice || 0).toFixed(2), 25, currentY);
+            // Per-item discount is not in the system, so it's shown as 0.00.
+            doc.text('0.00', 45, currentY);
+            doc.text(parseFloat(item.lineTotal || 0).toFixed(2), 65, currentY);
+            
+            currentY += 5;
+            drawLine(currentY); // Separator line after each item
+        });
+        // --- END OF NEW ITEM DISPLAY METHOD ---
+
+
+        currentY += 5; // Space after the last item
+
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(FONT_SIZE_NORMAL);
+        doc.text('Subtotal', MARGIN_LEFT, currentY);
+        rightAlignedText(parseFloat(saleData.subTotal || 0).toFixed(2), MARGIN_RIGHT, currentY);
+        currentY += 5;
+
+        if (saleData.overallDiscountValue > 0) {
+            doc.text('Overall Discount', MARGIN_LEFT, currentY);
+            rightAlignedText(`- ${parseFloat(saleData.overallDiscountValue).toFixed(2)}`, MARGIN_RIGHT, currentY);
+            currentY += 5;
+        }
+
+        doc.setFont(undefined, 'bold');
+        doc.text('Grand Total', MARGIN_LEFT, currentY);
+        rightAlignedText(parseFloat(saleData.grandTotal || 0).toFixed(2), MARGIN_RIGHT, currentY);
+        currentY += 5;
+        doc.setFont(undefined, 'normal');
+        
+        drawLine(currentY);
+        currentY += 5;
+
+        if (saleData.paymentMethod === 'Installment') {
+            doc.text('Paid (this bill)', MARGIN_LEFT, currentY);
+            rightAlignedText(parseFloat(saleData.amountPaid || 0).toFixed(2), MARGIN_RIGHT, currentY);
+            currentY += 5;
+            doc.text('Due (this bill)', MARGIN_LEFT, currentY);
+            rightAlignedText(parseFloat(saleData.remainingBalance || 0).toFixed(2), MARGIN_RIGHT, currentY);
+            currentY += 5;
+        }
+
+        if (saleData.previousInstallmentDue > 0) {
+            doc.text('Previous Due', MARGIN_LEFT, currentY);
+            rightAlignedText(saleData.previousInstallmentDue.toFixed(2), MARGIN_RIGHT, currentY);
+            currentY += 5;
+        }
+
+        drawLine(currentY);
+        currentY += 5;
+
+        doc.setFontSize(FONT_SIZE_TOTAL);
+        doc.setFont(undefined, 'bold');
+        const finalTotalToBePaid = (saleData.remainingBalance || 0) + (saleData.previousInstallmentDue || 0);
+        doc.text('TOTAL DUE', MARGIN_LEFT, currentY);
+        rightAlignedText(finalTotalToBePaid.toFixed(2), MARGIN_RIGHT, currentY);
+        currentY += 7;
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(FONT_SIZE_NORMAL);
+
+        doc.text(`Payment Method: ${saleData.paymentMethod || 'N/A'}`, MARGIN_LEFT, currentY);
+        currentY += 9;
+
+        centerText('Thank You for shopping with us!', currentY);
+        currentY += 5;
+        centerText('Generated: ' + new Date().toLocaleDateString(), currentY);
+
+        doc.autoPrint();
+        window.open(doc.output('bloburl'), '_blank');
+
+    } catch (error) {
+        console.error("Error generating PDF receipt:", error);
+        alert("Could not generate the PDF receipt.");
     }
+}
 
     // --- Delivery Vehicle Selection Logic ---
     async function fetchDeliveryLogs() {
