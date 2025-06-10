@@ -873,7 +873,7 @@ async function generateAndPrintReceipt(saleData) {
         let customerNameDisplayText = data.customerName || 'N/A';
         if (data.customerId) {
             const customerLink = document.createElement('a');
-            customerLink.href = `customer.html#${data.customerId}`;
+          customerLink.href = `/public/customer_data.html?id=${data.customerId}`;
             customerLink.textContent = customerNameDisplayText;
             customerLink.classList.add('table-link');
             customerNameCell.appendChild(customerLink);

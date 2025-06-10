@@ -1,4 +1,52 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --- START: Admin Unlock Functionality ---
+    const adminUnlockButton = document.getElementById('adminUnlockButton');
+    const protectedSections = document.querySelectorAll('.protected-section');
+
+    // This checks if the user has already unlocked the session
+    const isUnlocked = sessionStorage.getItem('adminUnlocked') === 'true';
+
+    function unlockAdminSections() {
+        protectedSections.forEach(section => {
+            section.classList.remove('blurred');
+        });
+        if (adminUnlockButton) {
+            adminUnlockButton.style.display = 'none'; // Hide button after successful unlock
+        }
+        // Store the unlocked state in the session, so it persists until the tab is closed
+        sessionStorage.setItem('adminUnlocked', 'true');
+    }
+
+    if (isUnlocked) {
+        // If already unlocked in this session, reveal the sections immediately
+        unlockAdminSections();
+    }
+
+    if (adminUnlockButton) {
+        adminUnlockButton.addEventListener('click', () => {
+            const password = prompt("Enter admin password to view sensitive data:");
+            if (password === "adminamee") {
+                unlockAdminSections();
+                alert("Admin sections unlocked for this session.");
+            } else if (password !== null) { // Only show error if they entered something and cancelled
+                alert("Incorrect password.");
+            }
+        });
+    }
+
+    // Also allow clicking the blurred overlay itself to trigger the unlock prompt
+    protectedSections.forEach(section => {
+        if (!isUnlocked) { // Only add this listener if not already unlocked
+            section.addEventListener('click', (event) => {
+                if (section.classList.contains('blurred')) {
+                    if (adminUnlockButton) adminUnlockButton.click();
+                }
+            });
+        }
+    });
+    // --- END: Admin Unlock Functionality ---
+
+
     const firebaseConfig = {
         apiKey: "AIzaSyA-M8XsFZaZPu_lBIx0TbqcmzhTXeHRjQM",
         authDomain: "ecommerceapp-dab53.firebaseapp.com",
@@ -70,9 +118,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function initializePage() {
-        currentCustomerId = getCustomerIdFromUrl();
-        if (currentCustomerId) {
-            await loadCustomerDetails(currentCustomerId);
+        const idFromUrl = getCustomerIdFromUrl();
+        if (idFromUrl) {
+            await loadCustomerDetails(idFromUrl);
             if (settleBalanceForm) {
                 settleBalanceForm.addEventListener('submit', handleSettleBalance);
             }
@@ -82,8 +130,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function loadCustomerDetails(customerId) {
-        if (!customerId) {
+    async function loadCustomerDetails(idFromUrl) {
+        if (!idFromUrl) {
             showError("No customer ID provided.");
             return;
         }
@@ -92,16 +140,42 @@ document.addEventListener('DOMContentLoaded', () => {
         errorDisplayEl.classList.add('hidden');
 
         try {
-            const snapshot = await db.ref(`${CUSTOMERS_PATH}/${customerId}`).once('value');
+            // First, try finding the customer by querying the 'customerId' field.
+            const query = db.ref(CUSTOMERS_PATH).orderByChild('customerId').equalTo(idFromUrl);
+            let snapshot = await query.once('value');
+            let customerFound = false;
+
             if (snapshot.exists()) {
-                currentCustomerData = snapshot.val();
-                displayCustomerInfo(customerId, currentCustomerData);
+                // A query returns a list of matches, even if it's just one.
+                snapshot.forEach(childSnapshot => {
+                    if (!customerFound) { // Process only the first match
+                        currentCustomerId = childSnapshot.key; // This is the REAL Firebase key
+                        currentCustomerData = childSnapshot.val();
+                        customerFound = true;
+                    }
+                });
+            }
+
+            // If not found by query, the ID might be the Firebase key itself. Try a direct lookup.
+            if (!customerFound) {
+                const directSnapshot = await db.ref(`${CUSTOMERS_PATH}/${idFromUrl}`).once('value');
+                if (directSnapshot.exists()) {
+                    currentCustomerId = directSnapshot.key; // The key is the ID from the URL
+                    currentCustomerData = directSnapshot.val();
+                    customerFound = true;
+                }
+            }
+
+            // After trying both methods, proceed if a customer was found.
+            if (customerFound) {
+                displayCustomerInfo(currentCustomerId, currentCustomerData);
                 loadAdminNotes(currentCustomerData.adminNotes);
-                loadCustomerSalesAndInstallmentHistory(customerId);
+                loadCustomerSalesAndInstallmentHistory(currentCustomerId);
                 customerDetailContainerEl.classList.remove('hidden');
             } else {
                 showError("Customer not found.");
             }
+
         } catch (error) {
             console.error("Error fetching customer details:", error);
             showError("Error loading customer data.");
@@ -112,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function loadCustomerSalesAndInstallmentHistory(customerId) {
         const salesRef = db.ref(SALES_LOG_PATH).orderByChild('customerId').equalTo(customerId);
-        salesRef.off('value'); // Prevent multiple listeners
+        salesRef.off('value'); 
 
         salesRef.on('value', snapshot => {
             if (!customerSalesTableBodyEl || !customerInstallmentsTableBodyEl) return;
@@ -127,6 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (snapshot.exists()) {
                 snapshot.forEach(childSnapshot => {
                     const sale = { id: childSnapshot.key, ...childSnapshot.val() };
+                    // Filter out settlement records from the main history views
                     if (sale.type !== 'settlement') {
                         salesEntries.push(sale);
                     }
@@ -155,9 +230,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (noInstallmentsMessageEl) noInstallmentsMessageEl.classList.toggle('hidden', hasInstallments);
             if (customerTotalSpentEl) customerTotalSpentEl.textContent = `Rs. ${totalSpent.toFixed(2)}`;
             
-            // Update and control the settlement section
             if (totalBalanceDisplay) totalBalanceDisplay.textContent = `Rs. ${totalRemainingBalance.toFixed(2)}`;
-            if (settlementAmountInput) settlementAmountInput.value = totalRemainingBalance.toFixed(2);
+            if (settlementAmountInput) settlementAmountInput.value = totalRemainingBalance > 0 ? totalRemainingBalance.toFixed(2) : '';
             if (balanceSettlementContainer) balanceSettlementContainer.classList.toggle('hidden', totalRemainingBalance <= 0);
             if (settleBalanceBtn) settleBalanceBtn.disabled = totalRemainingBalance <= 0;
 
@@ -175,28 +249,45 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Settlement amount must be greater than zero.");
             return;
         }
+        
+        const salesSnapshot = await db.ref(SALES_LOG_PATH).orderByChild('customerId').equalTo(currentCustomerId).once('value');
+        const openInstallments = [];
+        if (salesSnapshot.exists()) {
+            salesSnapshot.forEach(child => {
+                const sale = { id: child.key, ...child.val() };
+                if (sale.paymentMethod === 'Installment' && (sale.remainingBalance || 0) > 0) {
+                    openInstallments.push(sale);
+                }
+            });
+        }
+        
+        const totalDue = openInstallments.reduce((acc, sale) => acc + sale.remainingBalance, 0);
+        if (amountToSettle > totalDue) {
+            alert(`Amount exceeds total due of Rs. ${totalDue.toFixed(2)}.`);
+            return;
+        }
 
-        if (confirm(`Are you sure you want to settle a balance of Rs. ${amountToSettle.toFixed(2)} for this customer? This will clear all outstanding installment balances.`)) {
+        if (confirm(`Are you sure you want to settle a balance of Rs. ${amountToSettle.toFixed(2)} for this customer?`)) {
             settleBalanceBtn.disabled = true;
             settleBalanceBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
 
             try {
-                const salesSnapshot = await db.ref(SALES_LOG_PATH).orderByChild('customerId').equalTo(currentCustomerId).once('value');
-                const openInstallments = [];
-                if (salesSnapshot.exists()) {
-                    salesSnapshot.forEach(child => {
-                        const sale = { id: child.key, ...child.val() };
-                        if (sale.paymentMethod === 'Installment' && (sale.remainingBalance || 0) > 0) {
-                            openInstallments.push(sale);
-                        }
-                    });
-                }
-
                 if (openInstallments.length === 0) {
                     throw new Error("No open installments found to settle.");
                 }
 
                 const updates = {};
+                let paymentToApply = amountToSettle;
+                openInstallments.sort((a,b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+                for(const sale of openInstallments) {
+                    if (paymentToApply <= 0) break;
+                    const paymentForThisSale = Math.min(paymentToApply, sale.remainingBalance);
+                    updates[`${SALES_LOG_PATH}/${sale.id}/amountPaid`] = (sale.amountPaid || 0) + paymentForThisSale;
+                    updates[`${SALES_LOG_PATH}/${sale.id}/remainingBalance`] = sale.remainingBalance - paymentForThisSale;
+                    paymentToApply -= paymentForThisSale;
+                }
+
                 const newSettlementRef = db.ref(SALES_LOG_PATH).push();
                 const settlementRecord = {
                     type: 'settlement',
@@ -217,11 +308,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
                 updates[`${SALES_LOG_PATH}/${newSettlementRef.key}`] = settlementRecord;
 
-                openInstallments.forEach(sale => {
-                    updates[`${SALES_LOG_PATH}/${sale.id}/amountPaid`] = sale.grandTotal;
-                    updates[`${SALES_LOG_PATH}/${sale.id}/remainingBalance`] = 0;
-                });
-
                 await db.ref().update(updates);
                 await generateSettlementReceipt(settlementRecord);
                 alert("Balance settled successfully!");
@@ -231,10 +317,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert("An error occurred during settlement: " + error.message);
             } finally {
                 settleBalanceBtn.disabled = false;
-                settleBalanceBtn.innerHTML = '<i class="fas fa-check-circle fa-fw"></i> Settle Full Balance';
+                settleBalanceBtn.innerHTML = '<i class="fas fa-check-circle fa-fw"></i> Settle Balance';
             }
         }
     }
+    
+    // --- All other functions (generateSettlementReceipt, showError, displayCustomerInfo, etc.) ---
+    // The following functions are included for completeness but are unchanged from your last working version.
 
     async function generateSettlementReceipt(settlementData) {
         const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [80, 297] });

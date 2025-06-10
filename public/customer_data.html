@@ -9,6 +9,45 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="tbs.css">
+    <style>
+        /* Styling for the admin lock/unlock feature */
+        .protected-section {
+            position: relative;
+            border-radius: var(--border-radius, 8px);
+        }
+
+        .protected-section.blurred::after {
+            content: 'Admin access required';
+            position: absolute;
+            inset: 0;
+            background-color: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 600;
+            color: #555;
+            font-size: 1.1rem;
+            cursor: pointer;
+            border-radius: var(--border-radius, 8px);
+        }
+
+        .page-header-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .admin-unlock-group {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+    </style>
 </head>
 <body>
     <div id="app" class="app-container">
@@ -29,7 +68,12 @@
             <div class="container">
                 <div class="page-header-flex">
                     <h1 class="page-title" id="pageTitle"><i class="fas fa-user-tie fa-fw"></i> Customer Details</h1>
-                    <a href="customers.html" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left fa-fw"></i> Back to All Customers</a>
+                    <div class="admin-unlock-group">
+                        <button id="adminUnlockButton" class="btn btn-warning btn-sm">
+                            <i class="fas fa-lock fa-fw"></i> Admin Unlock
+                        </button>
+                        <a href="customers.html" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left fa-fw"></i> Back to All Customers</a>
+                    </div>
                 </div>
 
                 <div id="customerDetailContainer" class="hidden">
@@ -64,26 +108,30 @@
                                     </div>
                                 </div>
                             </div>
-                            <h3 class="form-subsection-title mt-1">Contact Details</h3>
-                            <div id="phoneNumbersContainer"></div>
-                            <button type="button" id="addPhoneNumberBtn" class="btn btn-secondary btn-sm mb-1">
-                                <i class="fas fa-plus fa-fw"></i> Add Phone Number
-                            </button>
-                            <div class="form-group">
-                                <label for="addressTextInput" class="form-label">Address (Manual):</label>
-                                <textarea id="addressTextInput" class="form-input" rows="3" placeholder="Enter full address"></textarea>
+                            
+                            <div id="contactDetailsSection" class="protected-section blurred">
+                                <h3 class="form-subsection-title mt-1">Contact Details</h3>
+                                <div id="phoneNumbersContainer"></div>
+                                <button type="button" id="addPhoneNumberBtn" class="btn btn-secondary btn-sm mb-1">
+                                    <i class="fas fa-plus fa-fw"></i> Add Phone Number
+                                </button>
+                                <div class="form-group">
+                                    <label for="addressTextInput" class="form-label">Address (Manual):</label>
+                                    <textarea id="addressTextInput" class="form-input" rows="3" placeholder="Enter full address"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="googleMapsLinkInput" class="form-label">Google Maps Link:</label>
+                                    <input type="url" id="googleMapsLinkInput" class="form-input" placeholder="e.g., https://maps.app.goo.gl/...">
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label for="googleMapsLinkInput" class="form-label">Google Maps Link:</label>
-                                <input type="url" id="googleMapsLinkInput" class="form-input" placeholder="e.g., https://maps.app.goo.gl/...">
-                            </div>
+                            
                             <button type="submit" id="saveCustomerDetailsBtn" class="btn btn-success btn-block">
                                 <i class="fas fa-save fa-fw"></i> Save Customer Details
                             </button>
                         </div>
                     </form>
 
-                    <div class="section-card admin-notes-card">
+                    <div id="adminNotesSection" class="section-card admin-notes-card protected-section blurred">
                         <h2 class="section-title"><i class="fas fa-clipboard fa-fw"></i> Admin Notes</h2>
                         <div id="adminNotesDisplay" class="notes-display-area"><p class="text-muted">No notes yet.</p></div>
                         <div class="form-group mt-1">
@@ -93,7 +141,7 @@
                         <button id="saveAdminNotesBtn" class="btn btn-primary btn-sm"><i class="fas fa-save fa-fw"></i> Save Note</button>
                     </div>
 
-                    <div class="section-card sales-history-card">
+                    <div id="salesHistorySection" class="section-card sales-history-card protected-section blurred">
                         <h2 class="section-title"><i class="fas fa-history fa-fw"></i> General Sales History</h2>
                         <p class="spending-summary">Total Spent by Customer (All Sales): <strong id="customerTotalSpent" class="text-success">Rs. 0.00</strong></p>
                         <div class="table-responsive-wrapper">
@@ -171,6 +219,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-storage-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <script src="customer_data.js"></script>
 </body>
 </html>
