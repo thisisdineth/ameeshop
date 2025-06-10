@@ -40,7 +40,11 @@
 body { font-family: var(--primary-font); line-height: 1.6; color: var(--text-color-primary); background-color: var(--background-color); }
 .app-container { display: flex; flex-direction: column; min-height: 100vh; }
 .container { width: 100%; max-width: 1280px; margin: 0 auto; padding: 0 1rem; }
-
+.nav-logo-icon {
+    height: 24px; /* Or any size you prefer */
+    vertical-align: middle;
+    margin-right: 5px; /* Optional: adds space between the logo and text */
+}
 /* === Navbar === */
 #top-navbar { background-color: var(--navbar-background-color); border-bottom: 1px solid var(--navbar-border-color); box-shadow: var(--shadow-sm); position: sticky; top: 0; z-index: 1000; }
 .nav-container { display: flex; align-items: center; justify-content: space-between; height: 4rem; }

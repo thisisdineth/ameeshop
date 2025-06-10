@@ -72,6 +72,11 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
+.nav-logo-icon {
+    height: 24px; /* Or any size you prefer */
+    vertical-align: middle;
+    margin-right: 5px; /* Optional: adds space between the logo and text */
+}
 .app-container { display: flex; flex-direction: column; min-height: 100vh; }
 .container { width: 100%; max-width: 1280px; margin-left: auto; margin-right: auto; padding-left: 1rem; padding-right: 1rem; }
 
