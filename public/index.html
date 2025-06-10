@@ -10,14 +10,10 @@
     <meta property="og:title" content="Amee-Tea Distribution Control Panel" />
     <meta property="og:description" content="Manage tea production, sales, and inventory with Amee-Tea's control panel" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="og-image.png" /> 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@AmeeTea" /> 
-    <meta name="twitter:image" content="twitter-image.png" /> 
-    <link rel="icon" type="image/png" href="tealeaf.png" /> 
+    <link rel="icon" type="image/png" href="tealeaf.png" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="index.css"> 
+    <link rel="stylesheet" href="index.css">
 </head>
 
 <body>
@@ -39,7 +35,7 @@
                     <a href="raw_tea.html" class="navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Tea</span></a>
                     <a href="packing_material.html" class="navbar-item"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
                     <a href="production.html" class="navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
-<a href="delivery.html" class="navbar-item"><i class="fas fa-truck fa-fw"></i> <span>Delivery</span></a>
+                    <a href="delivery.html" class="navbar-item"><i class="fas fa-truck fa-fw"></i> <span>Delivery</span></a>
                     <a href="sales.html" class="navbar-item"><i class="fas fa-shopping-cart fa-fw"></i> <span>Sales</span></a>
                     <a href="customers.html" class="navbar-item"><i class="fas fa-users fa-fw"></i> <span>Customers</span></a>
                 </div>
@@ -91,13 +87,7 @@
                         </div>
                          <a href="customers.html" class="stat-card-link">Manage <i class="fas fa-arrow-right link-arrow"></i></a>
                     </div>
-                    <div class="dashboard-stat-card stat-card-5">
-                        <div class="stat-card-content">
-                            <div><p class="stat-card-title">Total Productions</p><p class="stat-card-value" id="totalProductionsCount">0</p></div>
-                            <div class="stat-card-icon-wrapper"><i class="fas fa-industry stat-card-icon"></i></div>
-                        </div>
-                         <a href="production.html" class="stat-card-link">View Log <i class="fas fa-arrow-right link-arrow"></i></a>
-                    </div>
+
                     <div class="dashboard-stat-card stat-card-6">
                         <div class="stat-card-content">
                             <div><p class="stat-card-title">Total Sales Orders</p><p class="stat-card-value" id="totalSalesCount">0</p></div>
@@ -107,27 +97,33 @@
                     </div>
                 </div>
 
-                <div class="content-grid grid-cols-dashboard-main">
+                <div class="content-grid-top">
                     <div class="section-card" id="latestSaleCard">
-                        <h2 class="section-title"><i class="fas fa-file-alt fa-fw"></i> Latest Sale</h2>
+                        <h2 class="section-title"><i class="fas fa-file-alt fa-fw"></i> Latest Product Sale</h2>
                         <div id="latestSaleDisplay">
                             <p class="text-muted">Loading latest sale information...</p>
                         </div>
                     </div>
+                    <div class="section-card" id="activeVehiclesCard">
+                        <h2 class="section-title"><i class="fas fa-truck-moving fa-fw"></i> Vehicles on Delivery</h2>
+                        <div id="activeVehiclesDisplay">
+                            <p class="text-muted">Loading vehicle data...</p>
+                        </div>
+                    </div>
+                </div>
 
-                    <div class="section-card lg-col-span-2">
-                        <div class="chart-header">
-                            <h2 class="section-title"><i class="fas fa-chart-line fa-fw"></i> Daily Sales Overview</h2>
-                            <div class="chart-filters">
-                                <button class="btn btn-outline-secondary btn-sm chart-filter-btn active" data-period="7">Last 7 Days</button>
-                                <button class="btn btn-outline-secondary btn-sm chart-filter-btn" data-period="30">Last 30 Days</button>
-                                <button class="btn btn-outline-secondary btn-sm chart-filter-btn" data-period="thisMonth">This Month</button>
-                            </div>
+                <div class="section-card">
+                    <div class="chart-header">
+                        <h2 class="section-title"><i class="fas fa-chart-line fa-fw"></i> Daily Sales Overview</h2>
+                        <div class="chart-filters">
+                            <button class="btn btn-outline-secondary btn-sm chart-filter-btn active" data-period="7">Last 7 Days</button>
+                            <button class="btn btn-outline-secondary btn-sm chart-filter-btn" data-period="30">Last 30 Days</button>
+                            <button class="btn btn-outline-secondary btn-sm chart-filter-btn" data-period="thisMonth">This Month</button>
                         </div>
-                        <div class="chart-container">
-                            <canvas id="salesChartCanvas"></canvas>
-                            <p id="salesChartMessage" class="text-center text-muted" style="display: none;">No sales data for selected period.</p>
-                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="salesChartCanvas"></canvas>
+                        <p id="salesChartMessage" class="text-center text-muted" style="display: none;">No product sales data for selected period.</p>
                     </div>
                 </div>
 
@@ -142,8 +138,8 @@
     </div>
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-database-compat.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script> 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script> 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <script src="index.js"></script>
 </body>
