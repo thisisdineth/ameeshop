@@ -128,144 +128,153 @@
                 <h1 class="page-title"><i class="fas fa-shopping-cart fa-fw"></i> Sales Management</h1>
 
                 <div id="recordSaleFormContainer" class="section-card">
-    <h2 class="section-title"><i class="fas fa-cash-register fa-fw"></i> Record New Sale</h2>
-    <form id="saleForm">
-        
-        <div id="deliverySelectionContainer">
-            <h3 class="form-subsection-title"><i class="fas fa-truck fa-fw"></i> Select Delivery Source</h3>
-            <div class="form-grid grid-cols-2">
-                <div class="form-group input-group-relative">
-                    <label for="deliveryVehicleNumberInput" class="form-label">Vehicle Number:</label>
-                    <input type="text" id="deliveryVehicleNumberInput" class="form-input" placeholder="Type vehicle number..." autocomplete="off">
-                    <div id="vehicleSuggestionsList" class="suggestions-dropdown"></div>
+                    <h2 class="section-title"><i class="fas fa-cash-register fa-fw"></i> Record New Sale</h2>
+                    <form id="saleForm">
+                        
+                        <div id="deliverySelectionContainer">
+                            <h3 class="form-subsection-title"><i class="fas fa-truck fa-fw"></i> Select Delivery Source</h3>
+                            <div class="form-grid grid-cols-2">
+                                <div class="form-group input-group-relative">
+                                    <label for="deliveryVehicleNumberInput" class="form-label">Vehicle Number:</label>
+                                    <input type="text" id="deliveryVehicleNumberInput" class="form-input" placeholder="Type vehicle number..." autocomplete="off">
+                                    <div id="vehicleSuggestionsList" class="suggestions-dropdown"></div>
+                                </div>
+                                <div class="form-group input-group-relative">
+                                    <label for="driverNameInput" class="form-label">Driver Name:</label>
+                                    <input type="text" id="driverNameInput" class="form-input" placeholder="Type driver name..." autocomplete="off">
+                                    <div id="driverSuggestionsList" class="suggestions-dropdown"></div>
+                                </div>
+                            </div>
+                            <div id="selectedDeliveryInfo" style="display: none;"></div>
+                            <input type="hidden" id="selectedDeliveryLogId"> 
+                            <p class="form-hint">Sales can only be made from an active delivery vehicle with stock. Select vehicle/driver to load available products.</p>
+                        </div>
+                        
+                        <hr class="form-divider">
+
+                        <div class="form-grid grid-cols-1">
+                            <div class="form-group">
+                                <label for="saleDate" class="form-label">Sale Date:</label>
+                                <input type="date" id="saleDate" class="form-input" required>
+                            </div>
+                        </div>
+                        <hr class="form-divider">
+
+                        <h3 class="form-subsection-title"><i class="fas fa-user-tag fa-fw"></i> Select Customer</h3>
+                        <div class="form-grid grid-cols-2">
+                            <div class="form-group">
+                                <label for="customerCitySelect" class="form-label">Customer Route:</label>
+                                <select id="customerCitySelect" class="form-input">
+                                    <option value="">-- Select route First --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="newCityNameInput" class="form-label">Or Add New route:</label>
+                                <input type="text" id="newCityNameInput" class="form-input" placeholder="Type new Route name...">
+                            </div>
+                        </div>
+                        <div class="form-grid grid-cols-1">
+                            <div class="form-group input-group-relative">
+                                <label for="customerName" class="form-label">Customer Name:</label>
+                                <input type="text" id="customerName" class="form-input" placeholder="Select/Enter Route first..." autocomplete="off" required disabled>
+                                <div id="customerSuggestionsList" class="suggestions-dropdown"></div>
+                                <input type="hidden" id="selectedCustomerId">
+                                <input type="hidden" id="selectedCustomerCityName">
+                            </div>
+                        </div>
+                        <p class="form-hint">New customers are saved with the selected/newly typed Route. Ensure Route is selected or entered.</p>
+                        
+                        <div id="installmentDueMessage" class="installment-due" style="display: none;"></div>
+
+                        <div id="settleBalanceContainer" class="section-card" style="display: none; margin-top: 1rem; background-color: #f8f9fa;">
+                            <h4 class="form-subsection-title" style="margin-top:0; color: var(--primary-color);"><i class="fas fa-hand-holding-usd fa-fw"></i> Settle Outstanding Balance</h4>
+                            <div class="form-grid grid-cols-2">
+                                <div class="form-group">
+                                    <label for="settlementAmountInput" class="form-label">Payment Amount (Rs.):</label>
+                                    <input type="number" id="settlementAmountInput" class="form-input" placeholder="Enter amount being paid">
+                                </div>
+                                <div class="form-group" style="align-self: flex-end;">
+                                    <button type="button" id="settleBalanceButton" class="btn btn-primary btn-block">
+                                        <i class="fas fa-check fa-fw"></i> Settle Payment
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <hr class="form-divider">
+                        <h3 class="form-subsection-title">Items Sold (New Purchase)</h3>
+                        <div id="saleItemsContainer">
+                        </div>
+                        <button type="button" id="addSaleItemButton" class="btn btn-secondary btn-sm mb-1" disabled>
+                            <i class="fas fa-plus fa-fw"></i> Add Item to Sale
+                        </button>
+                        <hr class="form-divider">
+
+                        <div class="form-grid grid-cols-3 sale-summary-grid">
+                            <div class="form-group">
+                                <label for="subTotal" class="form-label">Subtotal (Rs.):</label>
+                                <input type="text" id="subTotal" class="form-input" placeholder="0.00" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="overallDiscountValueInput" class="form-label">Overall Discount (Rs.):</label>
+                                <input type="number" step="0.01" id="overallDiscountValueInput" class="form-input" placeholder="0.00" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="grandTotal" class="form-label">Grand Total (Rs.):</label>
+                                <input type="text" id="grandTotal" class="form-input" placeholder="0.00" readonly>
+                            </div>
+                        </div>
+
+                        <div class="form-grid grid-cols-1">
+                            <div class="form-group">
+                                <label for="paymentMethod" class="form-label">Payment Method:</label>
+                                <select id="paymentMethod" class="form-input">
+                                    <option value="Cash">Cash</option>
+                                    <option value="Card">Card</option>
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                    <option value="Cheque">Cheque</option>
+                                    <option value="Online">Online</option>
+                                    <option value="Installment">Installment</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="installmentFieldsContainer" class="form-grid grid-cols-2" style="display: none;">
+                            <div class="form-group">
+                                <label for="amountPaid" class="form-label">Amount Paid (Rs.):</label>
+                                <input type="number" step="0.01" id="amountPaid" class="form-input" placeholder="0.00" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="remainingBalance" class="form-label">Remaining Balance (Rs.):</label>
+                                <input type="text" id="remainingBalance" class="form-input" placeholder="0.00" readonly>
+                            </div>
+                        </div>
+                        <div class="form-grid grid-cols-1">
+                            <div class="form-group">
+                                <label for="saleNotes" class="form-label">Sale Notes (Optional):</label>
+                                <input type="text" id="saleNotes" class="form-input" placeholder="Any notes for this sale...">
+                            </div>
+                        </div>
+
+                        <button type="submit" id="completeSaleButton" class="btn btn-success btn-block mt-1" disabled>
+                            <i class="fas fa-check-circle fa-fw"></i> Complete Sale & Update Stock
+                        </button>
+                    </form>
                 </div>
-                <div class="form-group input-group-relative">
-                    <label for="driverNameInput" class="form-label">Driver Name:</label>
-                    <input type="text" id="driverNameInput" class="form-input" placeholder="Type driver name..." autocomplete="off">
-                    <div id="driverSuggestionsList" class="suggestions-dropdown"></div>
-                </div>
-            </div>
-            <div id="selectedDeliveryInfo" style="display: none;"></div>
-            <input type="hidden" id="selectedDeliveryLogId"> 
-            <p class="form-hint">Sales can only be made from an active delivery vehicle with stock. Select vehicle/driver to load available products.</p>
-        </div>
-        <hr class="form-divider">
+                <button id="unlockExportButton" class="btn btn-warning" onclick="
+                    const password = prompt('Enter password to export:');
+                    if(password === '567894') {
+                        const exportBtn = document.getElementById('exportSalesHistoryButton');
+                        exportBtn.disabled = false;
+                        exportBtn.style.opacity = '1';
+                        alert('Export unlocked! You can now click Export.');
+                    } else {
+                        alert('Incorrect password!');
+                    }
+                ">Admin Unlock</button>
 
-        <h3 class="form-subsection-title"><i class="fas fa-user-tag fa-fw"></i> Select Customer</h3>
-        <div class="form-grid grid-cols-2">
-            <div class="form-group">
-                <label for="customerCitySelect" class="form-label">Customer Route:</label>
-                <select id="customerCitySelect" class="form-input">
-                    <option value="">-- Select route First --</option>
-                    </select>
-            </div>
-            <div class="form-group">
-                <label for="newCityNameInput" class="form-label">Or Add New route:</label>
-                <input type="text" id="newCityNameInput" class="form-input" placeholder="Type new Route name...">
-            </div>
-        </div>
-        <div class="form-grid grid-cols-1">
-             <div class="form-group input-group-relative">
-                <label for="customerName" class="form-label">Customer Name:</label>
-                <input type="text" id="customerName" class="form-input" placeholder="Select/Enter Route first..." autocomplete="off" required disabled>
-                <div id="customerSuggestionsList" class="suggestions-dropdown"></div>
-                <input type="hidden" id="selectedCustomerId">
-                <input type="hidden" id="selectedCustomerCityName">
-            </div>
-        </div>
-        <p class="form-hint">New customers are saved with the selected/newly typed Route. Ensure Route is selected or entered.</p>
-        
-        <div id="installmentDueMessage" class="installment-due" style="display: none;"></div>
-
-        <div id="settleBalanceContainer" class="section-card" style="display: none; margin-top: 1rem; background-color: #f8f9fa;">
-            <h4 class="form-subsection-title" style="margin-top:0; color: var(--primary-color);"><i class="fas fa-hand-holding-usd fa-fw"></i> Settle Outstanding Balance</h4>
-            <div class="form-grid grid-cols-2">
-                <div class="form-group">
-                    <label for="settlementAmountInput" class="form-label">Payment Amount (Rs.):</label>
-                    <input type="number" id="settlementAmountInput" class="form-input" placeholder="Enter amount being paid">
-                </div>
-                <div class="form-group" style="align-self: flex-end;">
-                     <button type="button" id="settleBalanceButton" class="btn btn-primary btn-block">
-                        <i class="fas fa-check fa-fw"></i> Settle Payment
-                    </button>
-                </div>
-            </div>
-        </div>
-        <hr class="form-divider">
-        <h3 class="form-subsection-title">Items Sold (New Purchase)</h3>
-        <div id="saleItemsContainer">
-            </div>
-        <button type="button" id="addSaleItemButton" class="btn btn-secondary btn-sm mb-1" disabled>
-            <i class="fas fa-plus fa-fw"></i> Add Item to Sale
-        </button>
-        <hr class="form-divider">
-
-        <div class="form-grid grid-cols-3 sale-summary-grid">
-            <div class="form-group">
-                <label for="subTotal" class="form-label">Subtotal (Rs.):</label>
-                <input type="text" id="subTotal" class="form-input" placeholder="0.00" readonly>
-            </div>
-            <div class="form-group">
-                <label for="overallDiscountValueInput" class="form-label">Overall Discount (Rs.):</label>
-                <input type="number" step="0.01" id="overallDiscountValueInput" class="form-input" placeholder="0.00" value="0">
-            </div>
-            <div class="form-group">
-                <label for="grandTotal" class="form-label">Grand Total (Rs.):</label>
-                <input type="text" id="grandTotal" class="form-input" placeholder="0.00" readonly>
-            </div>
-        </div>
-
-        <div class="form-grid grid-cols-1">
-            <div class="form-group">
-                <label for="paymentMethod" class="form-label">Payment Method:</label>
-                <select id="paymentMethod" class="form-input">
-                    <option value="Cash">Cash</option>
-                    <option value="Card">Card</option>
-                    <option value="Bank Transfer">Bank Transfer</option>
-                    <option value="Cheque">Cheque</option>
-                    <option value="Online">Online</option>
-                    <option value="Installment">Installment</option>
-                    <option value="Other">Other</option>
-                </select>
-            </div>
-        </div>
-        <div id="installmentFieldsContainer" class="form-grid grid-cols-2" style="display: none;">
-            <div class="form-group">
-                <label for="amountPaid" class="form-label">Amount Paid (Rs.):</label>
-                <input type="number" step="0.01" id="amountPaid" class="form-input" placeholder="0.00" value="0">
-            </div>
-            <div class="form-group">
-                <label for="remainingBalance" class="form-label">Remaining Balance (Rs.):</label>
-                <input type="text" id="remainingBalance" class="form-input" placeholder="0.00" readonly>
-            </div>
-        </div>
-         <div class="form-grid grid-cols-1">
-            <div class="form-group">
-                <label for="saleNotes" class="form-label">Sale Notes (Optional):</label>
-                <input type="text" id="saleNotes" class="form-input" placeholder="Any notes for this sale...">
-            </div>
-        </div>
-
-        <button type="submit" id="completeSaleButton" class="btn btn-success btn-block mt-1" disabled>
-            <i class="fas fa-check-circle fa-fw"></i> Complete Sale & Update Stock
-        </button>
-    </form>
-</div>
-<button id="unlockExportButton" class="btn btn-warning" onclick="
-    const password = prompt('Enter password to export:');
-    if(password === '567894') {
-        const exportBtn = document.getElementById('exportSalesHistoryButton');
-        exportBtn.disabled = false;
-        exportBtn.style.opacity = '1';
-        alert('Export unlocked! You can now click Export.');
-    } else {
-        alert('Incorrect password!');
-    }
-">Admin Unlock</button>
-
-<button id="exportSalesHistoryButton" class="btn btn-secondary" disabled style="opacity: 0.6;">
-    <i class="fas fa-file-excel mr-2"></i>Export to Excel
-</button>
+                <button id="exportSalesHistoryButton" class="btn btn-secondary" disabled style="opacity: 0.6;">
+                    <i class="fas fa-file-excel mr-2"></i>Export to Excel
+                </button>
                 <div id="salesHistoryDisplay" class="section-card">
                     <h2 class="section-title"><i class="fas fa-history fa-fw"></i> Sales History</h2>
                     <div class="form-group">
@@ -295,12 +304,10 @@
         </main>
     </div>
 
-
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-database-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <script src="sales.js"></script>
-
 </body>
 </html>
