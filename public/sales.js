@@ -1194,6 +1194,6 @@ async function generateAndPrintReceipt(saleData) {
         }
     }
 
-    // --- Start the Application ---
+    
     initializeSalesPage();
 });

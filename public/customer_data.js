@@ -1,50 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // --- START: Admin Unlock Functionality ---
-    const adminUnlockButton = document.getElementById('adminUnlockButton');
-    const protectedSections = document.querySelectorAll('.protected-section');
 
-    // This checks if the user has already unlocked the session
-    const isUnlocked = sessionStorage.getItem('adminUnlocked') === 'true';
-
-    function unlockAdminSections() {
-        protectedSections.forEach(section => {
-            section.classList.remove('blurred');
-        });
-        if (adminUnlockButton) {
-            adminUnlockButton.style.display = 'none'; // Hide button after successful unlock
-        }
-        // Store the unlocked state in the session, so it persists until the tab is closed
-        sessionStorage.setItem('adminUnlocked', 'true');
-    }
-
-    if (isUnlocked) {
-        // If already unlocked in this session, reveal the sections immediately
-        unlockAdminSections();
-    }
-
-    if (adminUnlockButton) {
-        adminUnlockButton.addEventListener('click', () => {
-            const password = prompt("Enter admin password to view sensitive data:");
-            if (password === "adminamee") {
-                unlockAdminSections();
-                alert("Admin sections unlocked for this session.");
-            } else if (password !== null) { // Only show error if they entered something and cancelled
-                alert("Incorrect password.");
-            }
-        });
-    }
-
-    // Also allow clicking the blurred overlay itself to trigger the unlock prompt
-    protectedSections.forEach(section => {
-        if (!isUnlocked) { // Only add this listener if not already unlocked
-            section.addEventListener('click', (event) => {
-                if (section.classList.contains('blurred')) {
-                    if (adminUnlockButton) adminUnlockButton.click();
-                }
-            });
-        }
-    });
-    // --- END: Admin Unlock Functionality ---
 
 
     const firebaseConfig = {
@@ -706,4 +660,3 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize the page
     initializePage();
-});
