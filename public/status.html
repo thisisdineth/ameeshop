@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Data Entry</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        [contenteditable]:focus {
+            outline: 2px solid #3b82f6; /* blue-500 */
+            background-color: #eff6ff; /* blue-50 */
+        }
+        th, td {
+            border: 1px solid #d1d5db; /* gray-300 */
+            padding: 6px 8px;
+            white-space: nowrap;
+        }
+        .header-pink { background-color: #fce7f3; }
+        .header-blue { background-color: #dbeafe; }
+        .header-yellow { background-color: #fef9c3; }
+        .header-gray { background-color: #f3f4f6; }
+        .calculated { background-color: #f3f4f6; color: #4b5563; }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <nav class="bg-white shadow-md sticky top-0 z-10">
+        <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <button onclick="window.history.back()" class="bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg shadow hover:bg-gray-300 transition-colors">
+                        &larr; Back
+                    </button>
+                </div>
+                <h1 class="text-xl font-bold text-gray-800">Manual Data Entry</h1>
+                <div></div> <!-- Spacer -->
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-screen-xl mx-auto bg-white p-6 rounded-xl shadow-lg mt-8">
+        <!-- Purchases and Payments Table -->
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Purchases & Payments Log</h2>
+        <div class="flex flex-wrap items-center gap-3 mb-4">
+            <button id="addPurchaseRowBtn" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-700">Add Purchase Row</button>
+            <button id="sortPurchasesBtn" class="bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-gray-600">Sort by Date</button>
+            <button id="exportPurchasesBtn" class="bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-purple-700">Export Purchases</button>
+            <button id="saveAllBtn" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow hover:bg-green-700">Save</button>
+            <span id="statusMessage" class="text-green-700 font-medium ml-4"></span>
+        </div>
+        <div class="overflow-x-auto mb-10">
+            <table class="w-full border-collapse text-sm">
+                <thead>
+                    <tr>
+                        <th colspan="10" class="header-pink">Purchases</th>
+                        <th colspan="3" class="header-blue">Payments</th>
+                    </tr>
+                    <tr>
+                        <th class="font-semibold">Date</th>
+                        <th class="font-semibold">Estate</th>
+                        <th class="font-semibold">Grade</th>
+                        <th class="font-semibold">Bag weight</th>
+                        <th class="font-semibold">Bags</th>
+                        <th class="font-semibold calculated">Total weight</th>
+                        <th class="font-semibold">Auction Price</th>
+                        <th class="font-semibold">Unit Price</th>
+                        <th class="font-semibold calculated">Value</th>
+                        <th class="font-semibold calculated">Total Value</th>
+                        <th class="font-semibold">Paid mode</th>
+                        <th class="font-semibold">Paid amount</th>
+                        <th class="font-semibold calculated">Payable Balance</th>
+                    </tr>
+                </thead>
+                <tbody id="purchases-table-body">
+                    <!-- Rows will be added by JS -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Cheque and Cash Tables -->
+        <h2 class="text-2xl font-bold text-gray-800 mb-4 mt-12">Cheque & Cash Log</h2>
+        <div class="flex flex-wrap gap-3 mb-4">
+             <button id="addPaymentRowBtn" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-700">Add Payment Row</button>
+             <button id="exportPaymentsBtn" class="bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-purple-700">Export Payments</button>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Cheque Details Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse text-sm">
+                     <thead>
+                        <tr>
+                            <th colspan="7" class="header-yellow">Cheque Details</th>
+                        </tr>
+                        <tr>
+                            <th class="font-semibold">Cheque date</th>
+                            <th class="font-semibold">Customer</th>
+                            <th class="font-semibold">Bank</th>
+                            <th class="font-semibold">Amount</th>
+                            <th class="font-semibold">Deposited date</th>
+                            <th class="font-semibold">Deposited acc</th>
+                            <th class="font-semibold">Note</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cheque-table-body">
+                         <!-- Rows will be added by JS -->
+                    </tbody>
+                </table>
+            </div>
+             <!-- Cash Out Table -->
+            <div class="overflow-x-auto">
+                 <table class="w-full border-collapse text-sm">
+                    <thead>
+                        <tr>
+                            <th colspan="4" class="header-gray">Cash Out</th>
+                        </tr>
+                        <tr>
+                            <th class="font-semibold">Date</th>
+                            <th class="font-semibold">Reason</th>
+                            <th class="font-semibold">Amount</th>
+                            <th class="font-semibold">Note</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cash-out-table-body">
+                        <!-- Rows will be added by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <p class="text-xs text-gray-500 mt-4">Click 'Save to Firebase' to save your changes.</p>
+    </div>
+
+    <script type="module" src="status.js"></script>
+</body>
+</html>
