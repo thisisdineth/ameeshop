@@ -1,6 +1,7 @@
 // Firebase Imports
+// FIX: Added 'set' to the import list to fix the saving error.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+import { getDatabase, ref, onValue, update, remove, set } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
 // --- Firebase Configuration ---
 // IMPORTANT: This uses the config you previously provided.
@@ -33,21 +34,36 @@ const exportPaymentsBtn = document.getElementById('exportPaymentsBtn');
 const saveAllBtn = document.getElementById('saveAllBtn');
 const statusMessage = document.getElementById('statusMessage');
 
+// --- Global State ---
+let isDirty = false; // Flag to track unsaved changes
 
 // --- Database References ---
 const purchasesRef = ref(db, 'custom_metadata/purchases');
 const paymentsRef = ref(db, 'custom_metadata/payments');
 
+
+// --- Dirty State Management ---
+function setDirtyState(dirty) {
+    isDirty = dirty;
+    if (isDirty) {
+        saveAllBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+        saveAllBtn.classList.add('bg-yellow-500', 'hover:bg-yellow-600');
+        saveAllBtn.innerHTML = 'Save to Firebase*';
+    } else {
+        saveAllBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+        saveAllBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600');
+        saveAllBtn.innerHTML = 'Save to Firebase';
+    }
+}
+
 // --- Generic Table Functions ---
 
 function createGenericRow(fields) {
     const row = document.createElement('tr');
-    // FIX: Generate a Firebase-safe random ID
     row.dataset.id = `row_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     
     fields.forEach(field => {
         const cell = document.createElement('td');
-        // CHANGE: Check if field is a date field
         if (field.toLowerCase().includes('date')) {
             const input = document.createElement('input');
             input.type = 'date';
@@ -63,13 +79,29 @@ function createGenericRow(fields) {
         }
         row.appendChild(cell);
     });
+    
+    // Add Delete Button
+    const actionsCell = document.createElement('td');
+    actionsCell.className = 'actions-cell text-center';
+    const deleteBtn = document.createElement('button');
+    deleteBtn.innerHTML = '<i class="fas fa-trash-alt text-red-500 hover:text-red-700"></i>';
+    deleteBtn.title = "Delete row";
+    deleteBtn.onclick = () => {
+        if (confirm('Are you sure you want to delete this row? This will be permanent after you save.')) {
+            row.remove();
+            setDirtyState(true);
+        }
+    };
+    actionsCell.appendChild(deleteBtn);
+    row.appendChild(actionsCell);
+
     return row;
 }
 
 function exportToCSV(filename, headers, tableBody) {
     let csvContent = "data:text/csv;charset=utf-8," + headers.map(h => `"${h}"`).join(',') + "\r\n";
     tableBody.querySelectorAll('tr').forEach(row => {
-        const rowData = Array.from(row.querySelectorAll('td')).map(cell => {
+        const rowData = Array.from(row.querySelectorAll('td:not(.actions-cell)')).map(cell => {
              const input = cell.querySelector('input');
              const content = input ? input.value : cell.textContent;
             return `"${content.replace(/"/g, '""')}"`;
@@ -89,9 +121,7 @@ function exportToCSV(filename, headers, tableBody) {
 
 function createPurchaseRow() {
     const row = document.createElement('tr');
-    // FIX: Generate a Firebase-safe random ID
     row.dataset.id = `row_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    // CHANGE: Removed the "month" column
     row.innerHTML = `
         <td><input type="date" class="w-full bg-transparent p-1" data-field="date"></td>
         <td contenteditable="true" data-field="estate"></td>
@@ -107,6 +137,21 @@ function createPurchaseRow() {
         <td contenteditable="true" data-field="paidAmount" align="right"></td>
         <td class="calculated" data-field="payableBalance" align="right">0.00</td>
     `;
+    // Add Delete Button
+    const actionsCell = document.createElement('td');
+    actionsCell.className = 'actions-cell text-center';
+    const deleteBtn = document.createElement('button');
+    deleteBtn.innerHTML = '<i class="fas fa-trash-alt text-red-500 hover:text-red-700"></i>';
+    deleteBtn.title = "Delete row";
+    deleteBtn.onclick = () => {
+         if (confirm('Are you sure you want to delete this row? This will be permanent after you save.')) {
+            row.remove();
+            calculatePurchases();
+            setDirtyState(true);
+        }
+    };
+    actionsCell.appendChild(deleteBtn);
+    row.appendChild(actionsCell);
     return row;
 }
 
@@ -116,7 +161,6 @@ function calculatePurchases() {
     let lastDate = null;
 
     rows.forEach((row, index) => {
-        // CHANGE: Get date from input value
         const currentDate = row.querySelector('[data-field="date"]').value.trim();
         if (lastDate !== null && currentDate !== lastDate && lastDate !== '') {
             const prevRow = rows[index-1];
@@ -158,33 +202,28 @@ function savePurchasesData() {
     purchasesTableBody.querySelectorAll('tr').forEach(row => {
         const rowId = row.dataset.id;
         data[rowId] = {};
-        // CHANGE: Query all fields, not just contenteditable
-        row.querySelectorAll('[data-field]').forEach(cell => {
-            const field = cell.dataset.field;
-            // Handle both inputs and contenteditable tds
-            const isInput = cell.tagName === 'INPUT' || cell.querySelector('input');
-            data[rowId][field] = isInput ? (cell.value || cell.querySelector('input').value) : cell.textContent;
+        row.querySelectorAll('[data-field]').forEach(element => {
+            const field = element.dataset.field;
+            data[rowId][field] = element.tagName === 'INPUT' ? element.value : element.textContent;
         });
     });
-    return update(purchasesRef, data);
+    return set(ref(db, 'custom_metadata/purchases'), data);
 }
 
 function loadPurchasesData(data) {
     purchasesTableBody.innerHTML = '';
     if (data) {
-        // FIX: Sort by the key (which is timestamp based) to maintain order
         Object.keys(data).sort((a,b) => a.localeCompare(b)).forEach(rowId => {
             const rowData = data[rowId];
             const row = createPurchaseRow();
             row.dataset.id = rowId;
             Object.keys(rowData).forEach(field => {
-                const cell = row.querySelector(`[data-field="${field}"]`);
-                if (cell) {
-                    // Handle both inputs and contenteditable tds
-                    if (cell.tagName === 'INPUT') {
-                        cell.value = rowData[field];
+                const element = row.querySelector(`[data-field="${field}"]`);
+                if (element) {
+                    if (element.tagName === 'INPUT') {
+                        element.value = rowData[field];
                     } else {
-                        cell.textContent = rowData[field];
+                        element.textContent = rowData[field];
                     }
                 }
             });
@@ -204,29 +243,26 @@ function savePaymentsData() {
     chequeTableBody.querySelectorAll('tr').forEach(row => {
         const rowId = row.dataset.id;
         data.cheque[rowId] = {};
-        row.querySelectorAll('[data-field]').forEach(cell => {
-            const field = cell.dataset.field;
-            const isInput = cell.tagName === 'INPUT' || cell.querySelector('input');
-            data.cheque[rowId][field] = isInput ? (cell.value || cell.querySelector('input').value) : cell.textContent;
+        row.querySelectorAll('[data-field]').forEach(element => {
+            const field = element.dataset.field;
+            data.cheque[rowId][field] = element.tagName === 'INPUT' ? element.value : element.textContent;
         });
     });
     cashOutTableBody.querySelectorAll('tr').forEach(row => {
         const rowId = row.dataset.id;
         data.cashOut[rowId] = {};
-        row.querySelectorAll('[data-field]').forEach(cell => {
-            const field = cell.dataset.field;
-             const isInput = cell.tagName === 'INPUT' || cell.querySelector('input');
-            data.cashOut[rowId][field] = isInput ? (cell.value || cell.querySelector('input').value) : cell.textContent;
+        row.querySelectorAll('[data-field]').forEach(element => {
+            const field = element.dataset.field;
+            data.cashOut[rowId][field] = element.tagName === 'INPUT' ? element.value : element.textContent;
         });
     });
-    return update(paymentsRef, data);
+    return set(ref(db, 'custom_metadata/payments'), data);
 }
 
 function loadPaymentsData(data) {
     chequeTableBody.innerHTML = '';
     cashOutTableBody.innerHTML = '';
     
-    const dateFields = ['chequeDate', 'depositedDate', 'date'];
     const chequeFields = ['chequeDate', 'customer', 'bank', 'amount', 'depositedDate', 'depositedAcc', 'note'];
     const cashOutFields = ['date', 'reason', 'amount', 'note'];
 
@@ -237,13 +273,12 @@ function loadPaymentsData(data) {
                 const row = createGenericRow(chequeFields);
                 row.dataset.id = rowId;
                 Object.keys(rowData).forEach(field => {
-                    const cellElement = row.querySelector(`[data-field="${field}"]`);
-                    if (cellElement) {
-                        const isInput = cellElement.tagName === 'INPUT' || cellElement.querySelector('input');
-                        if (isInput) {
-                            (cellElement.value || cellElement.querySelector('input')).value = rowData[field];
+                    const element = row.querySelector(`[data-field="${field}"]`);
+                    if (element) {
+                        if (element.tagName === 'INPUT') {
+                            element.value = rowData[field];
                         } else {
-                            cellElement.textContent = rowData[field];
+                            element.textContent = rowData[field];
                         }
                     }
                 });
@@ -256,13 +291,12 @@ function loadPaymentsData(data) {
                 const row = createGenericRow(cashOutFields);
                 row.dataset.id = rowId;
                 Object.keys(rowData).forEach(field => {
-                    const cellElement = row.querySelector(`[data-field="${field}"]`);
-                    if (cellElement) {
-                         const isInput = cellElement.tagName === 'INPUT' || cellElement.querySelector('input');
-                         if (isInput) {
-                            (cellElement.value || cellElement.querySelector('input')).value = rowData[field];
+                    const element = row.querySelector(`[data-field="${field}"]`);
+                    if (element) {
+                         if (element.tagName === 'INPUT') {
+                            element.value = rowData[field];
                         } else {
-                            cellElement.textContent = rowData[field];
+                            element.textContent = rowData[field];
                         }
                     }
                 });
@@ -281,8 +315,8 @@ function loadPaymentsData(data) {
 
 // --- Event Listeners ---
 addPurchaseRowBtn.addEventListener('click', () => {
-    // CHANGE: Add new row to the top using prepend
     purchasesTableBody.prepend(createPurchaseRow());
+    setDirtyState(true);
 });
 
 sortPurchasesBtn.addEventListener('click', () => {
@@ -315,11 +349,11 @@ sortPurchasesBtn.addEventListener('click', () => {
     });
 
     calculatePurchases();
+    setDirtyState(true);
 });
 
 
 exportPurchasesBtn.addEventListener('click', () => {
-    // CHANGE: Removed "Month" from headers
     const headers = ["Date", "Estate", "Grade", "Bag weight", "Bags", "Total weight", "Auction Price", "Unit Price", "Value", "Total Value", "Paid mode", "Paid amount", "Payable Balance"];
     exportToCSV('purchases_log.csv', headers, purchasesTableBody);
 });
@@ -327,6 +361,7 @@ exportPurchasesBtn.addEventListener('click', () => {
 addPaymentRowBtn.addEventListener('click', () => {
     chequeTableBody.prepend(createGenericRow(['chequeDate', 'customer', 'bank', 'amount', 'depositedDate', 'depositedAcc', 'note']));
     cashOutTableBody.prepend(createGenericRow(['date', 'reason', 'amount', 'note']));
+    setDirtyState(true);
 });
 
 exportPaymentsBtn.addEventListener('click', () => {
@@ -338,13 +373,20 @@ exportPaymentsBtn.addEventListener('click', () => {
 });
 
 
-purchasesTableBody.addEventListener('input', calculatePurchases);
+purchasesTableBody.addEventListener('input', () => {
+    calculatePurchases();
+    setDirtyState(true);
+});
+chequeTableBody.addEventListener('input', () => setDirtyState(true));
+cashOutTableBody.addEventListener('input', () => setDirtyState(true));
+
 
 saveAllBtn.addEventListener('click', () => {
     Promise.all([savePurchasesData(), savePaymentsData()])
         .then(() => {
             statusMessage.textContent = 'Saved to Firebase!';
             statusMessage.style.color = 'green';
+            setDirtyState(false); // Reset dirty flag on successful save
             setTimeout(() => { statusMessage.textContent = '' }, 3000);
         })
         .catch(err => {
@@ -356,6 +398,15 @@ saveAllBtn.addEventListener('click', () => {
                 statusMessage.style.color = '';
             }, 3000);
         });
+});
+
+window.addEventListener('beforeunload', (e) => {
+  if (isDirty) {
+    // Standard way to trigger the browser's confirmation dialog.
+    e.preventDefault();
+    // Required for some older browsers.
+    e.returnValue = '';
+  }
 });
 
 
