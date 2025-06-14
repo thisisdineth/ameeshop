@@ -1,140 +1,171 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manual Data Entry</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Amee-Store | Financial Logs</title>
+    <meta name="description" content="Amee-Store - Financial Logs Management" />
+    <link rel="icon" type="image/png" href="tealeaf.png" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="tbs.css">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        [contenteditable]:focus {
-            outline: 2px solid #3b82f6; /* blue-500 */
-            background-color: #eff6ff; /* blue-50 */
+        .tab-button.active {
+            background-color: var(--button-primary-bg);
+            color: var(--button-text-color);
+            border-bottom: 3px solid var(--button-primary-hover-bg);
         }
-        th, td {
-            border: 1px solid #d1d5db; /* gray-300 */
-            padding: 6px 8px;
-            white-space: nowrap;
+        .tab-button {
+            border-bottom: 3px solid transparent;
         }
-        .header-pink { background-color: #fce7f3; }
-        .header-blue { background-color: #dbeafe; }
-        .header-yellow { background-color: #fef9c3; }
-        .header-gray { background-color: #f3f4f6; }
-        .calculated { background-color: #f3f4f6; color: #4b5563; }
+        .data-table .actions .btn {
+            margin: 0 0.2rem;
+        }
+        .text-success { color: #155724 !important; }
+        .text-danger { color: #721c24 !important; }
+        .data-table td {
+            vertical-align: middle; /* Improves look of rowspan cells */
+        }
     </style>
 </head>
-<body class="bg-gray-100">
-
-    <nav class="bg-white shadow-md sticky top-0 z-10">
-        <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <div class="flex items-center">
-                    <button onclick="window.history.back()" class="bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg shadow hover:bg-gray-300 transition-colors">
-                        &larr; Back
-                    </button>
+<body>
+    <div id="app" class="app-container">
+        <nav id="top-navbar">
+             <div class="container nav-container">
+                <div class="nav-brand">
+                    <a href="index.html" class="nav-logo-link">
+                        <img src="logo.jpeg" alt="Amee-Store Logo" class="nav-logo-icon"> Amee-Store
+                    </a>
                 </div>
-                <h1 class="text-xl font-bold text-gray-800">Manual Data Entry</h1>
-                <div></div> <!-- Spacer -->
+                 <div id="desktop-nav-links">
+                    <a href="index.html" class="navbar-item"><i class="fas fa-tachometer-alt fa-fw"></i> <span>Dashboard</span></a>
+                </div>
             </div>
-        </div>
-    </nav>
+        </nav>
 
-    <div class="max-w-screen-xl mx-auto bg-white p-6 rounded-xl shadow-lg mt-8">
-        <!-- Purchases and Payments Table -->
-        <h2 class="text-2xl font-bold text-gray-800 mb-4">Purchases & Payments Log</h2>
-        <div class="flex flex-wrap items-center gap-3 mb-4">
-            <button id="addPurchaseRowBtn" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-700">Add Purchase Row</button>
-            <button id="sortPurchasesBtn" class="bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-gray-600">Sort by Date</button>
-            <button id="exportPurchasesBtn" class="bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-purple-700">Export Purchases</button>
-            <button id="saveAllBtn" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow hover:bg-green-700">Save</button>
-            <span id="statusMessage" class="text-green-700 font-medium ml-4"></span>
-        </div>
-        <div class="overflow-x-auto mb-10">
-            <table class="w-full border-collapse text-sm">
-                <thead>
-                    <tr>
-                        <th colspan="10" class="header-pink">Purchases</th>
-                        <th colspan="3" class="header-blue">Payments</th>
-                        <th rowspan="2" class="align-bottom">Actions</th>
-                    </tr>
-                    <tr>
-                        <th class="font-semibold">Date</th>
-                        <th class="font-semibold">Estate</th>
-                        <th class="font-semibold">Grade</th>
-                        <th class="font-semibold">Bag weight</th>
-                        <th class="font-semibold">Bags</th>
-                        <th class="font-semibold calculated">Total weight</th>
-                        <th class="font-semibold">Auction Price</th>
-                        <th class="font-semibold">Unit Price</th>
-                        <th class="font-semibold calculated">Value</th>
-                        <th class="font-semibold calculated">Total Value</th>
-                        <th class="font-semibold">Paid mode</th>
-                        <th class="font-semibold">Paid amount</th>
-                        <th class="font-semibold calculated">Payable Balance</th>
-                    </tr>
-                </thead>
-                <tbody id="purchases-table-body">
-                    <!-- Rows will be added by JS -->
-                </tbody>
-            </table>
-        </div>
+        <main class="main-content">
+            <div class="container">
+                <h1 class="page-title"><i class="fas fa-money-check-dollar fa-fw"></i> Financial Logs</h1>
 
-        <!-- Cheque and Cash Tables -->
-        <h2 class="text-2xl font-bold text-gray-800 mb-4 mt-12">Cheque & Cash Log</h2>
-        <div class="flex flex-wrap gap-3 mb-4">
-             <button id="addPaymentRowBtn" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-700">Add Payment Row</button>
-             <button id="exportPaymentsBtn" class="bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-purple-700">Export Payments</button>
-        </div>
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Cheque Details Table -->
-            <div class="overflow-x-auto">
-                <table class="w-full border-collapse text-sm">
-                     <thead>
-                        <tr>
-                            <th colspan="7" class="header-yellow">Cheque Details</th>
-                            <th rowspan="2" class="align-bottom">Actions</th>
-                        </tr>
-                        <tr>
-                            <th class="font-semibold">Cheque date</th>
-                            <th class="font-semibold">Customer</th>
-                            <th class="font-semibold">Bank</th>
-                            <th class="font-semibold">Amount</th>
-                            <th class="font-semibold">Deposited date</th>
-                            <th class="font-semibold">Deposited acc</th>
-                            <th class="font-semibold">Note</th>
-                        </tr>
-                    </thead>
-                    <tbody id="cheque-table-body">
-                         <!-- Rows will be added by JS -->
-                    </tbody>
-                </table>
+                <div class="section-card" style="padding: 0.5rem; margin-bottom: 1.5rem;">
+                    <div id="tab-buttons" class="flex flex-wrap gap-2">
+                         <a href="index.html" class="navbar-item"><i class="fas fa-tachometer-alt fa-fw"></i> <span>Back to Dashboard</span></a>
+                        <button class="tab-button btn active" data-tab="purchases"><i class="fas fa-shopping-basket fa-fw"></i> Purchases & Payments</button>
+                        <button class="tab-button btn" data-tab="cheques"><i class="fas fa-money-check-alt fa-fw"></i> Cheque Log</button>
+                        <button class="tab-button btn" data-tab="cash"><i class="fas fa-money-bill-wave fa-fw"></i> Cash Log</button>
+                    </div>
+                </div>
+
+                <div id="tab-content">
+                    <div id="purchases-tab" class="tab-pane">
+                        <div class="table-management-controls section-card">
+                            <button id="showAddPurchaseFormBtn" class="btn btn-primary"><i class="fas fa-plus fa-fw"></i> Add Purchase/Payment</button>
+                            <button id="exportPurchasesBtn" class="btn btn-secondary"><i class="fas fa-file-export fa-fw"></i> Export Purchases</button>
+                        </div>
+                        <div id="addPurchaseFormContainer" class="section-card hidden">
+                            <h3 id="purchaseFormTitle" class="form-title">Add New Purchase Record</h3>
+                            <form id="addPurchaseForm">
+                                <input type="hidden" id="purchaseEditId">
+                                <p class="form-hint mb-4">When adding multiple items for the same date, enter payment details (Paid Mode/Amount) only on the LAST item for that date.</p>
+                                <div class="form-grid grid-cols-3">
+                                    <div class="form-group"><label for="purchaseDate" class="form-label">Date:</label><input type="date" id="purchaseDate" class="form-input" required></div>
+                                    <div class="form-group"><label for="purchaseEstate" class="form-label">Estate:</label><input type="text" id="purchaseEstate" class="form-input" placeholder="Estate Name"></div>
+                                    <div class="form-group"><label for="purchaseGrade" class="form-label">Grade:</label><input type="text" id="purchaseGrade" class="form-input" placeholder="e.g., BOP"></div>
+                                </div>
+                                <div class="form-divider"></div>
+                                <div class="form-grid grid-cols-4">
+                                    <div class="form-group"><label for="purchaseBagWeight" class="form-label">Bag Weight (Kg):</label><input type="number" step="any" id="purchaseBagWeight" class="form-input" placeholder="0.00"></div>
+                                    <div class="form-group"><label for="purchaseBags" class="form-label">No. of Bags:</label><input type="number" step="1" id="purchaseBags" class="form-input" placeholder="0"></div>
+                                    <div class="form-group"><label for="purchaseAuctionPrice" class="form-label">Auction Price:</label><input type="number" step="any" id="purchaseAuctionPrice" class="form-input" placeholder="0.00"></div>
+                                    <div class="form-group"><label for="purchaseUnitPrice" class="form-label">Unit Price:</label><input type="number" step="any" id="purchaseUnitPrice" class="form-input" placeholder="0.00"></div>
+                                </div>
+                                <div class="form-divider"></div>
+                                <div class="form-grid grid-cols-2">
+                                    <div class="form-group"><label for="purchasePaidMode" class="form-label">Paid Mode:</label><input type="text" id="purchasePaidMode" class="form-input" placeholder="e.g., Cash, Cheque"></div>
+                                    <div class="form-group"><label for="purchasePaidAmount" class="form-label">Paid Amount:</label><input type="number" step="any" id="purchasePaidAmount" class="form-input" placeholder="0.00"></div>
+                                </div>
+                                <button id="purchaseFormSubmitBtn" type="submit" class="btn btn-success btn-block" style="margin-top: 1rem;"><i class="fas fa-check fa-fw"></i> Save Record</button>
+                            </form>
+                        </div>
+                        <div class="section-card">
+                            <h2 class="section-title">Purchases & Payments Log</h2>
+                            <div class="table-responsive-wrapper">
+                                <table id="purchasesTable" class="data-table" style="min-width: 1400px;">
+                                    <thead>
+                                        <tr>
+                                            <th rowspan="2" class="table-header">Month</th>
+                                            <th rowspan="2" class="table-header">Date</th>
+                                            <th colspan="8" class="table-header">Purchases</th>
+                                            <th colspan="3" class="table-header">Payments</th>
+                                            <th rowspan="2" class="table-header text-right">Payable Balance</th>
+                                            <th rowspan="2" class="table-header text-center">Actions</th>
+                                        </tr>
+                                        <tr>
+                                            <th class="table-subheader">Estate</th>
+                                            <th class="table-subheader">Grade</th>
+                                            <th class="table-subheader text-right">Bag weight</th>
+                                            <th class="table-subheader text-right">Bags</th>
+                                            <th class="table-subheader text-right">Total weight</th>
+                                            <th class="table-subheader text-right">Auction Price</th>
+                                            <th class="table-subheader text-right">Unit Price</th>
+                                            <th class="table-subheader text-right">Value</th>
+                                            <th class="table-subheader text-right">Total Value</th>
+                                            <th class="table-subheader">Paid mode</th>
+                                            <th class="table-subheader text-right">Paid amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="purchasesTableBody">
+                                        </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="cheques-tab" class="tab-pane hidden">
+                        <div class="table-management-controls section-card">
+                            <button id="showAddChequeFormBtn" class="btn btn-primary"><i class="fas fa-plus fa-fw"></i> Add Cheque Details</button>
+                            <button id="exportChequesBtn" class="btn btn-secondary"><i class="fas fa-file-export fa-fw"></i> Export Cheques</button>
+                        </div>
+                        <div id="addChequeFormContainer" class="section-card hidden">
+                            <h3 id="chequeFormTitle" class="form-title">Add New Cheque Record</h3>
+                            <form id="addChequeForm">
+                                <input type="hidden" id="chequeEditId">
+                                <div class="form-grid grid-cols-2"><div class="form-group"><label for="chequeDate" class="form-label">Cheque Date:</label><input type="date" id="chequeDate" class="form-input" required></div><div class="form-group"><label for="chequeAmount" class="form-label">Amount:</label><input type="number" step="any" id="chequeAmount" class="form-input" placeholder="0.00" required></div></div>
+                                <div class="form-grid grid-cols-2"><div class="form-group"><label for="chequeCustomer" class="form-label">Customer/Payee:</label><input type="text" id="chequeCustomer" class="form-input" placeholder="Customer Name"></div><div class="form-group"><label for="chequeBank" class="form-label">Bank:</label><input type="text" id="chequeBank" class="form-input" placeholder="Bank Name"></div></div>
+                                <div class="form-divider"></div>
+                                <div class="form-grid grid-cols-2"><div class="form-group"><label for="chequeDepositedDate" class="form-label">Deposited Date:</label><input type="date" id="chequeDepositedDate" class="form-input"></div><div class="form-group"><label for="chequeDepositedAcc" class="form-label">Deposited Account:</label><input type="text" id="chequeDepositedAcc" class="form-input" placeholder="Account Name/Number"></div></div>
+                                <div class="form-group"><label for="chequeNote" class="form-label">Note:</label><textarea id="chequeNote" class="form-input" rows="2" placeholder="Any relevant notes..."></textarea></div>
+                                <button id="chequeFormSubmitBtn" type="submit" class="btn btn-success btn-block"><i class="fas fa-check fa-fw"></i> Save Record</button>
+                            </form>
+                        </div>
+                        <div class="section-card">
+                            <h2 class="section-title">Cheque Details Log</h2>
+                            <div class="table-responsive-wrapper"><table class="data-table" style="min-width: 900px;"><thead><tr><th class="table-header">Cheque Date</th><th class="table-header">Customer/Payee</th><th class="table-header">Bank</th><th class="table-header text-right">Amount</th><th class="table-header">Deposited Date</th><th class="table-header">Deposited Acc</th><th class="table-header">Note</th><th class="table-header text-center">Actions</th></tr></thead><tbody id="chequeTableBody"></tbody></table></div>
+                        </div>
+                    </div>
+                    <div id="cash-tab" class="tab-pane hidden">
+                        <div class="table-management-controls section-card">
+                           <button id="showAddCashFormBtn" class="btn btn-primary"><i class="fas fa-plus fa-fw"></i> Add Cash Out Entry</button>
+                           <button id="exportCashBtn" class="btn btn-secondary"><i class="fas fa-file-export fa-fw"></i> Export Cash Log</button>
+                        </div>
+                        <div id="addCashFormContainer" class="section-card hidden">
+                           <h3 id="cashFormTitle" class="form-title">Add New Cash Out Record</h3>
+                           <form id="addCashForm">
+                               <input type="hidden" id="cashEditId">
+                               <div class="form-grid grid-cols-3"><div class="form-group"><label for="cashDate" class="form-label">Date:</label><input type="date" id="cashDate" class="form-input" required></div><div class="form-group"><label for="cashReason" class="form-label">Reason:</label><input type="text" id="cashReason" class="form-input" placeholder="Reason for cash out" required></div><div class="form-group"><label for="cashAmount" class="form-label">Amount:</label><input type="number" step="any" id="cashAmount" class="form-input" placeholder="0.00" required></div></div>
+                               <div class="form-group"><label for="cashNote" class="form-label">Note:</label><textarea id="cashNote" class="form-input" rows="2" placeholder="Additional details..."></textarea></div>
+                               <button id="cashFormSubmitBtn" type="submit" class="btn btn-success btn-block"><i class="fas fa-check fa-fw"></i> Save Record</button>
+                           </form>
+                        </div>
+                        <div class="section-card">
+                            <h2 class="section-title">Cash Out Log</h2>
+                            <div class="table-responsive-wrapper"><table class="data-table"><thead><tr><th class="table-header">Date</th><th class="table-header">Reason</th><th class="table-header text-right">Amount</th><th class="table-header">Note</th><th class="table-header text-center">Actions</th></tr></thead><tbody id="cashOutTableBody"></tbody></table></div>
+                        </div>
+                    </div>
+                </div>
             </div>
-             <!-- Cash Out Table -->
-            <div class="overflow-x-auto">
-                 <table class="w-full border-collapse text-sm">
-                    <thead>
-                        <tr>
-                            <th colspan="4" class="header-gray">Cash Out</th>
-                             <th rowspan="2" class="align-bottom">Actions</th>
-                        </tr>
-                        <tr>
-                            <th class="font-semibold">Date</th>
-                            <th class="font-semibold">Reason</th>
-                            <th class="font-semibold">Amount</th>
-                            <th class="font-semibold">Note</th>
-                        </tr>
-                    </thead>
-                    <tbody id="cash-out-table-body">
-                        <!-- Rows will be added by JS -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <p class="text-xs text-gray-500 mt-4">Click 'Save' to save your changes.</p>
+        </main>
     </div>
-
     <script type="module" src="status.js"></script>
 </body>
 </html>

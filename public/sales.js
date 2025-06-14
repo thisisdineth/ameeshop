@@ -224,7 +224,6 @@ async function generateAndPrintReceipt(saleData) {
 
         // Add Logo at the top
         try {
-            // Updated to use .jpeg
             doc.addImage('logo.jpeg', 'jpeg', 31, currentY, 18, 18);
             currentY += 24;
         } catch (e) {
@@ -239,7 +238,6 @@ async function generateAndPrintReceipt(saleData) {
 
         doc.setFontSize(FONT_SIZE_NORMAL);
         doc.setFont(undefined, 'normal');
-        // Updated company contact info
         centerText('110/J/1 Sri Saddhananda Mawatha,', currentY);
         currentY += 4;
         centerText('Katuwela, Boralesgamuwa', currentY);
@@ -252,37 +250,31 @@ async function generateAndPrintReceipt(saleData) {
 
         doc.text(`Date: ${saleData.saleDate || ''}`, MARGIN_LEFT, currentY);
         currentY += 5;
-        doc.text(`Customer: ${saleData.customerName || 'N/A'}`, MARGIN_LEFT, currentY);
-        currentY += 6;
+
+        if (saleData.customerName) {
+            doc.text(`Customer: ${saleData.customerName}`, MARGIN_LEFT, currentY);
+            currentY += 6;
+        }
 
         drawLine(currentY);
         currentY += 2;
         
         (saleData.items || []).forEach(item => {
             currentY += 4;
-
-            // Line 1: Item Description
             doc.setFont(undefined, 'bold');
             doc.setFontSize(FONT_SIZE_NORMAL);
             doc.text(item.itemName || 'N/A', MARGIN_LEFT, currentY);
             currentY += 5;
-
-            // --- CHANGE: Simplified layout with 3 columns (Qty, U/Price, Amount) ---
-            // Line 2: Headers for the numerical details
             doc.setFont(undefined, 'normal');
             doc.setFontSize(FONT_SIZE_SMALL);
             doc.text('Qty', MARGIN_LEFT, currentY);
-            doc.text('U/Price', 40, currentY); // Centered position
-            rightAlignedText('Amount', MARGIN_RIGHT, currentY); // Right-aligned
+            doc.text('U/Price', 40, currentY);
+            rightAlignedText('Amount', MARGIN_RIGHT, currentY);
             currentY += 4;
-
-            // Line 3: Values for the numerical details
             doc.setFontSize(FONT_SIZE_NORMAL);
-            // --- CHANGE: Quantity is now a whole number ---
             doc.text(String(parseInt(item.quantity || 0)), MARGIN_LEFT, currentY);
             doc.text(parseFloat(item.unitPrice || 0).toFixed(2), 40, currentY);
             rightAlignedText(parseFloat(item.lineTotal || 0).toFixed(2), MARGIN_RIGHT, currentY);
-            
             currentY += 5;
             drawLine(currentY);
         });
@@ -325,24 +317,38 @@ async function generateAndPrintReceipt(saleData) {
             currentY += 5;
         }
 
-        drawLine(currentY);
-        currentY += 5;
-
-        doc.setFontSize(FONT_SIZE_TOTAL);
-        doc.setFont(undefined, 'bold');
         const finalTotalToBePaid = (saleData.remainingBalance || 0) + (saleData.previousInstallmentDue || 0);
-        doc.text('TOTAL DUE', MARGIN_LEFT, currentY);
-        rightAlignedText(finalTotalToBePaid.toFixed(2), MARGIN_RIGHT, currentY);
-        currentY += 7;
-        doc.setFont(undefined, 'normal');
-        doc.setFontSize(FONT_SIZE_NORMAL);
 
-        doc.text(`Payment Method: ${saleData.paymentMethod || 'N/A'}`, MARGIN_LEFT, currentY);
+        // --- MODIFICATION: Only show the 'TOTAL DUE' line if the value is greater than 0 ---
+        if (finalTotalToBePaid > 0) {
+            drawLine(currentY);
+            currentY += 5;
+            doc.setFontSize(FONT_SIZE_TOTAL);
+            doc.setFont(undefined, 'bold');
+            doc.text('TOTAL DUE', MARGIN_LEFT, currentY);
+            rightAlignedText(finalTotalToBePaid.toFixed(2), MARGIN_RIGHT, currentY);
+            currentY += 7;
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(FONT_SIZE_NORMAL);
+        }
+
+        if (saleData.paymentMethod) {
+            doc.text(`Payment Method: ${saleData.paymentMethod}`, MARGIN_LEFT, currentY);
+        }
         currentY += 9;
 
         centerText('Thank You for shopping with us!', currentY);
         currentY += 5;
         centerText('Generated: ' + new Date().toLocaleDateString(), currentY);
+
+        currentY += 8;
+        doc.setFontSize(FONT_SIZE_SMALL);
+        doc.text('I received all products in good quality.', MARGIN_LEFT, currentY);
+        
+        currentY += 15;
+        drawLine(currentY);
+        currentY += 4;
+        doc.text('Customer Signature', MARGIN_LEFT, currentY);
 
         doc.autoPrint();
         window.open(doc.output('bloburl'), '_blank');
@@ -352,6 +358,7 @@ async function generateAndPrintReceipt(saleData) {
         alert("Could not generate the PDF receipt.");
     }
 }
+
 
     // --- Delivery Vehicle Selection Logic ---
     async function fetchDeliveryLogs() {
