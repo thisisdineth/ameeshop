@@ -233,7 +233,7 @@ async function generateAndPrintReceipt(saleData) {
 
         doc.setFontSize(14);
         doc.setFont(undefined, 'bold');
-        centerText('Amee tea (PVT) LTD', currentY);
+        centerText('Amee Store (PVT) LTD', currentY);
         currentY += 6;
 
         doc.setFontSize(FONT_SIZE_NORMAL);
