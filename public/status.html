@@ -10,6 +10,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="tbs.css">
     <style>
+        :root {
+            --primary-color: #007bff;
+            --text-muted: #6c757d;
+        }
         .tab-button.active {
             background-color: var(--button-primary-bg);
             color: var(--button-text-color);
@@ -24,20 +28,74 @@
         .text-success { color: #155724 !important; }
         .text-danger { color: #721c24 !important; }
         .data-table td {
-            vertical-align: middle; /* Improves look of rowspan cells */
+            vertical-align: middle;
+        }
+        .locked-section {
+            filter: blur(5px);
+            pointer-events: none;
+            opacity: 0.6;
+        }
+        .unlock-section {
+            position: relative;
+        }
+        #admin-unlock-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2rem;
+            border-radius: 8px;
+            z-index: 10;
+            text-align: center;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+        .current-table-info {
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+        .current-table-info .table-name {
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        /* --- Custom Suggestions CSS --- */
+        .suggestions-wrapper {
+            position: relative;
+        }
+        .suggestions-container {
+            display: none; /* Hidden by default */
+            position: absolute;
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+            max-height: 160px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .suggestion-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .suggestion-item:hover {
+            background-color: #f0f0f0;
         }
     </style>
 </head>
 <body>
     <div id="app" class="app-container">
         <nav id="top-navbar">
-             <div class="container nav-container">
+            <div class="container nav-container">
                 <div class="nav-brand">
                     <a href="index.html" class="nav-logo-link">
                         <img src="logo.jpeg" alt="Amee-Store Logo" class="nav-logo-icon"> Amee-Store
                     </a>
                 </div>
-                 <div id="desktop-nav-links">
+                <div id="desktop-nav-links">
                     <a href="index.html" class="navbar-item"><i class="fas fa-tachometer-alt fa-fw"></i> <span>Dashboard</span></a>
                 </div>
             </div>
@@ -49,100 +107,134 @@
 
                 <div class="section-card" style="padding: 0.5rem; margin-bottom: 1.5rem;">
                     <div id="tab-buttons" class="flex flex-wrap gap-2">
-                         <a href="index.html" class="navbar-item"><i class="fas fa-tachometer-alt fa-fw"></i> <span>Back to Dashboard</span></a>
+                        <a href="index.html" class="navbar-item"><i class="fas fa-tachometer-alt fa-fw"></i> <span>Back to Dashboard</span></a>
                         <button class="tab-button btn active" data-tab="purchases"><i class="fas fa-shopping-basket fa-fw"></i> Purchases & Payments</button>
                         <button class="tab-button btn" data-tab="cheques"><i class="fas fa-money-check-alt fa-fw"></i> Cheque Log</button>
                         <button class="tab-button btn" data-tab="cash"><i class="fas fa-money-bill-wave fa-fw"></i> Cash Log</button>
                     </div>
                 </div>
 
+                <div id="admin-unlock-container" class="section-card">
+                    <h3 class="form-title">Admin Access Required</h3>
+                    <p class="form-hint mb-4">Enter the admin password to manage Purchases and Cheques.</p>
+                    <div class="form-group">
+                        <label for="adminPassword" class="form-label">Admin Password:</label>
+                        <input type="password" id="adminPassword" class="form-input" placeholder="Enter password">
+                    </div>
+                    <button id="unlockAdminBtn" class="btn btn-primary" style="margin-top: 1rem;">Unlock</button>
+                </div>
+
                 <div id="tab-content">
-                    <div id="purchases-tab" class="tab-pane">
-                        <div class="table-management-controls section-card">
-                            <button id="showAddPurchaseFormBtn" class="btn btn-primary"><i class="fas fa-plus fa-fw"></i> Add Purchase/Payment</button>
-                            <button id="exportPurchasesBtn" class="btn btn-secondary"><i class="fas fa-file-export fa-fw"></i> Export Purchases</button>
+                    <div id="purchases-tab" class="tab-pane locked-section">
+                        <div class="section-card table-naming-section">
+                            <h2 class="section-title">Select Purchase Table</h2>
+                            <p class="form-hint mb-4">You must select an existing table or type a new name to begin.</p>
+                            <div class="form-grid grid-cols-2">
+                                <div class="form-group suggestions-wrapper">
+                                    <label for="purchaseTableName" class="form-label">Table Name:</label>
+                                    <input type="text" id="purchaseTableName" class="form-input" placeholder="Type to search or create..." autocomplete="off">
+                                    <div id="purchaseSuggestionsContainer" class="suggestions-container"></div>
+                                </div>
+                                <div class="form-group" style="align-self: end;">
+                                    <button id="loadPurchaseTableBtn" class="btn btn-primary"><i class="fas fa-folder-open fa-fw"></i> Load/Create Table</button>
+                                </div>
+                            </div>
                         </div>
-                        <div id="addPurchaseFormContainer" class="section-card hidden">
-                            <h3 id="purchaseFormTitle" class="form-title">Add New Purchase Record</h3>
-                            <form id="addPurchaseForm">
-                                <input type="hidden" id="purchaseEditId">
-                                <p class="form-hint mb-4">When adding multiple items for the same date, enter payment details (Paid Mode/Amount) only on the LAST item for that date.</p>
-                                <div class="form-grid grid-cols-3">
-                                    <div class="form-group"><label for="purchaseDate" class="form-label">Date:</label><input type="date" id="purchaseDate" class="form-input" required></div>
-                                    <div class="form-group"><label for="purchaseEstate" class="form-label">Estate:</label><input type="text" id="purchaseEstate" class="form-input" placeholder="Estate Name"></div>
-                                    <div class="form-group"><label for="purchaseGrade" class="form-label">Grade:</label><input type="text" id="purchaseGrade" class="form-input" placeholder="e.g., BOP"></div>
+
+                        <div id="purchases-content-wrapper" class="hidden">
+                             <div class="section-card" style="padding: 0.8rem 1.5rem; margin-top: 1.5rem;">
+                                 <h3 id="current-purchase-table-info" class="current-table-info" style="margin-bottom: 0;"></h3>
+                            </div>
+                            <div class="table-management-controls section-card">
+                                <button id="showAddPurchaseFormBtn" class="btn btn-primary"><i class="fas fa-plus fa-fw"></i> Add Purchase/Payment</button>
+                                <button id="exportPurchasesBtn" class="btn btn-secondary"><i class="fas fa-file-export fa-fw"></i> Export Purchases</button>
+                            </div>
+                            <div id="addPurchaseFormContainer" class="section-card hidden">
+                                <h3 id="purchaseFormTitle" class="form-title">Add New Purchase Record</h3>
+                                <form id="addPurchaseForm">
+                                    <input type="hidden" id="purchaseEditId">
+                                    <p class="form-hint mb-4">When adding multiple items for the same date, enter payment details (Paid Mode/Amount) only on the LAST item for that date.</p>
+                                    <div class="form-grid grid-cols-3">
+                                        <div class="form-group"><label for="purchaseDate" class="form-label">Date:</label><input type="date" id="purchaseDate" class="form-input" required></div>
+                                        <div class="form-group"><label for="purchaseEstate" class="form-label">Estate:</label><input type="text" id="purchaseEstate" class="form-input" placeholder="Estate Name"></div>
+                                        <div class="form-group"><label for="purchaseGrade" class="form-label">Grade:</label><input type="text" id="purchaseGrade" class="form-input" placeholder="e.g., BOP"></div>
+                                    </div>
+                                    <div class="form-divider"></div>
+                                    <div class="form-grid grid-cols-4">
+                                        <div class="form-group"><label for="purchaseBagWeight" class="form-label">Bag Weight (Kg):</label><input type="number" step="any" id="purchaseBagWeight" class="form-input" placeholder="0.00"></div>
+                                        <div class="form-group"><label for="purchaseBags" class="form-label">No. of Bags:</label><input type="number" step="1" id="purchaseBags" class="form-input" placeholder="0"></div>
+                                        <div class="form-group"><label for="purchaseAuctionPrice" class="form-label">Auction Price:</label><input type="number" step="any" id="purchaseAuctionPrice" class="form-input" placeholder="0.00"></div>
+                                        <div class="form-group"><label for="purchaseUnitPrice" class="form-label">Unit Price:</label><input type="number" step="any" id="purchaseUnitPrice" class="form-input" placeholder="0.00"></div>
+                                    </div>
+                                    <div class="form-divider"></div>
+                                    <div class="form-grid grid-cols-2">
+                                        <div class="form-group"><label for="purchasePaidMode" class="form-label">Paid Mode:</label><input type="text" id="purchasePaidMode" class="form-input" placeholder="e.g., Cash, Cheque"></div>
+                                        <div class="form-group"><label for="purchasePaidAmount" class="form-label">Paid Amount:</label><input type="number" step="any" id="purchasePaidAmount" class="form-input" placeholder="0.00"></div>
+                                    </div>
+                                    <button id="purchaseFormSubmitBtn" type="submit" class="btn btn-success btn-block" style="margin-top: 1rem;"><i class="fas fa-check fa-fw"></i> Save Record</button>
+                                </form>
+                            </div>
+                            <div class="section-card">
+                                <h2 class="section-title">Purchases & Payments Log</h2>
+                                <div class="table-responsive-wrapper">
+                                    <table id="purchasesTable" class="data-table" style="min-width: 1400px;">
+                                        <thead>
+                                            <tr>
+                                                <th rowspan="2" class="table-header">Month</th><th rowspan="2" class="table-header">Date</th><th colspan="8" class="table-header">Purchases</th><th colspan="3" class="table-header">Payments</th><th rowspan="2" class="table-header text-right">Payable Balance</th><th rowspan="2" class="table-header text-center">Actions</th>
+                                            </tr>
+                                            <tr>
+                                                <th class="table-subheader">Estate</th><th class="table-subheader">Grade</th><th class="table-subheader text-right">Bag weight</th><th class="table-subheader text-right">Bags</th><th class="table-subheader text-right">Total weight</th><th class="table-subheader text-right">Auction Price</th><th class="table-subheader text-right">Unit Price</th><th class="table-subheader text-right">Value</th><th class="table-subheader text-right">Total Value</th><th class="table-subheader">Paid mode</th><th class="table-subheader text-right">Paid amount</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="purchasesTableBody"></tbody>
+                                    </table>
                                 </div>
-                                <div class="form-divider"></div>
-                                <div class="form-grid grid-cols-4">
-                                    <div class="form-group"><label for="purchaseBagWeight" class="form-label">Bag Weight (Kg):</label><input type="number" step="any" id="purchaseBagWeight" class="form-input" placeholder="0.00"></div>
-                                    <div class="form-group"><label for="purchaseBags" class="form-label">No. of Bags:</label><input type="number" step="1" id="purchaseBags" class="form-input" placeholder="0"></div>
-                                    <div class="form-group"><label for="purchaseAuctionPrice" class="form-label">Auction Price:</label><input type="number" step="any" id="purchaseAuctionPrice" class="form-input" placeholder="0.00"></div>
-                                    <div class="form-group"><label for="purchaseUnitPrice" class="form-label">Unit Price:</label><input type="number" step="any" id="purchaseUnitPrice" class="form-input" placeholder="0.00"></div>
-                                </div>
-                                <div class="form-divider"></div>
-                                <div class="form-grid grid-cols-2">
-                                    <div class="form-group"><label for="purchasePaidMode" class="form-label">Paid Mode:</label><input type="text" id="purchasePaidMode" class="form-input" placeholder="e.g., Cash, Cheque"></div>
-                                    <div class="form-group"><label for="purchasePaidAmount" class="form-label">Paid Amount:</label><input type="number" step="any" id="purchasePaidAmount" class="form-input" placeholder="0.00"></div>
-                                </div>
-                                <button id="purchaseFormSubmitBtn" type="submit" class="btn btn-success btn-block" style="margin-top: 1rem;"><i class="fas fa-check fa-fw"></i> Save Record</button>
-                            </form>
-                        </div>
-                        <div class="section-card">
-                            <h2 class="section-title">Purchases & Payments Log</h2>
-                            <div class="table-responsive-wrapper">
-                                <table id="purchasesTable" class="data-table" style="min-width: 1400px;">
-                                    <thead>
-                                        <tr>
-                                            <th rowspan="2" class="table-header">Month</th>
-                                            <th rowspan="2" class="table-header">Date</th>
-                                            <th colspan="8" class="table-header">Purchases</th>
-                                            <th colspan="3" class="table-header">Payments</th>
-                                            <th rowspan="2" class="table-header text-right">Payable Balance</th>
-                                            <th rowspan="2" class="table-header text-center">Actions</th>
-                                        </tr>
-                                        <tr>
-                                            <th class="table-subheader">Estate</th>
-                                            <th class="table-subheader">Grade</th>
-                                            <th class="table-subheader text-right">Bag weight</th>
-                                            <th class="table-subheader text-right">Bags</th>
-                                            <th class="table-subheader text-right">Total weight</th>
-                                            <th class="table-subheader text-right">Auction Price</th>
-                                            <th class="table-subheader text-right">Unit Price</th>
-                                            <th class="table-subheader text-right">Value</th>
-                                            <th class="table-subheader text-right">Total Value</th>
-                                            <th class="table-subheader">Paid mode</th>
-                                            <th class="table-subheader text-right">Paid amount</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="purchasesTableBody">
-                                        </tbody>
-                                </table>
                             </div>
                         </div>
                     </div>
 
-                    <div id="cheques-tab" class="tab-pane hidden">
-                        <div class="table-management-controls section-card">
-                            <button id="showAddChequeFormBtn" class="btn btn-primary"><i class="fas fa-plus fa-fw"></i> Add Cheque Details</button>
-                            <button id="exportChequesBtn" class="btn btn-secondary"><i class="fas fa-file-export fa-fw"></i> Export Cheques</button>
+                    <div id="cheques-tab" class="tab-pane hidden locked-section">
+                        <div class="section-card table-naming-section">
+                            <h2 class="section-title">Select Cheque Table</h2>
+                             <p class="form-hint mb-4">You must select an existing table or type a new name to begin.</p>
+                             <div class="form-grid grid-cols-2">
+                                <div class="form-group suggestions-wrapper">
+                                    <label for="chequeTableName" class="form-label">Table Name:</label>
+                                    <input type="text" id="chequeTableName" class="form-input" placeholder="Type to search or create..." autocomplete="off">
+                                    <div id="chequeSuggestionsContainer" class="suggestions-container"></div>
+                                </div>
+                                <div class="form-group" style="align-self: end;">
+                                    <button id="loadChequeTableBtn" class="btn btn-primary"><i class="fas fa-folder-open fa-fw"></i> Load/Create Table</button>
+                                </div>
+                            </div>
                         </div>
-                        <div id="addChequeFormContainer" class="section-card hidden">
-                            <h3 id="chequeFormTitle" class="form-title">Add New Cheque Record</h3>
-                            <form id="addChequeForm">
-                                <input type="hidden" id="chequeEditId">
-                                <div class="form-grid grid-cols-2"><div class="form-group"><label for="chequeDate" class="form-label">Cheque Date:</label><input type="date" id="chequeDate" class="form-input" required></div><div class="form-group"><label for="chequeAmount" class="form-label">Amount:</label><input type="number" step="any" id="chequeAmount" class="form-input" placeholder="0.00" required></div></div>
-                                <div class="form-grid grid-cols-2"><div class="form-group"><label for="chequeCustomer" class="form-label">Customer/Payee:</label><input type="text" id="chequeCustomer" class="form-input" placeholder="Customer Name"></div><div class="form-group"><label for="chequeBank" class="form-label">Bank:</label><input type="text" id="chequeBank" class="form-input" placeholder="Bank Name"></div></div>
-                                <div class="form-divider"></div>
-                                <div class="form-grid grid-cols-2"><div class="form-group"><label for="chequeDepositedDate" class="form-label">Deposited Date:</label><input type="date" id="chequeDepositedDate" class="form-input"></div><div class="form-group"><label for="chequeDepositedAcc" class="form-label">Deposited Account:</label><input type="text" id="chequeDepositedAcc" class="form-input" placeholder="Account Name/Number"></div></div>
-                                <div class="form-group"><label for="chequeNote" class="form-label">Note:</label><textarea id="chequeNote" class="form-input" rows="2" placeholder="Any relevant notes..."></textarea></div>
-                                <button id="chequeFormSubmitBtn" type="submit" class="btn btn-success btn-block"><i class="fas fa-check fa-fw"></i> Save Record</button>
-                            </form>
-                        </div>
-                        <div class="section-card">
-                            <h2 class="section-title">Cheque Details Log</h2>
-                            <div class="table-responsive-wrapper"><table class="data-table" style="min-width: 900px;"><thead><tr><th class="table-header">Cheque Date</th><th class="table-header">Customer/Payee</th><th class="table-header">Bank</th><th class="table-header text-right">Amount</th><th class="table-header">Deposited Date</th><th class="table-header">Deposited Acc</th><th class="table-header">Note</th><th class="table-header text-center">Actions</th></tr></thead><tbody id="chequeTableBody"></tbody></table></div>
+                        <div id="cheques-content-wrapper" class="hidden">
+                            <div class="section-card" style="padding: 0.8rem 1.5rem; margin-top: 1.5rem;">
+                                 <h3 id="current-cheque-table-info" class="current-table-info" style="margin-bottom: 0;"></h3>
+                            </div>
+                            <div class="table-management-controls section-card">
+                                <button id="showAddChequeFormBtn" class="btn btn-primary"><i class="fas fa-plus fa-fw"></i> Add Cheque Details</button>
+                                <button id="exportChequesBtn" class="btn btn-secondary"><i class="fas fa-file-export fa-fw"></i> Export Cheques</button>
+                            </div>
+                            <div id="addChequeFormContainer" class="section-card hidden">
+                                <h3 id="chequeFormTitle" class="form-title">Add New Cheque Record</h3>
+                                <form id="addChequeForm">
+                                    <input type="hidden" id="chequeEditId">
+                                    <div class="form-grid grid-cols-2"><div class="form-group"><label for="chequeDate" class="form-label">Cheque Date:</label><input type="date" id="chequeDate" class="form-input" required></div><div class="form-group"><label for="chequeAmount" class="form-label">Amount:</label><input type="number" step="any" id="chequeAmount" class="form-input" placeholder="0.00" required></div></div>
+                                    <div class="form-grid grid-cols-2"><div class="form-group"><label for="chequeCustomer" class="form-label">Customer/Payee:</label><input type="text" id="chequeCustomer" class="form-input" placeholder="Customer Name"></div><div class="form-group"><label for="chequeBank" class="form-label">Bank:</label><input type="text" id="chequeBank" class="form-input" placeholder="Bank Name"></div></div>
+                                    <div class="form-divider"></div>
+                                    <div class="form-grid grid-cols-2"><div class="form-group"><label for="chequeDepositedDate" class="form-label">Deposited Date:</label><input type="date" id="chequeDepositedDate" class="form-input"></div><div class="form-group"><label for="chequeDepositedAcc" class="form-label">Deposited Account:</label><input type="text" id="chequeDepositedAcc" class="form-input" placeholder="Account Name/Number"></div></div>
+                                    <div class="form-group"><label for="chequeNote" class="form-label">Note:</label><textarea id="chequeNote" class="form-input" rows="2" placeholder="Any relevant notes..."></textarea></div>
+                                    <button id="chequeFormSubmitBtn" type="submit" class="btn btn-success btn-block"><i class="fas fa-check fa-fw"></i> Save Record</button>
+                                </form>
+                            </div>
+                            <div class="section-card">
+                                <h2 class="section-title">Cheque Details Log</h2>
+                                <div class="table-responsive-wrapper"><table class="data-table" style="min-width: 900px;"><thead><tr><th class="table-header">Cheque Date</th><th class="table-header">Customer/Payee</th><th class="table-header">Bank</th><th class="table-header text-right">Amount</th><th class="table-header">Deposited Date</th><th class="table-header">Deposited Acc</th><th class="table-header">Note</th><th class="table-header text-center">Actions</th></tr></thead><tbody id="chequeTableBody"></tbody></table></div>
+                            </div>
                         </div>
                     </div>
+
                     <div id="cash-tab" class="tab-pane hidden">
                         <div class="table-management-controls section-card">
                            <button id="showAddCashFormBtn" class="btn btn-primary"><i class="fas fa-plus fa-fw"></i> Add Cash Out Entry</button>
