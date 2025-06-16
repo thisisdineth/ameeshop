@@ -59,13 +59,11 @@
             font-weight: 700;
             color: var(--primary-color);
         }
-
-        /* --- Custom Suggestions CSS --- */
         .suggestions-wrapper {
             position: relative;
         }
         .suggestions-container {
-            display: none; /* Hidden by default */
+            display: none;
             position: absolute;
             background-color: #ffffff;
             border: 1px solid #ccc;
@@ -194,44 +192,25 @@
                     </div>
 
                     <div id="cheques-tab" class="tab-pane hidden locked-section">
-                        <div class="section-card table-naming-section">
-                            <h2 class="section-title">Select Cheque Table</h2>
-                             <p class="form-hint mb-4">You must select an existing table or type a new name to begin.</p>
-                             <div class="form-grid grid-cols-2">
-                                <div class="form-group suggestions-wrapper">
-                                    <label for="chequeTableName" class="form-label">Table Name:</label>
-                                    <input type="text" id="chequeTableName" class="form-input" placeholder="Type to search or create..." autocomplete="off">
-                                    <div id="chequeSuggestionsContainer" class="suggestions-container"></div>
-                                </div>
-                                <div class="form-group" style="align-self: end;">
-                                    <button id="loadChequeTableBtn" class="btn btn-primary"><i class="fas fa-folder-open fa-fw"></i> Load/Create Table</button>
-                                </div>
-                            </div>
+                        <div class="table-management-controls section-card">
+                            <button id="showAddChequeFormBtn" class="btn btn-primary"><i class="fas fa-plus fa-fw"></i> Add Cheque Details</button>
+                            <button id="exportChequesBtn" class="btn btn-secondary"><i class="fas fa-file-export fa-fw"></i> Export Cheques</button>
                         </div>
-                        <div id="cheques-content-wrapper" class="hidden">
-                            <div class="section-card" style="padding: 0.8rem 1.5rem; margin-top: 1.5rem;">
-                                 <h3 id="current-cheque-table-info" class="current-table-info" style="margin-bottom: 0;"></h3>
-                            </div>
-                            <div class="table-management-controls section-card">
-                                <button id="showAddChequeFormBtn" class="btn btn-primary"><i class="fas fa-plus fa-fw"></i> Add Cheque Details</button>
-                                <button id="exportChequesBtn" class="btn btn-secondary"><i class="fas fa-file-export fa-fw"></i> Export Cheques</button>
-                            </div>
-                            <div id="addChequeFormContainer" class="section-card hidden">
-                                <h3 id="chequeFormTitle" class="form-title">Add New Cheque Record</h3>
-                                <form id="addChequeForm">
-                                    <input type="hidden" id="chequeEditId">
-                                    <div class="form-grid grid-cols-2"><div class="form-group"><label for="chequeDate" class="form-label">Cheque Date:</label><input type="date" id="chequeDate" class="form-input" required></div><div class="form-group"><label for="chequeAmount" class="form-label">Amount:</label><input type="number" step="any" id="chequeAmount" class="form-input" placeholder="0.00" required></div></div>
-                                    <div class="form-grid grid-cols-2"><div class="form-group"><label for="chequeCustomer" class="form-label">Customer/Payee:</label><input type="text" id="chequeCustomer" class="form-input" placeholder="Customer Name"></div><div class="form-group"><label for="chequeBank" class="form-label">Bank:</label><input type="text" id="chequeBank" class="form-input" placeholder="Bank Name"></div></div>
-                                    <div class="form-divider"></div>
-                                    <div class="form-grid grid-cols-2"><div class="form-group"><label for="chequeDepositedDate" class="form-label">Deposited Date:</label><input type="date" id="chequeDepositedDate" class="form-input"></div><div class="form-group"><label for="chequeDepositedAcc" class="form-label">Deposited Account:</label><input type="text" id="chequeDepositedAcc" class="form-input" placeholder="Account Name/Number"></div></div>
-                                    <div class="form-group"><label for="chequeNote" class="form-label">Note:</label><textarea id="chequeNote" class="form-input" rows="2" placeholder="Any relevant notes..."></textarea></div>
-                                    <button id="chequeFormSubmitBtn" type="submit" class="btn btn-success btn-block"><i class="fas fa-check fa-fw"></i> Save Record</button>
-                                </form>
-                            </div>
-                            <div class="section-card">
-                                <h2 class="section-title">Cheque Details Log</h2>
-                                <div class="table-responsive-wrapper"><table class="data-table" style="min-width: 900px;"><thead><tr><th class="table-header">Cheque Date</th><th class="table-header">Customer/Payee</th><th class="table-header">Bank</th><th class="table-header text-right">Amount</th><th class="table-header">Deposited Date</th><th class="table-header">Deposited Acc</th><th class="table-header">Note</th><th class="table-header text-center">Actions</th></tr></thead><tbody id="chequeTableBody"></tbody></table></div>
-                            </div>
+                        <div id="addChequeFormContainer" class="section-card hidden">
+                            <h3 id="chequeFormTitle" class="form-title">Add New Cheque Record</h3>
+                            <form id="addChequeForm">
+                                <input type="hidden" id="chequeEditId">
+                                <div class="form-grid grid-cols-2"><div class="form-group"><label for="chequeDate" class="form-label">Cheque Date:</label><input type="date" id="chequeDate" class="form-input" required></div><div class="form-group"><label for="chequeAmount" class="form-label">Amount:</label><input type="number" step="any" id="chequeAmount" class="form-input" placeholder="0.00" required></div></div>
+                                <div class="form-grid grid-cols-2"><div class="form-group"><label for="chequeCustomer" class="form-label">Customer/Payee:</label><input type="text" id="chequeCustomer" class="form-input" placeholder="Customer Name"></div><div class="form-group"><label for="chequeBank" class="form-label">Bank:</label><input type="text" id="chequeBank" class="form-input" placeholder="Bank Name"></div></div>
+                                <div class="form-divider"></div>
+                                <div class="form-grid grid-cols-2"><div class="form-group"><label for="chequeDepositedDate" class="form-label">Deposited Date:</label><input type="date" id="chequeDepositedDate" class="form-input"></div><div class="form-group"><label for="chequeDepositedAcc" class="form-label">Deposited Account:</label><input type="text" id="chequeDepositedAcc" class="form-input" placeholder="Account Name/Number"></div></div>
+                                <div class="form-group"><label for="chequeNote" class="form-label">Note:</label><textarea id="chequeNote" class="form-input" rows="2" placeholder="Any relevant notes..."></textarea></div>
+                                <button id="chequeFormSubmitBtn" type="submit" class="btn btn-success btn-block"><i class="fas fa-check fa-fw"></i> Save Record</button>
+                            </form>
+                        </div>
+                        <div class="section-card">
+                            <h2 class="section-title">Cheque Details Log</h2>
+                            <div class="table-responsive-wrapper"><table class="data-table" style="min-width: 900px;"><thead><tr><th class="table-header">Cheque Date</th><th class="table-header">Customer/Payee</th><th class="table-header">Bank</th><th class="table-header text-right">Amount</th><th class="table-header">Deposited Date</th><th class="table-header">Deposited Acc</th><th class="table-header">Note</th><th class="table-header text-center">Actions</th></tr></thead><tbody id="chequeTableBody"></tbody></table></div>
                         </div>
                     </div>
 

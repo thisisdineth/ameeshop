@@ -21,7 +21,7 @@ const adminUnlockContainer = document.getElementById('admin-unlock-container');
 const unlockAdminBtn = document.getElementById('unlockAdminBtn');
 const adminPasswordInput = document.getElementById('adminPassword');
 
-// Purchases Elements
+// Purchases Elements (Dynamic)
 const purchasesTab = document.getElementById('purchases-tab');
 const purchaseTableNameInput = document.getElementById('purchaseTableName');
 const purchaseSuggestionsContainer = document.getElementById('purchaseSuggestionsContainer'); 
@@ -36,13 +36,8 @@ const purchaseFormSubmitBtn = document.getElementById('purchaseFormSubmitBtn');
 const purchasesTableBody = document.getElementById('purchasesTableBody');
 const exportPurchasesBtn = document.getElementById('exportPurchasesBtn');
 
-// Cheques Elements
+// Cheques Elements (Simple/Fixed)
 const chequesTab = document.getElementById('cheques-tab');
-const chequeTableNameInput = document.getElementById('chequeTableName');
-const chequeSuggestionsContainer = document.getElementById('chequeSuggestionsContainer');
-const loadChequeTableBtn = document.getElementById('loadChequeTableBtn');
-const chequesContentWrapper = document.getElementById('cheques-content-wrapper');
-const currentChequeTableInfo = document.getElementById('current-cheque-table-info');
 const showAddChequeFormBtn = document.getElementById('showAddChequeFormBtn');
 const addChequeFormContainer = document.getElementById('addChequeFormContainer');
 const addChequeForm = document.getElementById('addChequeForm');
@@ -51,7 +46,7 @@ const chequeFormSubmitBtn = document.getElementById('chequeFormSubmitBtn');
 const chequeTableBody = document.getElementById('chequeTableBody');
 const exportChequesBtn = document.getElementById('exportChequesBtn');
 
-// Cash Log Elements
+// Cash Log Elements (Simple/Fixed)
 const showAddCashFormBtn = document.getElementById('showAddCashFormBtn');
 const addCashFormContainer = document.getElementById('addCashFormContainer');
 const addCashForm = document.getElementById('addCashForm');
@@ -60,18 +55,15 @@ const cashFormSubmitBtn = document.getElementById('cashFormSubmitBtn');
 const cashOutTableBody = document.getElementById('cashOutTableBody');
 const exportCashBtn = document.getElementById('exportCashBtn');
 
-// --- Global State ---
+// --- Global State for Purchases only ---
 let activePurchasesRef = null;
-let activeChequesRef = null;
 let activePurchaseTableName = null;
-let activeChequeTableName = null;
 let purchaseTableListener = null;
-let chequeTableListener = null;
 let purchaseTableNames = [];
-let chequeTableNames = [];
 
 // --- Database References ---
-const cashLogRef = ref(db, 'financials/cashLog');
+const chequesRef = ref(db, 'financials/cheques'); // Fixed path for cheques
+const cashLogRef = ref(db, 'financials/cashLog'); // Fixed path for cash
 
 // --- Admin Unlock ---
 unlockAdminBtn.addEventListener('click', () => {
@@ -135,15 +127,14 @@ showAddChequeFormBtn.addEventListener('click', () => toggleForm(addChequeFormCon
 showAddCashFormBtn.addEventListener('click', () => toggleForm(addCashFormContainer, showAddCashFormBtn, 'Add Cash Out Entry', { form: addCashForm, titleElement: cashFormTitle, submitBtn: cashFormSubmitBtn, defaultTitle: 'Add New Cash Out Record' }));
 
 
-// --- Custom Autocomplete/Suggestion Logic ---
+// --- Custom Autocomplete for Purchases only ---
 function showSuggestions(inputValue, availableNames, containerElement, inputElement) {
     containerElement.innerHTML = '';
-    
-    // This now filters based on input, but if input is empty, it includes all names.
-    const filteredNames = availableNames.filter(name => 
-        name.toLowerCase().includes(inputValue.toLowerCase())
-    );
-
+    if (!inputValue && document.activeElement !== inputElement) {
+        containerElement.style.display = 'none';
+        return;
+    }
+    const filteredNames = availableNames.filter(name => name.toLowerCase().includes(inputValue.toLowerCase()));
     if (filteredNames.length > 0) {
         filteredNames.forEach(name => {
             const item = document.createElement('div');
@@ -161,123 +152,76 @@ function showSuggestions(inputValue, availableNames, containerElement, inputElem
     }
 }
 
-// Show full list on focus
-purchaseTableNameInput.addEventListener('focus', () => {
-    showSuggestions(purchaseTableNameInput.value, purchaseTableNames, purchaseSuggestionsContainer, purchaseTableNameInput);
-});
-chequeTableNameInput.addEventListener('focus', () => {
-    showSuggestions(chequeTableNameInput.value, chequeTableNames, chequeSuggestionsContainer, chequeTableNameInput);
-});
+purchaseTableNameInput.addEventListener('focus', () => showSuggestions(purchaseTableNameInput.value, purchaseTableNames, purchaseSuggestionsContainer, purchaseTableNameInput));
+purchaseTableNameInput.addEventListener('input', () => showSuggestions(purchaseTableNameInput.value, purchaseTableNames, purchaseSuggestionsContainer, purchaseTableNameInput));
 
-// Filter list while typing
-purchaseTableNameInput.addEventListener('input', () => {
-    showSuggestions(purchaseTableNameInput.value, purchaseTableNames, purchaseSuggestionsContainer, purchaseTableNameInput);
-});
-chequeTableNameInput.addEventListener('input', () => {
-    showSuggestions(chequeTableNameInput.value, chequeTableNames, chequeSuggestionsContainer, chequeTableNameInput);
-});
-
-// Hide suggestions when clicking outside the input area
 document.addEventListener('click', (e) => {
     if (!e.target.closest('.suggestions-wrapper')) {
         purchaseSuggestionsContainer.style.display = 'none';
-        chequeSuggestionsContainer.style.display = 'none';
     }
 });
 
-// --- Table Name Suggestions Data Loading ---
+
+// --- Table Name Suggestions Data Loading for Purchases only ---
 function loadTableSuggestions(type) {
     const tableNamesTypeRef = ref(db, `financials/tableNames/${type}`);
     onValue(tableNamesTypeRef, (snapshot) => {
         const names = snapshot.val() ? Object.values(snapshot.val()) : [];
         if (type === 'purchases') {
             purchaseTableNames = names;
-        } else {
-            chequeTableNames = names;
         }
     });
 }
-
 loadTableSuggestions('purchases');
-loadTableSuggestions('cheques');
 
 
-// --- Core Table Loading and Creation Logic ---
+// --- Core Table Loading and Creation Logic for Purchases only ---
 async function loadOrCreateTable(type) {
-    let tableName, contentWrapper, infoElement, tableListener, renderFunction, activeRefSetter, activeNameSetter, currentActiveRef;
+    if (type !== 'purchases') return false; // Safety check
 
-    if (type === 'purchases') {
-        tableName = purchaseTableNameInput.value.trim();
-        contentWrapper = purchasesContentWrapper;
-        infoElement = currentPurchaseTableInfo;
-        tableListener = purchaseTableListener;
-        renderFunction = renderPurchasesTable;
-        currentActiveRef = activePurchasesRef;
-        activeRefSetter = (ref) => activePurchasesRef = ref;
-        activeNameSetter = (name) => activePurchaseTableName = name;
-    } else {
-        tableName = chequeTableNameInput.value.trim();
-        contentWrapper = chequesContentWrapper;
-        infoElement = currentChequeTableInfo;
-        tableListener = chequeTableListener;
-        renderFunction = renderChequesTable;
-        currentActiveRef = activeChequesRef;
-        activeRefSetter = (ref) => activeChequesRef = ref;
-        activeNameSetter = (name) => activeChequeTableName = name;
-    }
-
+    const tableName = purchaseTableNameInput.value.trim();
     if (!tableName) {
         alert('Please enter or select a table name.');
         return false;
     }
 
-    const tableNamesListRef = ref(db, `financials/tableNames/${type}`);
+    const tableNamesListRef = ref(db, `financials/tableNames/purchases`);
     const snapshot = await get(tableNamesListRef);
     const existingNames = snapshot.val() ? Object.values(snapshot.val()) : [];
     if (!existingNames.includes(tableName)) {
         push(tableNamesListRef, tableName);
     }
 
-    if (tableListener && currentActiveRef) {
-        off(currentActiveRef, 'value', tableListener);
+    if (purchaseTableListener && activePurchasesRef) {
+        off(activePurchasesRef, 'value', purchaseTableListener);
     }
     
-    const newActiveRef = ref(db, `financials/tables/${type}/${tableName}`);
-    activeRefSetter(newActiveRef);
-    activeNameSetter(tableName);
+    activePurchasesRef = ref(db, `financials/tables/purchases/${tableName}`);
+    activePurchaseTableName = tableName;
+    purchaseTableListener = onValue(activePurchasesRef, renderPurchasesTable);
 
-    tableListener = onValue(newActiveRef, renderFunction);
-    if(type === 'purchases') purchaseTableListener = tableListener; else chequeTableListener = tableListener;
-
-    infoElement.innerHTML = `Currently managing: <span class="table-name">${tableName}</span>`;
-    contentWrapper.classList.remove('hidden');
-    
-    // Hide suggestions after loading a table
+    currentPurchaseTableInfo.innerHTML = `Currently managing: <span class="table-name">${tableName}</span>`;
+    purchasesContentWrapper.classList.remove('hidden');
     purchaseSuggestionsContainer.style.display = 'none';
-    chequeSuggestionsContainer.style.display = 'none';
 
     return true;
 }
 
 loadPurchaseTableBtn.addEventListener('click', () => loadOrCreateTable('purchases'));
-loadChequeTableBtn.addEventListener('click', () => loadOrCreateTable('cheques'));
 
 
 // --- Form Submission Logic ---
 addPurchaseForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-
     const tableName = purchaseTableNameInput.value.trim();
     if (tableName !== activePurchaseTableName) {
         const success = await loadOrCreateTable('purchases');
         if (!success) return;
     }
-
     if (!activePurchasesRef) {
         alert('A table must be loaded before saving data.');
         return;
     }
-
     const editId = document.getElementById('purchaseEditId').value;
     const formData = {
         date: document.getElementById('purchaseDate').value, estate: document.getElementById('purchaseEstate').value, grade: document.getElementById('purchaseGrade').value,
@@ -291,31 +235,21 @@ addPurchaseForm.addEventListener('submit', async (e) => {
         .catch(error => console.error("Error saving purchase: ", error));
 });
 
-addChequeForm.addEventListener('submit', async (e) => {
+// Simple submit for Cheques
+addChequeForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    
-    const tableName = chequeTableNameInput.value.trim();
-    if (tableName !== activeChequeTableName) {
-        const success = await loadOrCreateTable('cheques');
-        if (!success) return;
-    }
-     
-    if (!activeChequesRef) {
-        alert('A table must be loaded before saving data.');
-        return;
-    }
-
     const editId = document.getElementById('chequeEditId').value;
     const formData = {
         chequeDate: document.getElementById('chequeDate').value, amount: parseFloat(document.getElementById('chequeAmount').value) || 0, customer: document.getElementById('chequeCustomer').value,
         bank: document.getElementById('chequeBank').value, depositedDate: document.getElementById('chequeDepositedDate').value, depositedAcc: document.getElementById('chequeDepositedAcc').value, note: document.getElementById('chequeNote').value,
     };
-    const dbRef = editId ? ref(db, `${activeChequesRef.path}/${editId}`) : push(activeChequesRef);
+    const dbRef = editId ? ref(db, `financials/cheques/${editId}`) : push(chequesRef);
     set(dbRef, formData)
         .then(() => { toggleForm(addChequeFormContainer, showAddChequeFormBtn, 'Add Cheque Details', { form: addChequeForm, titleElement: chequeFormTitle, submitBtn: chequeFormSubmitBtn, defaultTitle: 'Add New Cheque Record' }); })
         .catch(error => console.error("Error saving cheque: ", error));
 });
 
+// Simple submit for Cash
 addCashForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const editId = document.getElementById('cashEditId').value;
@@ -379,7 +313,7 @@ function renderPurchasesTable(snapshot) {
 function renderChequesTable(snapshot) {
     chequeTableBody.innerHTML = '';
     const data = snapshot.val();
-    if (!data) { chequeTableBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No cheque records in this table. Add a record to get started.</td></tr>'; return; }
+    if (!data) { chequeTableBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No cheque records found.</td></tr>'; return; }
     const records = Object.keys(data).map(key => ({ id: key, ...data[key] }));
     records.sort((a, b) => new Date(b.chequeDate) - new Date(a.chequeDate));
     records.forEach(record => {
@@ -388,8 +322,9 @@ function renderChequesTable(snapshot) {
         chequeTableBody.appendChild(tr);
     });
 }
+onValue(chequesRef, renderChequesTable); // Listen to the fixed cheques path
 
-onValue(cashLogRef, (snapshot) => { 
+function renderCashTable(snapshot) {
     cashOutTableBody.innerHTML = '';
     const data = snapshot.val();
     if (!data) { cashOutTableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No cash out records.</td></tr>'; return; }
@@ -400,7 +335,9 @@ onValue(cashLogRef, (snapshot) => {
         tr.innerHTML = `<td>${record.date}</td> <td>${record.reason}</td><td class="text-right">${(record.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${record.note || ''}</td><td class="text-center actions"><button class="btn btn-sm btn-warning btn-edit" data-id="${record.id}" data-type="cash"><i class="fas fa-pencil-alt"></i></button><button class="btn btn-sm btn-danger btn-delete" data-id="${record.id}" data-type="cash"><i class="fas fa-trash-alt"></i></button></td>`;
         cashOutTableBody.appendChild(tr);
     });
-});
+}
+onValue(cashLogRef, renderCashTable); // Listen to the fixed cash path
+
 
 // --- Edit and Delete Functionality ---
 document.body.addEventListener('click', async (e) => {
@@ -408,22 +345,23 @@ document.body.addEventListener('click', async (e) => {
     if (!target) return;
     const id = target.dataset.id;
     const type = target.dataset.type;
+
     if (target.classList.contains('btn-delete')) {
         if (!id || !type) return;
         if (confirm(`Are you sure you want to delete this ${type} record?`)) {
             let path;
-             if (type === 'purchase') {
+            if (type === 'purchase') {
                 if (!activePurchasesRef) { alert('No active purchase table selected.'); return; }
                 path = `${activePurchasesRef.path}/${id}`;
             } else if (type === 'cheque') {
-                if (!activeChequesRef) { alert('No active cheque table selected.'); return; }
-                path = `${activeChequesRef.path}/${id}`;
-            } else {
-                 path = `financials/cashLog/${id}`;
+                path = `financials/cheques/${id}`; // Fixed path
+            } else if (type === 'cash') {
+                 path = `financials/cashLog/${id}`; // Fixed path
             }
-            remove(ref(db, path)).catch(error => console.error(`Error deleting ${type}:`, error));
+            if (path) remove(ref(db, path)).catch(error => console.error(`Error deleting ${type}:`, error));
         }
     }
+
     if (target.classList.contains('btn-edit')) {
         if (!id || !type) return;
         let path;
@@ -431,14 +369,16 @@ document.body.addEventListener('click', async (e) => {
             if (!activePurchasesRef) { alert('No active purchase table selected.'); return; }
             path = `${activePurchasesRef.path}/${id}`;
         } else if (type === 'cheque') {
-            if (!activeChequesRef) { alert('No active cheque table selected.'); return; }
-            path = `${activeChequesRef.path}/${id}`;
-        } else {
-            path = `financials/cashLog/${id}`;
+            path = `financials/cheques/${id}`; // Fixed path
+        } else if (type === 'cash') {
+            path = `financials/cashLog/${id}`; // Fixed path
         }
+        
+        if (!path) return;
         const snapshot = await get(ref(db, path));
         if (!snapshot.exists()) { console.error("Record to edit not found."); return; }
         const data = snapshot.val();
+
         if (type === 'purchase') {
             document.getElementById('purchaseEditId').value = id;
             document.getElementById('purchaseDate').value = data.date || '';
@@ -490,9 +430,15 @@ function exportTableToCSV(filename, tableElement) {
      let csvContent = "data:text/csv;charset=utf-8," + headers.join(',') + "\r\n";
     tableElement.querySelectorAll('tbody tr').forEach(row => {
         if (row.querySelector('td.text-muted')) return;
-        const rowData = Array.from(row.querySelectorAll('td')).filter(td => !td.hasAttribute('rowspan'));
-        const rowText = rowData.map(td => `"${td.textContent.replace(/"/g, '""').trim()}"`).join(',');
-        if(rowText) csvContent += rowText + "\r\n";
+        const rowData = Array.from(row.querySelectorAll('td')).map(td => `"${td.textContent.replace(/"/g, '""').trim()}"`);
+        if(row.children.length > headers.length) { // Handle rowspan by taking first few cells
+             const slicedData = Array.from(row.querySelectorAll('td')).slice(0, headers.length);
+             const slicedText = slicedData.map(td => `"${td.textContent.replace(/"/g, '""').trim()}"`).join(',');
+             if(slicedText) csvContent += slicedText + "\r\n";
+        } else {
+            const rowText = rowData.join(',');
+            if(rowText) csvContent += rowText + "\r\n";
+        }
     });
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -508,7 +454,8 @@ exportPurchasesBtn.addEventListener('click', () => {
     exportTableToCSV(`${tableName}_log.csv`, document.getElementById('purchasesTable'));
 });
 exportChequesBtn.addEventListener('click', () => {
-     const tableName = activeChequeTableName || 'cheques';
-    exportTableToCSV(`${tableName}_log.csv`, document.querySelector('#cheques-tab .data-table'));
+    exportTableToCSV('cheque_log.csv', document.querySelector('#cheques-tab .data-table'));
 });
-exportCashBtn.addEventListener('click', () => exportTableToCSV('cash_log.csv', document.querySelector('#cash-tab .data-table')));
+exportCashBtn.addEventListener('click', () => {
+    exportTableToCSV('cash_log.csv', document.querySelector('#cash-tab .data-table'));
+});

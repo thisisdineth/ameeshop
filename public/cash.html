@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Amee-Store | Cash Log</title>
+    <meta name="description" content="Amee-Store - Cash Log Management" />
+    <link rel="icon" type="image/png" href="tealeaf.png" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Link to the new CSS file -->
+    <link rel="stylesheet" href="cash.css">
+</head>
+<body>
+    <div id="app" class="app-container">
+        <nav id="top-navbar">
+            <div class="container nav-container">
+                <div class="nav-brand">
+                    <a href="index.html" class="nav-logo-link">
+                        <img src="logo.jpeg" alt="Amee-Store Logo" class="nav-logo-icon"> Amee-Store
+                    </a>
+                </div>
+                <div id="desktop-nav-links">
+                    <a href="index.html" class="navbar-item"><i class="fas fa-tachometer-alt fa-fw"></i> <span>Dashboard</span></a>
+                </div>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="container">
+                <h1 class="page-title"><i class="fas fa-money-bill-wave fa-fw"></i> Cash Log</h1>
+
+                <div class="table-management-controls section-card">
+                   <button id="showAddCashFormBtn" class="btn btn-primary"><i class="fas fa-plus fa-fw"></i> Add Cash Out Entry</button>
+                   <!-- You can add an export button here if needed in the future -->
+                </div>
+
+                <div id="addCashFormContainer" class="section-card hidden">
+                   <h3 id="cashFormTitle" class="form-title">Add New Cash Out Record</h3>
+                   <form id="addCashForm">
+                       <input type="hidden" id="cashEditId">
+                       <div class="form-grid">
+                           <div class="form-group">
+                               <label for="cashDate" class="form-label">Date:</label>
+                               <input type="date" id="cashDate" class="form-input" required>
+                           </div>
+                           <div class="form-group">
+                               <label for="cashReason" class="form-label">Reason:</label>
+                               <input type="text" id="cashReason" class="form-input" placeholder="Reason for cash out" required>
+                           </div>
+                           <div class="form-group">
+                               <label for="cashAmount" class="form-label">Amount:</label>
+                               <input type="number" step="any" id="cashAmount" class="form-input" placeholder="0.00" required>
+                           </div>
+                       </div>
+                       <div class="form-group">
+                           <label for="cashNote" class="form-label">Note:</label>
+                           <textarea id="cashNote" class="form-input" rows="2" placeholder="Additional details..."></textarea>
+                       </div>
+                       <button id="cashFormSubmitBtn" type="submit" class="btn btn-success btn-block"><i class="fas fa-check fa-fw"></i> Save Record</button>
+                   </form>
+                </div>
+
+                <div class="section-card">
+                    <h2 class="section-title">Cash Out Log</h2>
+                    <div class="table-responsive-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="table-header">Date</th>
+                                    <th class="table-header">Reason</th>
+                                    <th class="table-header text-right">Amount</th>
+                                    <th class="table-header">Note</th>
+                                    <th class="table-header text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cashOutTableBody">
+                                <!-- Data will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <!-- Link to the new JavaScript file -->
+    <script type="module" src="cash.js"></script>
+</body>
+</html>
+
+
+
