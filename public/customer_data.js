@@ -1,7 +1,4 @@
-
-
-
-    const firebaseConfig = {
+const firebaseConfig = {
         apiKey: "AIzaSyA-M8XsFZaZPu_lBIx0TbqcmzhTXeHRjQM",
         authDomain: "ecommerceapp-dab53.firebaseapp.com",
         databaseURL: "https://ecommerceapp-dab53-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -363,35 +360,45 @@
         }
     }
 
-    function addPhoneNumberField(type = 'Mobile', number = '') {
+    /**
+     * MODIFIED FUNCTION
+     * This function now creates a text input for the phone number type (label)
+     * instead of a dropdown select menu.
+     */
+    function addPhoneNumberField(type = '', number = '') {
         if (!phoneNumbersContainerEl) return;
         const entryDiv = document.createElement('div');
         entryDiv.classList.add('phone-number-entry');
-        const typeSelect = document.createElement('select');
-        typeSelect.classList.add('form-input', 'phone-type');
-        ['Mobile', 'Home', 'Work', 'Other'].forEach(opt => {
-            const option = document.createElement('option');
-            option.value = opt;
-            option.textContent = opt;
-            if (opt === type) option.selected = true;
-            typeSelect.appendChild(option);
-        });
+
+        // Create a text input for the phone number's label (e.g., "Work", "Home")
+        const typeInput = document.createElement('input');
+        typeInput.type = 'text';
+        typeInput.classList.add('form-input', 'phone-type'); // Keep class for saving logic
+        typeInput.placeholder = 'Label (e.g., Mobile)';
+        typeInput.value = type; // Pre-fill with existing data or leave empty for new entries
+
+        // Create the input for the actual phone number
         const numberInput = document.createElement('input');
         numberInput.type = 'tel';
         numberInput.classList.add('form-input', 'phone-number');
         numberInput.placeholder = 'Phone Number';
         numberInput.value = number;
+
+        // Create the remove button
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
         removeBtn.innerHTML = '<i class="fas fa-times"></i>';
         removeBtn.classList.add('btn', 'btn-remove-item', 'btn-danger', 'btn-sm');
         removeBtn.title = "Remove Phone";
         removeBtn.onclick = () => entryDiv.remove();
-        entryDiv.appendChild(typeSelect);
+
+        // Add the new elements to the container
+        entryDiv.appendChild(typeInput);
         entryDiv.appendChild(numberInput);
         entryDiv.appendChild(removeBtn);
         phoneNumbersContainerEl.appendChild(entryDiv);
     }
+
 
     if (addPhoneNumberBtn) addPhoneNumberBtn.addEventListener('click', () => addPhoneNumberField());
     
@@ -435,9 +442,11 @@
             const phoneNumbers = [];
             if (phoneNumbersContainerEl) {
                 phoneNumbersContainerEl.querySelectorAll('.phone-number-entry').forEach(entry => {
-                    const type = entry.querySelector('.phone-type').value;
+                    const type = entry.querySelector('.phone-type').value.trim(); // Read from the new input
                     const number = entry.querySelector('.phone-number').value.trim();
-                    if (number) phoneNumbers.push({ type, number });
+                    if (type && number) { // Only save if both type and number are filled
+                         phoneNumbers.push({ type, number });
+                    }
                 });
             }
 
