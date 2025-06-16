@@ -231,18 +231,20 @@ async function generateAndPrintReceipt(saleData) {
             currentY += 5;
         }
 
-        doc.setFontSize(14);
-        doc.setFont(undefined, 'bold');
-        centerText('Amee Store (PVT) LTD', currentY);
-        currentY += 6;
+doc.setFontSize(14);
+doc.setFont(undefined, 'bold');
+centerText('Anura Marketing Services', currentY);
+currentY += 6;
+centerText('(PVT) LTD', currentY);
+currentY += 6;
 
         doc.setFontSize(FONT_SIZE_NORMAL);
         doc.setFont(undefined, 'normal');
-        centerText('110/J/1 Sri Saddhananda Mawatha,', currentY);
+        centerText('No. 110/J/1, Sri Saddhananda Mawatha,', currentY);
         currentY += 4;
-        centerText('Katuwela, Boralesgamuwa', currentY);
+        centerText('Katuwawala, Boralesgamuwa, Sri Lanka', currentY);
         currentY += 4;
-        centerText('Phone: +94 701010018 | Fax: +94 112 518 386', currentY);
+        centerText('Phone: +94701010018 | Fax: +94112518386', currentY);
         currentY += 7;
 
         drawLine(currentY);

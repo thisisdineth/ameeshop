@@ -91,33 +91,29 @@ const firebaseConfig = {
         errorDisplayEl.classList.add('hidden');
 
         try {
-            // First, try finding the customer by querying the 'customerId' field.
             const query = db.ref(CUSTOMERS_PATH).orderByChild('customerId').equalTo(idFromUrl);
             let snapshot = await query.once('value');
             let customerFound = false;
 
             if (snapshot.exists()) {
-                // A query returns a list of matches, even if it's just one.
                 snapshot.forEach(childSnapshot => {
-                    if (!customerFound) { // Process only the first match
-                        currentCustomerId = childSnapshot.key; // This is the REAL Firebase key
+                    if (!customerFound) { 
+                        currentCustomerId = childSnapshot.key;
                         currentCustomerData = childSnapshot.val();
                         customerFound = true;
                     }
                 });
             }
 
-            // If not found by query, the ID might be the Firebase key itself. Try a direct lookup.
             if (!customerFound) {
                 const directSnapshot = await db.ref(`${CUSTOMERS_PATH}/${idFromUrl}`).once('value');
                 if (directSnapshot.exists()) {
-                    currentCustomerId = directSnapshot.key; // The key is the ID from the URL
+                    currentCustomerId = directSnapshot.key;
                     currentCustomerData = directSnapshot.val();
                     customerFound = true;
                 }
             }
 
-            // After trying both methods, proceed if a customer was found.
             if (customerFound) {
                 displayCustomerInfo(currentCustomerId, currentCustomerData);
                 loadAdminNotes(currentCustomerData.adminNotes);
@@ -152,7 +148,6 @@ const firebaseConfig = {
             if (snapshot.exists()) {
                 snapshot.forEach(childSnapshot => {
                     const sale = { id: childSnapshot.key, ...childSnapshot.val() };
-                    // Filter out settlement records from the main history views
                     if (sale.type !== 'settlement') {
                         salesEntries.push(sale);
                     }
@@ -273,66 +268,122 @@ const firebaseConfig = {
         }
     }
     
-    // --- All other functions (generateSettlementReceipt, showError, displayCustomerInfo, etc.) ---
-    // The following functions are included for completeness but are unchanged from your last working version.
-
+    /**
+     * MODIFIED INVOICE FUNCTION FOR SETTLEMENTS
+     * Generates a PDF receipt matching the "Balance Settlement Payment" image.
+     */
     async function generateSettlementReceipt(settlementData) {
+    try {
         const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [80, 297] });
         const MARGIN_LEFT = 4;
         const MARGIN_RIGHT = 76;
         let currentY = 5;
 
-        const centerText = (text, y) => { const tw = doc.getStringUnitWidth(text) * doc.internal.getFontSize() / doc.internal.scaleFactor; doc.text(text, (80 - tw) / 2, y); };
-        const rightAlignedText = (text, x, y) => doc.text(text, x, y, { align: 'right' });
-        const drawLine = (y) => { doc.setLineDashPattern([0.5, 0.5], 0); doc.line(MARGIN_LEFT, y, MARGIN_RIGHT, y); doc.setLineDashPattern([], 0); };
+        const centerText = (text, y, options = {}) => {
+            const fontSize = options.fontSize || doc.internal.getFontSize();
+            const textWidth = doc.getStringUnitWidth(text) * fontSize / doc.internal.scaleFactor;
+            doc.text(text, (80 - textWidth) / 2, y, options);
+        };
+        const rightAlignedText = (text, y) => doc.text(text, MARGIN_RIGHT, y, { align: 'right' });
+        const drawLine = (y) => {
+            doc.setLineDashPattern([0.5, 0.5], 0);
+            doc.line(MARGIN_LEFT, y, MARGIN_RIGHT, y);
+            doc.setLineDashPattern([], 0);
+        };
 
-        doc.setFontSize(14);
-        doc.setFont(undefined, 'bold');
-        centerText('PAYMENT RECEIPT', currentY);
-        currentY += 10;
-        
-        doc.setFontSize(8);
+        // --- Header ---
+        try {
+            const logoWidth = 18;
+            const logoHeight = 18;
+            const logoX = (80 - logoWidth) / 2; // Dynamically center the logo
+            const logoY = currentY;
+
+            // Add the logo image
+            doc.addImage('logo.jpeg', 'JPEG', logoX, logoY, logoWidth, logoHeight);
+            
+            // MODIFIED LINE: Changed 4 to 8 to add more space below the logo
+            currentY += logoHeight + 8; 
+
+        } catch (e) {
+            console.error("Could not add logo. Using fallback text.", e);
+            // If logo fails, add vertical space to simulate the logo area
+            currentY += 15;
+        }
+
+        // Company Name - Placed below the logo
+doc.setFontSize(14);
+doc.setFont(undefined, 'bold');
+centerText('Anura Marketing Services', currentY);
+currentY += 6;
+centerText('(PVT) LTD', currentY);
+currentY += 6;
+        // --- End of Modified Section ---
+
+        doc.setFontSize(9);
         doc.setFont(undefined, 'normal');
-        doc.text(`Date: ${settlementData.saleDate}`, MARGIN_LEFT, currentY);
-        rightAlignedText(`Receipt ID: ${settlementData.saleId.slice(-6).toUpperCase()}`, MARGIN_RIGHT, currentY);
-        currentY += 5;
-        doc.text(`Customer: ${settlementData.customerName}`, MARGIN_LEFT, currentY);
-        currentY += 5;
-        drawLine(currentY);
-        currentY += 5;
-
-        doc.setFont(undefined, 'bold');
-        doc.text('Description', MARGIN_LEFT, currentY);
-        rightAlignedText('Amount (Rs.)', MARGIN_RIGHT, currentY);
+        centerText('110/J/1 Sri Saddhananda Mawatha,', currentY);
         currentY += 4;
-        
-        doc.setFont(undefined, 'normal');
-        doc.text('Outstanding Balance Settlement', MARGIN_LEFT, currentY);
-        rightAlignedText(parseFloat(settlementData.grandTotal).toFixed(2), MARGIN_RIGHT, currentY);
+        centerText('Katuwela, Boralesgamuwa Sri lanka', currentY);
+        currentY += 4;
+        centerText('Phone: +94 701010018 | Fax: +94112518386', currentY);
+        currentY += 7;
+        drawLine(currentY);
+        currentY += 5;
+
+        // --- Customer Details ---
+        doc.setFontSize(9);
+        doc.text(`Date: ${settlementData.saleDate || new Date().toISOString().slice(0, 10)}`, MARGIN_LEFT, currentY);
+        currentY += 5;
+        doc.text(`Customer: ${settlementData.customerName || 'N/A'}`, MARGIN_LEFT, currentY);
         currentY += 6;
         drawLine(currentY);
-        currentY += 6;
-        
-        doc.setFont(undefined, 'bold');
-        doc.text('Total Amount Paid', MARGIN_LEFT, currentY);
-        rightAlignedText(parseFloat(settlementData.grandTotal).toFixed(2), MARGIN_RIGHT, currentY);
         currentY += 5;
-        
-        doc.setFont(undefined, 'normal');
-        doc.text(`Payment Method: ${settlementData.paymentMethod}`, MARGIN_LEFT, currentY);
-        currentY += 10;
-        
+
+        // --- Body Title ---
         doc.setFontSize(10);
         doc.setFont(undefined, 'bold');
-        centerText('New Outstanding Balance: Rs. 0.00', currentY);
-        currentY += 10;
-        
-        doc.setFontSize(8);
-        centerText('Thank you!', currentY);
+        doc.text('Balance Settlement Payment', MARGIN_LEFT, currentY);
+        currentY += 7;
+
+        // --- Items Table ---
+        const settlementAmount = parseFloat(settlementData.grandTotal || 0);
+
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'normal');
+        doc.text('Qty', MARGIN_LEFT, currentY);
+        doc.text('U/Price', 40, currentY);
+        rightAlignedText('Amount', currentY);
+        currentY += 5;
+
+        doc.text('1', MARGIN_LEFT, currentY);
+        doc.text(settlementAmount.toFixed(2), 40, currentY);
+        rightAlignedText(settlementAmount.toFixed(2), currentY);
+        currentY += 5;
+        drawLine(currentY);
+        currentY += 5;
+
+        // --- Summary (replicating the image format) ---
+        doc.setFontSize(9);
+        doc.text('Subtotal', MARGIN_LEFT, currentY);
+        rightAlignedText('0.00', currentY);
+        currentY += 7;
+
+        doc.setFontSize(11);
+        doc.setFont(undefined, 'bold');
+        doc.text('Grand Total', MARGIN_LEFT, currentY);
+        rightAlignedText(settlementAmount.toFixed(2), currentY);
+        currentY += 5;
+        drawLine(currentY);
 
         doc.autoPrint();
         window.open(doc.output('bloburl'), '_blank');
+
+    } catch (error) {
+        console.error("Error generating settlement receipt:", error);
+        alert("An error occurred during receipt generation: " + error.message);
     }
+
+}
 
     function showError(message) {
         if (errorDisplayEl) { errorDisplayEl.innerHTML = `<p><i class="fas fa-exclamation-triangle"></i> ${message}</p>`; errorDisplayEl.classList.remove('hidden'); }
@@ -359,32 +410,24 @@ const firebaseConfig = {
             }
         }
     }
-
-    /**
-     * MODIFIED FUNCTION
-     * This function now creates a text input for the phone number type (label)
-     * instead of a dropdown select menu.
-     */
+    
     function addPhoneNumberField(type = '', number = '') {
         if (!phoneNumbersContainerEl) return;
         const entryDiv = document.createElement('div');
         entryDiv.classList.add('phone-number-entry');
 
-        // Create a text input for the phone number's label (e.g., "Work", "Home")
         const typeInput = document.createElement('input');
         typeInput.type = 'text';
-        typeInput.classList.add('form-input', 'phone-type'); // Keep class for saving logic
+        typeInput.classList.add('form-input', 'phone-type');
         typeInput.placeholder = 'Label (e.g., Mobile)';
-        typeInput.value = type; // Pre-fill with existing data or leave empty for new entries
+        typeInput.value = type;
 
-        // Create the input for the actual phone number
         const numberInput = document.createElement('input');
         numberInput.type = 'tel';
         numberInput.classList.add('form-input', 'phone-number');
         numberInput.placeholder = 'Phone Number';
         numberInput.value = number;
 
-        // Create the remove button
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
         removeBtn.innerHTML = '<i class="fas fa-times"></i>';
@@ -392,13 +435,11 @@ const firebaseConfig = {
         removeBtn.title = "Remove Phone";
         removeBtn.onclick = () => entryDiv.remove();
 
-        // Add the new elements to the container
         entryDiv.appendChild(typeInput);
         entryDiv.appendChild(numberInput);
         entryDiv.appendChild(removeBtn);
         phoneNumbersContainerEl.appendChild(entryDiv);
     }
-
 
     if (addPhoneNumberBtn) addPhoneNumberBtn.addEventListener('click', () => addPhoneNumberField());
     
@@ -442,9 +483,9 @@ const firebaseConfig = {
             const phoneNumbers = [];
             if (phoneNumbersContainerEl) {
                 phoneNumbersContainerEl.querySelectorAll('.phone-number-entry').forEach(entry => {
-                    const type = entry.querySelector('.phone-type').value.trim(); // Read from the new input
+                    const type = entry.querySelector('.phone-type').value.trim();
                     const number = entry.querySelector('.phone-number').value.trim();
-                    if (type && number) { // Only save if both type and number are filled
+                    if (type && number) {
                          phoneNumbers.push({ type, number });
                     }
                 });
@@ -555,117 +596,172 @@ const firebaseConfig = {
         actionsCell.appendChild(invoiceBtn);
     }
 
+    /**
+     * MODIFIED INVOICE FUNCTION FOR SALES
+     * Generates a PDF receipt matching the general sales invoice image.
+     */
     async function generateAndPrintReceipt(saleData) {
+    try {
+        // Using an 80mm wide format with a long page for dynamic height on thermal printers.
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [80, 297] });
+        
+        const FONT_SIZE_NORMAL = 8;
+        const FONT_SIZE_SMALL = 7;
+        const FONT_SIZE_TOTAL = 10;
+
+        const MARGIN_LEFT = 4;
+        const MARGIN_RIGHT = 76;
+        let currentY = 5;
+
+        const centerText = (text, y) => {
+            const textWidth = doc.getStringUnitWidth(text) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+            doc.text(text, (80 - textWidth) / 2, y);
+        };
+        const rightAlignedText = (text, x, y) => doc.text(text, x, y, { align: 'right' });
+        const drawLine = (y) => {
+            doc.setLineDashPattern([0.5, 0.5], 0);
+            doc.line(MARGIN_LEFT, y, MARGIN_RIGHT, y);
+            doc.setLineDashPattern([], 0);
+        };
+
+        // Add Logo at the top
         try {
-            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [80, 297] });
-            const FONT_SIZE_NORMAL = 8;
-            const FONT_SIZE_SMALL = 7;
-            const FONT_SIZE_TOTAL = 10;
-            const MARGIN_LEFT = 4;
-            const MARGIN_RIGHT = 76;
-            let currentY = 5;
-            const centerText = (text, y) => { const textWidth = doc.getStringUnitWidth(text) * doc.internal.getFontSize() / doc.internal.scaleFactor; doc.text(text, (80 - textWidth) / 2, y); };
-            const rightAlignedText = (text, x, y) => doc.text(text, x, y, { align: 'right' });
-            const drawLine = (y) => { doc.setLineDashPattern([0.5, 0.5], 0); doc.line(MARGIN_LEFT, y, MARGIN_RIGHT, y); doc.setLineDashPattern([], 0); };
-            try {
-                doc.addImage('logo.png', 'PNG', 31, currentY, 18, 18);
-                currentY += 24;
-            } catch (e) {
-                console.error("Could not add logo.png. Make sure the file exists.", e);
-                currentY += 5;
-            }
-            doc.setFontSize(14);
-            doc.setFont(undefined, 'bold');
-            centerText('Amee tea (PVT) LTD', currentY);
+            doc.addImage('logo.jpeg', 'jpeg', 31, currentY, 18, 18);
+            currentY += 24;
+        } catch (e) {
+            console.error("Could not add logo.jpeg. Make sure the file exists.", e);
+            currentY += 5;
+        }
+
+doc.setFontSize(14);
+doc.setFont(undefined, 'bold');
+centerText('Anura Marketing Services', currentY);
+currentY += 6;
+centerText('(PVT) LTD', currentY);
+currentY += 6;
+
+        doc.setFontSize(FONT_SIZE_NORMAL);
+        doc.setFont(undefined, 'normal');
+        centerText('No. 110/J/1, Sri Saddhananda Mawatha,', currentY);
+        currentY += 4;
+        centerText('Katuwawala, Boralesgamuwa, Sri Lanka', currentY);
+        currentY += 4;
+        centerText('Phone: +94701010018 | Fax: +94112518386', currentY);
+        currentY += 7;
+
+        drawLine(currentY);
+        currentY += 5;
+
+        doc.text(`Date: ${saleData.saleDate || ''}`, MARGIN_LEFT, currentY);
+        currentY += 5;
+
+        if (saleData.customerName) {
+            doc.text(`Customer: ${saleData.customerName}`, MARGIN_LEFT, currentY);
             currentY += 6;
-            doc.setFontSize(FONT_SIZE_NORMAL);
-            doc.setFont(undefined, 'normal');
-            centerText('123 Tea Lane, Panadura, Sri Lanka', currentY);
+        }
+
+        drawLine(currentY);
+        currentY += 2;
+        
+        (saleData.items || []).forEach(item => {
             currentY += 4;
-            centerText('Phone: +94 11 222 3333', currentY);
-            currentY += 7;
-            drawLine(currentY);
-            currentY += 5;
-            doc.text(`Date: ${saleData.saleDate || ''}`, MARGIN_LEFT, currentY);
-            currentY += 5;
-            doc.text(`Customer: ${saleData.customerName || 'N/A'}`, MARGIN_LEFT, currentY);
-            currentY += 6;
-            drawLine(currentY);
-            currentY += 2;
-            (saleData.items || []).forEach(item => {
-                currentY += 4;
-                doc.setFont(undefined, 'bold');
-                doc.setFontSize(FONT_SIZE_NORMAL);
-                doc.text(item.itemName || 'N/A', MARGIN_LEFT, currentY);
-                currentY += 5;
-                doc.setFont(undefined, 'normal');
-                doc.setFontSize(FONT_SIZE_SMALL);
-                doc.text('Qty', MARGIN_LEFT, currentY);
-                doc.text('U/Price', 25, currentY);
-                doc.text('Discount', 45, currentY);
-                doc.text('Amount', 65, currentY);
-                currentY += 4;
-                doc.setFontSize(FONT_SIZE_NORMAL);
-                doc.text(String(parseInt(item.quantity || 0)), MARGIN_LEFT, currentY);
-                doc.text(parseFloat(item.unitPrice || 0).toFixed(2), 25, currentY);
-                doc.text('0.00', 45, currentY);
-                doc.text(parseFloat(item.lineTotal || 0).toFixed(2), 65, currentY);
-                currentY += 5;
-                drawLine(currentY);
-            });
-            currentY += 5;
-            doc.setFont(undefined, 'normal');
-            doc.setFontSize(FONT_SIZE_NORMAL);
-            doc.text('Subtotal', MARGIN_LEFT, currentY);
-            rightAlignedText(parseFloat(saleData.subTotal || 0).toFixed(2), MARGIN_RIGHT, currentY);
-            currentY += 5;
-            if (saleData.overallDiscountValue > 0) {
-                doc.text('Overall Discount', MARGIN_LEFT, currentY);
-                rightAlignedText(`- ${parseFloat(saleData.overallDiscountValue).toFixed(2)}`, MARGIN_RIGHT, currentY);
-                currentY += 5;
-            }
             doc.setFont(undefined, 'bold');
-            doc.text('Grand Total', MARGIN_LEFT, currentY);
-            rightAlignedText(parseFloat(saleData.grandTotal || 0).toFixed(2), MARGIN_RIGHT, currentY);
+            doc.setFontSize(FONT_SIZE_NORMAL);
+            doc.text(item.itemName || 'N/A', MARGIN_LEFT, currentY);
             currentY += 5;
             doc.setFont(undefined, 'normal');
-            drawLine(currentY);
+            doc.setFontSize(FONT_SIZE_SMALL);
+            doc.text('Qty', MARGIN_LEFT, currentY);
+            doc.text('U/Price', 40, currentY);
+            rightAlignedText('Amount', MARGIN_RIGHT, currentY);
+            currentY += 4;
+            doc.setFontSize(FONT_SIZE_NORMAL);
+            doc.text(String(parseInt(item.quantity || 0)), MARGIN_LEFT, currentY);
+            doc.text(parseFloat(item.unitPrice || 0).toFixed(2), 40, currentY);
+            rightAlignedText(parseFloat(item.lineTotal || 0).toFixed(2), MARGIN_RIGHT, currentY);
             currentY += 5;
-            if (saleData.paymentMethod === 'Installment') {
-                doc.text('Paid (this bill)', MARGIN_LEFT, currentY);
-                rightAlignedText(parseFloat(saleData.amountPaid || 0).toFixed(2), MARGIN_RIGHT, currentY);
-                currentY += 5;
-                doc.text('Due (this bill)', MARGIN_LEFT, currentY);
-                rightAlignedText(parseFloat(saleData.remainingBalance || 0).toFixed(2), MARGIN_RIGHT, currentY);
-                currentY += 5;
-            }
-            if (saleData.previousInstallmentDue > 0) {
-                doc.text('Previous Due', MARGIN_LEFT, currentY);
-                rightAlignedText(saleData.previousInstallmentDue.toFixed(2), MARGIN_RIGHT, currentY);
-                currentY += 5;
-            }
+            drawLine(currentY);
+        });
+
+        currentY += 5;
+
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(FONT_SIZE_NORMAL);
+        doc.text('Subtotal', MARGIN_LEFT, currentY);
+        rightAlignedText(parseFloat(saleData.subTotal || 0).toFixed(2), MARGIN_RIGHT, currentY);
+        currentY += 5;
+
+        if (saleData.overallDiscountValue > 0) {
+            doc.text('Overall Discount', MARGIN_LEFT, currentY);
+            rightAlignedText(`- ${parseFloat(saleData.overallDiscountValue).toFixed(2)}`, MARGIN_RIGHT, currentY);
+            currentY += 5;
+        }
+
+        doc.setFont(undefined, 'bold');
+        doc.text('Grand Total', MARGIN_LEFT, currentY);
+        rightAlignedText(parseFloat(saleData.grandTotal || 0).toFixed(2), MARGIN_RIGHT, currentY);
+        currentY += 5;
+        doc.setFont(undefined, 'normal');
+        
+        drawLine(currentY);
+        currentY += 5;
+
+        if (saleData.paymentMethod === 'Installment') {
+            doc.text('Paid (this bill)', MARGIN_LEFT, currentY);
+            rightAlignedText(parseFloat(saleData.amountPaid || 0).toFixed(2), MARGIN_RIGHT, currentY);
+            currentY += 5;
+            doc.text('To paid (this bill)', MARGIN_LEFT, currentY);
+            rightAlignedText(parseFloat(saleData.remainingBalance || 0).toFixed(2), MARGIN_RIGHT, currentY);
+            currentY += 5;
+        }
+
+        if (saleData.previousInstallmentDue > 0) {
+            doc.text('To paid (previous)', MARGIN_LEFT, currentY);
+            rightAlignedText(saleData.previousInstallmentDue.toFixed(2), MARGIN_RIGHT, currentY);
+            currentY += 5;
+        }
+
+        const finalTotalToBePaid = (saleData.remainingBalance || 0) + (saleData.previousInstallmentDue || 0);
+
+        // --- MODIFICATION: Only show the 'TOTAL DUE' line if the value is greater than 0 ---
+        if (finalTotalToBePaid > 0) {
             drawLine(currentY);
             currentY += 5;
             doc.setFontSize(FONT_SIZE_TOTAL);
             doc.setFont(undefined, 'bold');
-            const finalTotalToBePaid = (saleData.remainingBalance || 0) + (saleData.previousInstallmentDue || 0);
             doc.text('TOTAL DUE', MARGIN_LEFT, currentY);
             rightAlignedText(finalTotalToBePaid.toFixed(2), MARGIN_RIGHT, currentY);
             currentY += 7;
             doc.setFont(undefined, 'normal');
             doc.setFontSize(FONT_SIZE_NORMAL);
-            doc.text(`Payment Method: ${saleData.paymentMethod || 'N/A'}`, MARGIN_LEFT, currentY);
-            currentY += 9;
-            centerText('Thank You for shopping with us!', currentY);
-            currentY += 5;
-            centerText('Generated: ' + new Date().toLocaleDateString(), currentY);
-            doc.autoPrint();
-            window.open(doc.output('bloburl'), '_blank');
-        } catch (error) {
-            console.error("Error generating PDF receipt:", error);
-            alert("Could not generate the PDF receipt.");
         }
+
+        if (saleData.paymentMethod) {
+            doc.text(`Payment Method: ${saleData.paymentMethod}`, MARGIN_LEFT, currentY);
+        }
+        currentY += 9;
+
+        centerText('Thank You for shopping with us!', currentY);
+        currentY += 5;
+        centerText('Generated: ' + new Date().toLocaleDateString(), currentY);
+
+        currentY += 8;
+        doc.setFontSize(FONT_SIZE_SMALL);
+        doc.text('I received all products in good quality.', MARGIN_LEFT, currentY);
+        
+        currentY += 15;
+        drawLine(currentY);
+        currentY += 4;
+        doc.text('Customer Signature', MARGIN_LEFT, currentY);
+
+        doc.autoPrint();
+        window.open(doc.output('bloburl'), '_blank');
+
+    } catch (error) {
+        console.error("Error generating PDF receipt:", error);
+        alert("Could not generate the PDF receipt.");
     }
+}
     
     // Initialize the page
     initializePage();
