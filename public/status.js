@@ -67,7 +67,7 @@ const cashLogRef = ref(db, 'financials/cashLog'); // Fixed path for cash
 
 // --- Admin Unlock ---
 unlockAdminBtn.addEventListener('click', () => {
-    if (adminPasswordInput.value === 'adminamee') {
+    if (adminPasswordInput.value === 'Ameelocal@2000') {
         adminUnlockContainer.classList.add('hidden');
         purchasesTab.classList.remove('locked-section');
         chequesTab.classList.remove('locked-section');
