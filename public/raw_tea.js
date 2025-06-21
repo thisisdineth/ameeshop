@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('Table name cannot be empty.');
                 return;
             }
-            
+
             if (newTableModal) newTableModal.style.display = 'none';
 
             if (!existingTableNames.includes(tableName)) {
@@ -155,13 +155,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 } catch (error) {
                     console.error(`[Firebase Debug] Error creating Raw Tea table metadata for "${tableName}": `, error);
                     alert(`Error creating table metadata: ${error.message}`);
-                    return; 
+                    return;
                 }
             }
             setActiveTable(tableName);
         };
     }
-    
+
     function setActiveTable(tableName) {
         if (!tableName || typeof tableName !== 'string' || tableName.trim() === '') {
             console.error("[Firebase Debug] setActiveTable called with invalid tableName:", tableName);
@@ -175,11 +175,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if(currentTableNameDisplay) currentTableNameDisplay.textContent = `Inventory: ${tableName}`;
         if(addRowFormTableName) addRowFormTableName.textContent = tableName;
         if(manualOutflowFormTableName) manualOutflowFormTableName.textContent = tableName;
-        
+
         if(currentTableDisplay) currentTableDisplay.classList.remove('hidden');
         if(addRowFormContainer) addRowFormContainer.classList.add('hidden'); // Hide forms by default
         if(manualOutflowFormContainer) manualOutflowFormContainer.classList.add('hidden');
-        
+
         loadTableData(activeTableName);
     }
 
@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             tableDataUnsubscribe = null;
         }
-        
+
         const dataRef = db.ref(`${DATA_PATH}/${tableName}`);
         const currentPathString = dataRef.toString();
         console.log(`[Firebase Debug] Attaching new listener to Firebase path: ${currentPathString}`);
@@ -215,18 +215,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (rawTeaTableBody) rawTeaTableBody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:1rem;">Loading data...</td></tr>';
         if (currentCalculatedBalanceDisplay) currentCalculatedBalanceDisplay.textContent = 'Loading...';
 
-        tableDataUnsubscribe = dataRef.on('value', 
+        tableDataUnsubscribe = dataRef.on('value',
             (snapshot) => { // SUCCESS CALLBACK
                 console.log(`[Firebase Debug] 'value' event SUCCESS callback triggered for: ${currentPathString}.`);
-                console.log("[Firebase Debug] Received snapshot object:", snapshot); 
+                console.log("[Firebase Debug] Received snapshot object:", snapshot);
 
-                if (snapshot === undefined) { 
+                if (snapshot === undefined) {
                     console.error(`[Firebase Debug] CRITICAL: Snapshot received as UNDEFINED for table: "${tableName}". Path: ${currentPathString}`);
                     if(rawTeaTableBody) rawTeaTableBody.innerHTML = `<tr><td colspan="11" class="text-center text-danger">Error: Data snapshot is undefined for table "${tableName}". Please check console.</td></tr>`;
                     if(currentCalculatedBalanceDisplay) currentCalculatedBalanceDisplay.textContent = 'Error Kg';
                     return;
                 }
-                
+
                 if (typeof snapshot.exists !== 'function') {
                     console.error(`[Firebase Debug] CRITICAL: Received object is NOT a valid Firebase DataSnapshot for table: "${tableName}". Path: ${currentPathString}. Object type: ${typeof snapshot}, Object value:`, snapshot);
                     if(rawTeaTableBody) rawTeaTableBody.innerHTML = `<tr><td colspan="11" class="text-center text-danger">Error: Invalid data structure received for table "${tableName}". Please check console.</td></tr>`;
@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 console.log(`[Firebase Debug] Snapshot for "${tableName}" is a valid DataSnapshot. Calling snapshot.exists().`);
-                if(rawTeaTableBody) rawTeaTableBody.innerHTML = ''; 
+                if(rawTeaTableBody) rawTeaTableBody.innerHTML = '';
                 let finalBalanceForDisplay = 0;
                 const entries = [];
 
@@ -246,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
 
                     const chronoSortedForBalance = [...entries].sort((a, b) => {
-                        const dateA = new Date(a.transactionDate ? a.transactionDate + 'T00:00:00' : 0).getTime(); 
+                        const dateA = new Date(a.transactionDate ? a.transactionDate + 'T00:00:00' : 0).getTime();
                         const dateB = new Date(b.transactionDate ? b.transactionDate + 'T00:00:00' : 0).getTime();
                         const timeA = a.timestamp || 0;
                         const timeB = b.timestamp || 0;
@@ -261,7 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         let outflowQty = parseFloat(entry.outflowWeight) || 0;
                         if (entry.transactionType !== 'inflow') inflowQty = 0; // ensure only inflows add to inflowQty
                         if (entry.transactionType !== 'outflow') outflowQty = 0; // ensure only outflows add to outflowQty
-                        
+
                         runningBalance += inflowQty - outflowQty;
                         balancesMap.set(entry.id, runningBalance);
                     });
@@ -279,14 +279,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             case 'timestamp_desc': default: return timeB - timeA || dateB - dateA;
                         }
                     });
-                    
+
                     if(rawTeaTableBody) entries.forEach(data => renderRow(data.id, data, balancesMap.get(data.id)));
 
                 } else {
                     console.log(`[Firebase Debug] Snapshot does NOT exist for "${tableName}".`);
                     if(rawTeaTableBody){
                         const row = rawTeaTableBody.insertRow();
-                        const cell = row.insertCell(); cell.colSpan = 11; 
+                        const cell = row.insertCell(); cell.colSpan = 11;
                         cell.textContent = 'No entries yet. Add an inflow or manual outflow.';
                         Object.assign(cell.style, {textAlign: 'center', padding: '1rem', color: 'var(--text-color-muted)'});
                     }
@@ -295,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(currentCalculatedBalanceDisplay) currentCalculatedBalanceDisplay.textContent = `${finalBalanceForDisplay.toFixed(2)} Kg`;
                 console.log(`[Firebase Debug] loadTableData successfully processed for "${tableName}".`);
 
-            }, 
+            },
             (errorObject) => { // ERROR CALLBACK
                 console.error(`[Firebase Debug] Firebase listener ERROR callback for: ${currentPathString}. Error:`, errorObject);
                 if(rawTeaTableBody) rawTeaTableBody.innerHTML = `<tr><td colspan="11" class="text-center text-danger">Error loading data: ${errorObject.message || 'Unknown Firebase error'}</td></tr>`;
@@ -325,7 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (e) { displayDate = data.transactionDate; } // Fallback to raw date if parsing fails
         }
         row.insertCell().textContent = displayDate;
-        
+
         const typeCell = row.insertCell(); typeCell.classList.add('text-center');
         if (data.transactionType === 'inflow') typeCell.innerHTML = '<span class="badge badge-success">IN</span>';
         else if (data.transactionType === 'outflow') typeCell.innerHTML = '<span class="badge badge-danger">OUT</span>';
@@ -347,21 +347,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const deleteBtn = document.createElement('button'); deleteBtn.innerHTML = '<i class="fas fa-trash fa-fw"></i>'; deleteBtn.title = "Delete Inflow"; deleteBtn.classList.add('btn', 'btn-danger', 'btn-sm'); deleteBtn.onclick = () => deleteRow(docId, 'inflow');
             actionsCell.append(editBtn, deleteBtn);
         } else if (data.transactionType === 'outflow') {
-            if (data.isManualOutflow) { 
+            if (data.isManualOutflow) {
                 const editBtn = document.createElement('button'); editBtn.innerHTML = '<i class="fas fa-edit fa-fw"></i>'; editBtn.title = "Edit Manual Outflow"; editBtn.classList.add('btn', 'btn-warning', 'btn-sm'); editBtn.onclick = () => editManualOutflowRow(docId, data);
                 const deleteBtn = document.createElement('button'); deleteBtn.innerHTML = '<i class="fas fa-trash fa-fw"></i>'; deleteBtn.title = "Delete Manual Outflow"; deleteBtn.classList.add('btn', 'btn-danger', 'btn-sm'); deleteBtn.onclick = () => deleteRow(docId, 'manual outflow');
                 actionsCell.append(editBtn, deleteBtn);
-            } else { 
+            } else {
                 const info = document.createElement('span'); info.innerHTML = '<i class="fas fa-info-circle fa-fw"></i> Auto'; info.title = `Outflow for ${data.outflowProduct || 'production'}. Manage in Production Log.`; info.classList.add('text-muted', 'font-italic', 'text-sm'); actionsCell.appendChild(info);
             }
         }
     }
-    
+
     // --- Form Toggles & Event Listeners for Forms ---
     if (showAddInflowFormBtn) {
         showAddInflowFormBtn.onclick = () => {
             if(addRowFormContainer) addRowFormContainer.classList.toggle('hidden');
-            if(manualOutflowFormContainer) manualOutflowFormContainer.classList.add('hidden'); 
+            if(manualOutflowFormContainer) manualOutflowFormContainer.classList.add('hidden');
             if (transactionDateInput && addRowFormContainer && !addRowFormContainer.classList.contains('hidden')) {
                  transactionDateInput.valueAsDate = new Date();
                  calculateTotalInflow();
@@ -371,7 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (showManualOutflowFormBtn) {
         showManualOutflowFormBtn.onclick = () => {
             if(manualOutflowFormContainer) manualOutflowFormContainer.classList.toggle('hidden');
-            if(addRowFormContainer) addRowFormContainer.classList.add('hidden'); 
+            if(addRowFormContainer) addRowFormContainer.classList.add('hidden');
             if (outflowDateInput && manualOutflowFormContainer && !manualOutflowFormContainer.classList.contains('hidden')) {
                 outflowDateInput.valueAsDate = new Date();
             }
@@ -386,7 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const transactionDateVal = transactionDateInput.value;
             if (!transactionDateVal) { alert('Inflow Date is required.'); transactionDateInput.focus(); return; }
-            
+
             const totalWeight = parseFloat(inflowTotalWeightInput.value) || 0;
             // Basic validation: if bag details are entered, total weight should ideally be > 0
             // This can be made more stringent if needed.
@@ -404,7 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 inflowGrade: document.getElementById('inflowGrade').value.trim() || null,
                 inflowBagWeight: parseFloat(inflowBagWeightInput.value) || null,
                 inflowBags: parseInt(inflowBagsInput.value) || null,
-                inflowTotalWeight: totalWeight, 
+                inflowTotalWeight: totalWeight,
                 inflowNotes: document.getElementById('inflowNotes').value.trim() || null,
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             };
@@ -413,8 +413,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 await db.ref(`${DATA_PATH}/${activeTableName}`).push().set(rowData);
                 addRowForm.reset();
                 transactionDateInput.valueAsDate = new Date();
-                calculateTotalInflow(); 
-                if(addRowFormContainer) addRowFormContainer.classList.add('hidden'); 
+                calculateTotalInflow();
+                if(addRowFormContainer) addRowFormContainer.classList.add('hidden');
             } catch (error) { console.error("[Firebase Debug] Error adding new inflow: ", error); alert(`Error adding inflow: ${error.message}`); }
         });
     }
@@ -433,7 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (outflowWeight <= 0) { alert('Outflow weight must be greater than zero.'); document.getElementById('outflowWeight').focus(); return; }
 
             const rowData = {
-                transactionDate: transactionDateVal, transactionType: 'outflow', isManualOutflow: true, 
+                transactionDate: transactionDateVal, transactionType: 'outflow', isManualOutflow: true,
                 outflowReason: outflowReason, outflowWeight: outflowWeight,
                 outflowNotes: document.getElementById('outflowNotes').value.trim() || null,
                 timestamp: firebase.database.ServerValue.TIMESTAMP
@@ -443,7 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await db.ref(`${DATA_PATH}/${activeTableName}`).push().set(rowData);
                 manualOutflowForm.reset();
                 outflowDateInput.valueAsDate = new Date();
-                if(manualOutflowFormContainer) manualOutflowFormContainer.classList.add('hidden'); 
+                if(manualOutflowFormContainer) manualOutflowFormContainer.classList.add('hidden');
             } catch (error) { console.error("[Firebase Debug] Error recording manual outflow: ", error); alert(`Error recording outflow: ${error.message}`); }
         });
     }
@@ -451,7 +451,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Edit and Delete Row Logic ---
     function editInflowRow(docId, currentData) {
         if (!activeTableName || currentData.transactionType !== 'inflow') { alert("This function is for editing inflow entries."); return; }
-        
+
         const newDate = prompt("Enter new Inflow Date (YYYY-MM-DD):", currentData.transactionDate || new Date().toISOString().split('T')[0]); if (newDate === null) return;
         const newSupplier = prompt("Enter new Supplier:", currentData.inflowSupplier || "");
         const newEstate = prompt("Enter new Estate:", currentData.inflowEstate || "");
@@ -464,7 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const newBags = parseInt(newBagsStr);
 
         if (isNaN(newBagWeight) || newBagWeight < 0 || isNaN(newBags) || newBags < 0) { alert("Invalid number for Bag Weight or Number of Bags. Must be non-negative."); return;}
-        
+
         const totalWeight = (newBagWeight || 0) * (newBags || 0);
         // Add validation for totalWeight if needed, e.g., if (totalWeight <= 0 && (newBagWeight > 0 || newBags > 0)) ...
 
@@ -486,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function editManualOutflowRow(docId, currentData) {
         if (!activeTableName || !currentData.isManualOutflow) { alert("This function is for editing manual outflow entries."); return; }
-        
+
         const newDate = prompt("Enter new Outflow Date (YYYY-MM-DD):", currentData.transactionDate || new Date().toISOString().split('T')[0]); if (newDate === null) return;
         const newReason = prompt("Enter new Reason for Outflow:", currentData.outflowReason || ""); if (newReason === null) return;
         const newWeightStr = prompt("Enter new Outflow Weight (Kg):", currentData.outflowWeight || "0");
@@ -507,30 +507,29 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(error => { console.error("[Firebase Debug] Error updating manual outflow: ", error); alert(`Error updating entry: ${error.message}`); });
     }
 
-    async function deleteRow(docId, entryType) { 
+    async function deleteRow(docId, entryType) {
         if (!activeTableName) return;
         let message = `Are you sure you want to delete this ${entryType}? This action cannot be undone.`;
         if (entryType === 'inflow' || entryType === 'manual outflow') message += "\n\nThis will affect subsequent balances.";
-        
+
         if (confirm(message)) {
             console.log(`[Firebase Debug] Deleting ${entryType}:`, docId);
-            try { 
-                await db.ref(`${DATA_PATH}/${activeTableName}/${docId}`).remove(); 
-                console.log(`[Firebase Debug] ${entryType} deleted successfully.`); 
-            } catch (error) { 
-                console.error(`[Firebase Debug] Error deleting ${entryType}: `, error); 
-                alert(`Error deleting ${entryType}: ${error.message}`); 
+            try {
+                await db.ref(`${DATA_PATH}/${activeTableName}/${docId}`).remove();
+                console.log(`[Firebase Debug] ${entryType} deleted successfully.`);
+            } catch (error) {
+                console.error(`[Firebase Debug] Error deleting ${entryType}: `, error);
+                alert(`Error deleting ${entryType}: ${error.message}`);
             }
         }
     }
 
-    // --- Sort and Export ---
     if (sortOrderSelect) {
         sortOrderSelect.addEventListener('change', (e) => {
             currentSortOrder = e.target.value;
             if (activeTableName && typeof activeTableName === 'string' && activeTableName.trim() !== '') {
                 console.log(`[Firebase Debug] Sort order changed to ${currentSortOrder}. Reloading data for ${activeTableName}.`);
-                loadTableData(activeTableName); 
+                loadTableData(activeTableName);
             } else {
                 console.warn("[Firebase Debug] Sort order changed, but activeTableName is invalid or not set:", activeTableName);
             }
@@ -546,88 +545,95 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function exportTableToCSV(tableName) {
         console.log(`[Firebase Debug] Exporting table "${tableName}" to CSV.`);
-        const dataRef = db.ref(`${DATA_PATH}/${tableName}`);
-        dataRef.once('value', snapshot => {
-            if (!snapshot.exists()) {
-                alert(`No data to export for table: ${tableName}`);
-                console.log(`[Firebase Debug] No data found for CSV export for table "${tableName}".`);
-                return;
+        const table = document.getElementById('rawTeaTable');
+        if (!table) {
+            alert("Table not found for export.");
+            return;
+        }
+
+        let csv = [];
+        const headers = Array.from(table.querySelectorAll('thead th'))
+                             .map(th => th.textContent.trim())
+                             .filter(header => header !== 'Actions'); // Exclude the 'Actions' column
+
+        const escapeCSV = (str) => {
+            if (str === null || str === undefined) return '""';
+            str = String(str).replace(/\s+/g, ' ').trim(); // Normalize whitespace
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`;
             }
-            
-            let csvContent = "Date,Type,Supplier/Product/Reason,Estate/Details,Grade/Note,Bag Wt (Kg),No. Bags,Inflow (Kg),Outflow (Kg),Calculated Balance (Kg)\n";
-            const entries = [];
-            snapshot.forEach(childSnapshot => entries.push({ id: childSnapshot.key, ...childSnapshot.val() }));
+            return str;
+        };
 
-            entries.sort((a, b) => { 
-                const dateA = new Date(a.transactionDate ? a.transactionDate + 'T00:00:00' : 0).getTime();
-                const dateB = new Date(b.transactionDate ? b.transactionDate + 'T00:00:00' : 0).getTime();
-                const timeA = a.timestamp || 0; const timeB = b.timestamp || 0;
-                if (dateA < dateB) return -1; if (dateA > dateB) return 1;
-                return timeA - timeB;
-            });
+        csv.push(headers.map(escapeCSV).join(','));
 
-            let currentBalance = 0;
-            entries.forEach(data => {
-                let inflowQtyVal = 0; let outflowQtyVal = 0;
-                if (data.transactionType === 'inflow' && data.inflowTotalWeight) inflowQtyVal = parseFloat(data.inflowTotalWeight) || 0;
-                if (data.transactionType === 'outflow' && data.outflowWeight) outflowQtyVal = parseFloat(data.outflowWeight) || 0;
-                currentBalance += inflowQtyVal - outflowQtyVal;
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            const rowData = [];
+            const cells = row.querySelectorAll('td');
 
-                let displayDate = data.transactionDate ? new Date(data.transactionDate + 'T00:00:00').toLocaleDateString(navigator.language || 'en-US') : '';
-                const type = data.transactionType === 'inflow' ? "IN" : (data.transactionType === 'outflow' ? "OUT" : "N/A");
-                
-                const col3 = data.transactionType === 'inflow' ? (data.inflowSupplier || '') : (data.isManualOutflow ? (data.outflowReason || 'Manual Outflow') : (data.outflowProduct || 'Production'));
-                const col4 = data.transactionType === 'inflow' ? (data.inflowEstate || '') : (data.isManualOutflow ? (data.outflowNotes || '') : (data.outflowNotes && data.outflowNotes.includes("Prod ID") ? 'Production Details' : (data.outflowEstate ||'')));
-                const col5 = data.transactionType === 'inflow' ? (data.inflowGrade || '') : (data.isManualOutflow ? '' : (data.outflowNotes && data.outflowNotes.includes("Prod ID") ? '' : (data.outflowGrade ||'')));
-                
-                const bagWt = data.transactionType === 'inflow' ? (data.inflowBagWeight || '') : '';
-                const bags = data.transactionType === 'inflow' ? (data.inflowBags || '') : '';
-                const inflow = (data.transactionType === 'inflow' && data.inflowTotalWeight) ? parseFloat(data.inflowTotalWeight).toFixed(2) : '0.00';
-                const outflow = (data.transactionType === 'outflow' && data.outflowWeight) ? parseFloat(data.outflowWeight).toFixed(2) : '0.00';
-                
-                const escapeCSV = (str) => `"${(str === null || str === undefined ? '' : str).toString().replace(/"/g, '""')}"`;
-                csvContent += [escapeCSV(displayDate), type, escapeCSV(col3), escapeCSV(col4), escapeCSV(col5), bagWt, bags, inflow, outflow, currentBalance.toFixed(2)].join(',') + '\n';
-            });
-
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            if (link.download !== undefined) {
-                const url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
-                link.setAttribute("download", `${tableName.replace(/[^a-z0-9_.-]/gi, '_')}_inventory_export.csv`);
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link); link.click(); document.body.removeChild(link);
-                console.log(`[Firebase Debug] CSV export for "${tableName}" initiated.`);
-            } else {
-                alert("CSV export is not supported in your browser.");
-                console.warn("[Firebase Debug] CSV export not supported by browser.");
+            // Check if it's the "No entries yet" placeholder row
+            if (cells.length === 1 && cells[0].colSpan === 11) {
+                return; // Skip this row
             }
-        }, error => {
-            console.error(`[Firebase Debug] Error fetching data for CSV export (table: ${tableName}):`, error);
-            alert(`Error exporting data: ${error.message}`);
+
+            // Iterate over cells but exclude the last one which is 'Actions'
+            for (let i = 0; i < cells.length; i++) {
+                if (i === cells.length - 1 && cells[i].classList.contains('actions')) {
+                    continue; // Skip the actions column
+                }
+                let cellText = cells[i].textContent.trim();
+
+                // Handle badge text specifically (e.g., IN/OUT)
+                const badge = cells[i].querySelector('.badge');
+                if (badge) {
+                    cellText = badge.textContent.trim();
+                }
+
+                rowData.push(escapeCSV(cellText));
+            }
+            csv.push(rowData.join(','));
         });
+
+        const csvContent = csv.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `${tableName.replace(/[^a-z0-9_.-]/gi, '_')}_inventory_export.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            console.log(`[Firebase Debug] CSV export for "${tableName}" initiated.`);
+        } else {
+            alert("CSV export is not supported in your browser.");
+            console.warn("[Firebase Debug] CSV export not supported by browser.");
+        }
     }
 
-    // --- Manage List of All Tables & Delete Table ---
+
     function populateAllTablesList() {
         if (!allTablesList || !searchTableInput) return;
         allTablesList.innerHTML = '';
         const searchTerm = searchTableInput.value.toLowerCase();
         const filteredNames = existingTableNames.filter(name => name.toLowerCase().includes(searchTerm));
-        
+
         if (filteredNames.length === 0) {
-            const li = document.createElement('li'); 
-            li.textContent = searchTerm ? 'No tables match your search.' : 'No Raw Tea tables created yet. Click "Add New Raw Tea Table" to start.'; 
-            li.classList.add('list-item-placeholder'); 
-            allTablesList.appendChild(li); 
+            const li = document.createElement('li');
+            li.textContent = searchTerm ? 'No tables match your search.' : 'No Raw Tea tables created yet. Click "Add New Raw Tea Table" to start.';
+            li.classList.add('list-item-placeholder');
+            allTablesList.appendChild(li);
             return;
         }
 
-        filteredNames.sort((a,b) => a.localeCompare(b)); 
+        filteredNames.sort((a,b) => a.localeCompare(b));
         filteredNames.forEach(tableName => {
             const li = document.createElement('li');
             const nameSpan = document.createElement('span'); nameSpan.textContent = tableName; nameSpan.classList.add('item-name'); li.appendChild(nameSpan);
-            
+
             const actionsDiv = document.createElement('div'); actionsDiv.classList.add('item-actions');
             const selectBtn = document.createElement('button'); selectBtn.innerHTML = '<i class="fas fa-check-circle fa-fw"></i> Select'; selectBtn.classList.add('btn', 'btn-success', 'btn-sm');
             selectBtn.onclick = () => {
@@ -638,9 +644,9 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             const deleteTableBtn = document.createElement('button'); deleteTableBtn.innerHTML = '<i class="fas fa-trash fa-fw"></i> Delete Table'; deleteTableBtn.classList.add('btn', 'btn-danger', 'btn-sm');
             deleteTableBtn.onclick = (event) => { event.stopPropagation(); deleteEntireTable(tableName); };
-            
-            actionsDiv.append(selectBtn, deleteTableBtn); 
-            li.appendChild(actionsDiv); 
+
+            actionsDiv.append(selectBtn, deleteTableBtn);
+            li.appendChild(actionsDiv);
             allTablesList.appendChild(li);
         });
     }
@@ -654,40 +660,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log(`[Firebase Debug] Data for table "${tableNameToDelete}" deleted.`);
                 await db.ref(`${METADATA_PATH}/${tableNameToDelete}`).remove();
                 console.log(`[Firebase Debug] Metadata for table "${tableNameToDelete}" deleted.`);
-                
+
                 existingTableNames = existingTableNames.filter(name => name !== tableNameToDelete);
                 populateAllTablesList();
 
                 if (activeTableName === tableNameToDelete) {
                     console.log(`[Firebase Debug] Active table "${activeTableName}" was deleted. Resetting UI.`);
-                    if(currentTableDisplay) currentTableDisplay.classList.add('hidden'); 
+                    if(currentTableDisplay) currentTableDisplay.classList.add('hidden');
                     if(addRowFormContainer) addRowFormContainer.classList.add('hidden');
                     if(manualOutflowFormContainer) manualOutflowFormContainer.classList.add('hidden');
                     activeTableName = null;
-                    if(currentTableNameDisplay) currentTableNameDisplay.textContent = ''; 
-                    if(rawTeaTableBody) rawTeaTableBody.innerHTML = ''; 
+                    if(currentTableNameDisplay) currentTableNameDisplay.textContent = '';
+                    if(rawTeaTableBody) rawTeaTableBody.innerHTML = '';
                     if(currentCalculatedBalanceDisplay) currentCalculatedBalanceDisplay.textContent = '0.00 Kg';
                     if(tableDataUnsubscribe && typeof tableDataUnsubscribe === 'function') {
-                        tableDataUnsubscribe(); 
+                        tableDataUnsubscribe();
                         tableDataUnsubscribe = null;
                     }
                 }
                 alert(`Table "${tableNameToDelete}" and all its data have been deleted successfully.`);
-            } catch (error) { 
-                console.error(`[Firebase Debug] Error deleting table "${tableNameToDelete}": `, error); 
-                alert(`Could not delete table "${tableNameToDelete}". Error: ${error.message}`); 
+            } catch (error) {
+                console.error(`[Firebase Debug] Error deleting table "${tableNameToDelete}": `, error);
+                alert(`Could not delete table "${tableNameToDelete}". Error: ${error.message}`);
             }
         }
     }
 
     if (searchTableInput) searchTableInput.addEventListener('input', populateAllTablesList);
-    
+
     // --- Initial Setup ---
     console.log("[Firebase Debug] DOMContentLoaded. Initializing page...");
-    fetchExistingTableNames(); 
+    fetchExistingTableNames();
     if (transactionDateInput) transactionDateInput.valueAsDate = new Date();
     if (outflowDateInput) outflowDateInput.valueAsDate = new Date();
-    calculateTotalInflow(); 
+    calculateTotalInflow();
     if (inflowBagWeightInput) inflowBagWeightInput.addEventListener('input', calculateTotalInflow);
     if (inflowBagsInput) inflowBagsInput.addEventListener('input', calculateTotalInflow);
 
