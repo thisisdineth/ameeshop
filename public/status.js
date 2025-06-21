@@ -24,7 +24,7 @@ const adminPasswordInput = document.getElementById('adminPassword');
 // Purchases Elements (Dynamic)
 const purchasesTab = document.getElementById('purchases-tab');
 const purchaseTableNameInput = document.getElementById('purchaseTableName');
-const purchaseSuggestionsContainer = document.getElementById('purchaseSuggestionsContainer'); 
+const purchaseSuggestionsContainer = document.getElementById('purchaseSuggestionsContainer');
 const loadPurchaseTableBtn = document.getElementById('loadPurchaseTableBtn');
 const purchasesContentWrapper = document.getElementById('purchases-content-wrapper');
 const currentPurchaseTableInfo = document.getElementById('current-purchase-table-info');
@@ -266,7 +266,7 @@ function renderPurchasesTable(snapshot) {
     purchasesTableBody.innerHTML = '';
     const data = snapshot.val();
     if (!data) {
-        purchasesTableBody.innerHTML = `<tr><td colspan="14" class="text-center text-muted">No purchase records found in this table. Add a record to get started.</td></tr>`;
+        purchasesTableBody.innerHTML = `<tr><td colspan="15" class="text-center text-muted">No purchase records found in this table. Add a record to get started.</td></tr>`;
         return;
     }
     const records = Object.keys(data).map(key => ({ id: key, ...data[key] }));
@@ -424,22 +424,67 @@ document.body.addEventListener('click', async (e) => {
     }
 });
 
-// --- Export to CSV ---
+// --- [REVISED] Export to CSV ---
 function exportTableToCSV(filename, tableElement) {
-    const headers = Array.from(tableElement.querySelectorAll('thead tr:last-child th')).map(th => th.textContent.trim()).filter(h => h !== 'Actions');
-     let csvContent = "data:text/csv;charset=utf-8," + headers.join(',') + "\r\n";
-    tableElement.querySelectorAll('tbody tr').forEach(row => {
-        if (row.querySelector('td.text-muted')) return;
-        const rowData = Array.from(row.querySelectorAll('td')).map(td => `"${td.textContent.replace(/"/g, '""').trim()}"`);
-        if(row.children.length > headers.length) { // Handle rowspan by taking first few cells
-             const slicedData = Array.from(row.querySelectorAll('td')).slice(0, headers.length);
-             const slicedText = slicedData.map(td => `"${td.textContent.replace(/"/g, '""').trim()}"`).join(',');
-             if(slicedText) csvContent += slicedText + "\r\n";
-        } else {
-            const rowText = rowData.join(',');
-            if(rowText) csvContent += rowText + "\r\n";
+    // 1. --- Header Extraction ---
+    const headerRows = tableElement.querySelectorAll('thead tr');
+    let headers = [];
+
+    // Specific, robust handling for the complex "Purchases" table header
+    if (tableElement.id === 'purchasesTable') {
+        headers = [
+            "Month", "Date", "Estate", "Grade", "Bag weight", "Bags",
+            "Total weight", "Auction Price", "Unit Price", "Value",
+            "Total Value", "Paid mode", "Paid amount", "Payable Balance"
+        ];
+    } else {
+        // Generic handler for simple tables (Cheques, Cash)
+        headers = Array.from(headerRows[headerRows.length - 1].querySelectorAll('th'))
+                       .map(th => th.textContent.trim())
+                       .filter(h => h !== 'Actions'); // Exclude the 'Actions' column
+    }
+    const csvHeader = headers.map(h => `"${h.replace(/"/g, '""')}"`).join(',');
+
+    // 2. --- Body Row Processing with rowspan and alignment handling ---
+    const csvRows = [];
+    const bodyRows = Array.from(tableElement.querySelectorAll('tbody tr'));
+    const pendingRowspans = {}; // Stores { columnIndex: { value: '...', rowsLeft: N } }
+
+    for (const row of bodyRows) {
+        if (row.querySelector('td.text-muted')) continue; // Skip "No records found" row
+
+        const csvRow = [];
+        let cellIndex = 0; // Index for the actual <td> elements in the current <tr>
+        
+        // Loop through columns based on the extracted headers
+        for (let colIndex = 0; colIndex < headers.length; colIndex++) {
+            // Check if a rowspan from a previous row is active for this column
+            if (pendingRowspans[colIndex] && pendingRowspans[colIndex].rowsLeft > 0) {
+                csvRow.push(pendingRowspans[colIndex].value);
+                pendingRowspans[colIndex].rowsLeft--;
+            } else {
+                const cell = row.cells[cellIndex];
+                if (!cell || cell.closest('.actions')) {
+                     // If cell doesn't exist or is the action cell, skip to next expected col
+                    continue;
+                }
+
+                const value = `"${cell.textContent.trim().replace(/"/g, '""')}"`;
+                csvRow.push(value);
+                
+                // If this cell has a rowspan, record it for subsequent rows
+                const rowspan = cell.getAttribute('rowspan');
+                if (rowspan && parseInt(rowspan, 10) > 1) {
+                    pendingRowspans[colIndex] = { value: value, rowsLeft: parseInt(rowspan, 10) - 1 };
+                }
+                cellIndex++;
+            }
         }
-    });
+        csvRows.push(csvRow.join(','));
+    }
+
+    // 3. --- Assemble and Trigger Download ---
+    const csvContent = "data:text/csv;charset=utf-8," + csvHeader + "\r\n" + csvRows.join("\r\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -448,6 +493,7 @@ function exportTableToCSV(filename, tableElement) {
     link.click();
     document.body.removeChild(link);
 }
+
 
 exportPurchasesBtn.addEventListener('click', () => {
     const tableName = activePurchaseTableName || 'purchases';
