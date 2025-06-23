@@ -35,6 +35,7 @@ const purchaseFormTitle = document.getElementById('purchaseFormTitle');
 const purchaseFormSubmitBtn = document.getElementById('purchaseFormSubmitBtn');
 const purchasesTableBody = document.getElementById('purchasesTableBody');
 const exportPurchasesBtn = document.getElementById('exportPurchasesBtn');
+const deletePurchaseTableBtn = document.getElementById('deletePurchaseTableBtn'); // <-- NEW ELEMENT
 
 // Cheques Elements (Simple/Fixed)
 const chequesTab = document.getElementById('cheques-tab');
@@ -177,7 +178,7 @@ loadTableSuggestions('purchases');
 
 // --- Core Table Loading and Creation Logic for Purchases only ---
 async function loadOrCreateTable(type) {
-    if (type !== 'purchases') return false; // Safety check
+    if (type !== 'purchases') return false; 
 
     const tableName = purchaseTableNameInput.value.trim();
     if (!tableName) {
@@ -208,6 +209,60 @@ async function loadOrCreateTable(type) {
 }
 
 loadPurchaseTableBtn.addEventListener('click', () => loadOrCreateTable('purchases'));
+
+// --- [NEW] Delete Table Logic for Purchases ---
+deletePurchaseTableBtn.addEventListener('click', async () => {
+    if (!activePurchaseTableName || !activePurchasesRef) {
+        alert('No active table selected to delete.');
+        return;
+    }
+
+    const confirmation = confirm(`Are you sure you want to permanently delete the table '${activePurchaseTableName}' and all its data? This action cannot be undone.`);
+
+    if (confirmation) {
+        try {
+            // 1. Remove the table data
+            await remove(activePurchasesRef);
+
+            // 2. Find and remove the table name from the list
+            const tableNamesListRef = ref(db, 'financials/tableNames/purchases');
+            const snapshot = await get(tableNamesListRef);
+            const tableNamesData = snapshot.val();
+            if (tableNamesData) {
+                const keyToDelete = Object.keys(tableNamesData).find(key => tableNamesData[key] === activePurchaseTableName);
+                if (keyToDelete) {
+                    await remove(ref(db, `financials/tableNames/purchases/${keyToDelete}`));
+                }
+            }
+
+            // 3. Reset the UI
+            alert(`Table '${activePurchaseTableName}' has been deleted successfully.`);
+            
+            // Detach listener
+             if (purchaseTableListener && activePurchasesRef) {
+                off(activePurchasesRef, 'value', purchaseTableListener);
+            }
+            
+            // Hide table content and clear inputs/state
+            purchasesContentWrapper.classList.add('hidden');
+            purchaseTableNameInput.value = '';
+            currentPurchaseTableInfo.innerHTML = '';
+            purchasesTableBody.innerHTML = '';
+            
+            // Reset state variables
+            activePurchasesRef = null;
+            activePurchaseTableName = null;
+            purchaseTableListener = null;
+
+            // Refresh the suggestions list
+            loadTableSuggestions('purchases');
+
+        } catch (error) {
+            console.error("Error deleting table: ", error);
+            alert('Failed to delete the table. See console for details.');
+        }
+    }
+});
 
 
 // --- Form Submission Logic ---
@@ -254,7 +309,7 @@ addCashForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const editId = document.getElementById('cashEditId').value;
     const formData = { date: document.getElementById('cashDate').value, reason: document.getElementById('cashReason').value, amount: parseFloat(document.getElementById('cashAmount').value) || 0, note: document.getElementById('cashNote').value, };
-    const dbRef = editId ? ref(db, `financials/cashLog/${editId}`) : push(cashLogRef);
+    const dbRef = editId ? ref(db, `financials/cashLog/${id}`) : push(cashLogRef);
     set(dbRef, formData)
         .then(() => { toggleForm(addCashFormContainer, showAddCashFormBtn, 'Add Cash Out Entry', { form: addCashForm, titleElement: cashFormTitle, submitBtn: cashFormSubmitBtn, defaultTitle: 'Add New Cash Out Record' }); })
         .catch(error => console.error("Error saving cash log: ", error));
@@ -322,7 +377,7 @@ function renderChequesTable(snapshot) {
         chequeTableBody.appendChild(tr);
     });
 }
-onValue(chequesRef, renderChequesTable); // Listen to the fixed cheques path
+onValue(chequesRef, renderChequesTable); 
 
 function renderCashTable(snapshot) {
     cashOutTableBody.innerHTML = '';
@@ -336,7 +391,7 @@ function renderCashTable(snapshot) {
         cashOutTableBody.appendChild(tr);
     });
 }
-onValue(cashLogRef, renderCashTable); // Listen to the fixed cash path
+onValue(cashLogRef, renderCashTable);
 
 
 // --- Edit and Delete Functionality ---
@@ -354,9 +409,9 @@ document.body.addEventListener('click', async (e) => {
                 if (!activePurchasesRef) { alert('No active purchase table selected.'); return; }
                 path = `${activePurchasesRef.path}/${id}`;
             } else if (type === 'cheque') {
-                path = `financials/cheques/${id}`; // Fixed path
+                path = `financials/cheques/${id}`;
             } else if (type === 'cash') {
-                 path = `financials/cashLog/${id}`; // Fixed path
+                 path = `financials/cashLog/${id}`; 
             }
             if (path) remove(ref(db, path)).catch(error => console.error(`Error deleting ${type}:`, error));
         }
@@ -369,9 +424,9 @@ document.body.addEventListener('click', async (e) => {
             if (!activePurchasesRef) { alert('No active purchase table selected.'); return; }
             path = `${activePurchasesRef.path}/${id}`;
         } else if (type === 'cheque') {
-            path = `financials/cheques/${id}`; // Fixed path
+            path = `financials/cheques/${id}`; 
         } else if (type === 'cash') {
-            path = `financials/cashLog/${id}`; // Fixed path
+            path = `financials/cashLog/${id}`;
         }
         
         if (!path) return;
@@ -430,7 +485,6 @@ function exportTableToCSV(filename, tableElement) {
     const headerRows = tableElement.querySelectorAll('thead tr');
     let headers = [];
 
-    // Specific, robust handling for the complex "Purchases" table header
     if (tableElement.id === 'purchasesTable') {
         headers = [
             "Month", "Date", "Estate", "Grade", "Bag weight", "Bags",
@@ -438,41 +492,36 @@ function exportTableToCSV(filename, tableElement) {
             "Total Value", "Paid mode", "Paid amount", "Payable Balance"
         ];
     } else {
-        // Generic handler for simple tables (Cheques, Cash)
         headers = Array.from(headerRows[headerRows.length - 1].querySelectorAll('th'))
                        .map(th => th.textContent.trim())
-                       .filter(h => h !== 'Actions'); // Exclude the 'Actions' column
+                       .filter(h => h !== 'Actions');
     }
     const csvHeader = headers.map(h => `"${h.replace(/"/g, '""')}"`).join(',');
 
     // 2. --- Body Row Processing with rowspan and alignment handling ---
     const csvRows = [];
     const bodyRows = Array.from(tableElement.querySelectorAll('tbody tr'));
-    const pendingRowspans = {}; // Stores { columnIndex: { value: '...', rowsLeft: N } }
+    const pendingRowspans = {}; 
 
     for (const row of bodyRows) {
-        if (row.querySelector('td.text-muted')) continue; // Skip "No records found" row
+        if (row.querySelector('td.text-muted')) continue;
 
         const csvRow = [];
-        let cellIndex = 0; // Index for the actual <td> elements in the current <tr>
+        let cellIndex = 0; 
         
-        // Loop through columns based on the extracted headers
         for (let colIndex = 0; colIndex < headers.length; colIndex++) {
-            // Check if a rowspan from a previous row is active for this column
             if (pendingRowspans[colIndex] && pendingRowspans[colIndex].rowsLeft > 0) {
                 csvRow.push(pendingRowspans[colIndex].value);
                 pendingRowspans[colIndex].rowsLeft--;
             } else {
                 const cell = row.cells[cellIndex];
                 if (!cell || cell.closest('.actions')) {
-                     // If cell doesn't exist or is the action cell, skip to next expected col
                     continue;
                 }
 
                 const value = `"${cell.textContent.trim().replace(/"/g, '""')}"`;
                 csvRow.push(value);
                 
-                // If this cell has a rowspan, record it for subsequent rows
                 const rowspan = cell.getAttribute('rowspan');
                 if (rowspan && parseInt(rowspan, 10) > 1) {
                     pendingRowspans[colIndex] = { value: value, rowsLeft: parseInt(rowspan, 10) - 1 };
