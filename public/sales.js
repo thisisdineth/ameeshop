@@ -231,12 +231,12 @@ async function generateAndPrintReceipt(saleData) {
             currentY += 5;
         }
 
-doc.setFontSize(14);
-doc.setFont(undefined, 'bold');
-centerText('Anura Marketing Services', currentY);
-currentY += 6;
-centerText('(PVT) LTD', currentY);
-currentY += 6;
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        centerText('Anura Marketing Services', currentY);
+        currentY += 6;
+        centerText('(PVT) LTD', currentY);
+        currentY += 6;
 
         doc.setFontSize(FONT_SIZE_NORMAL);
         doc.setFont(undefined, 'normal');
@@ -245,6 +245,10 @@ currentY += 6;
         centerText('Katuwawala, Boralesgamuwa, Sri Lanka', currentY);
         currentY += 4;
         centerText('Phone: +94701010018 | Fax: +94112518386', currentY);
+        currentY += 4;
+        centerText('web : ameeceylon.com', currentY);
+        currentY += 4;
+        centerText('Email: info@ameeceylon.com', currentY);
         currentY += 7;
 
         drawLine(currentY);
@@ -255,8 +259,24 @@ currentY += 6;
 
         if (saleData.customerName) {
             doc.text(`Customer: ${saleData.customerName}`, MARGIN_LEFT, currentY);
-            currentY += 6;
+            currentY += 5; // Adjusted spacing for the new line
         }
+
+        // --- MODIFICATION START: Add Receipt Number from sale timestamp ---
+        // Use the sale's timestamp for a consistent receipt number, otherwise use current time as a fallback.
+        const orderDate = saleData.timestamp ? new Date(saleData.timestamp) : new Date();
+
+        // Format to ensure two digits (e.g., '06' for June)
+        const month = String(orderDate.getMonth() + 1).padStart(2, '0'); 
+        const day = String(orderDate.getDate()).padStart(2, '0');
+        const hours = String(orderDate.getHours()).padStart(2, '0');
+        const minutes = String(orderDate.getMinutes()).padStart(2, '0');
+        // Construct the receipt number string in mm/dd/HHMM format
+        const receiptNb = `${month}/${day}/${hours}${minutes}`;
+        
+        doc.text(`Receipt No: ${receiptNb}`, MARGIN_LEFT, currentY);
+        currentY += 6;
+        // --- MODIFICATION END ---
 
         drawLine(currentY);
         currentY += 2;
@@ -321,7 +341,6 @@ currentY += 6;
 
         const finalTotalToBePaid = (saleData.remainingBalance || 0) + (saleData.previousInstallmentDue || 0);
 
-        // --- MODIFICATION: Only show the 'TOTAL DUE' line if the value is greater than 0 ---
         if (finalTotalToBePaid > 0) {
             drawLine(currentY);
             currentY += 5;
@@ -360,6 +379,9 @@ currentY += 6;
         alert("Could not generate the PDF receipt.");
     }
 }
+
+
+
 
 
     // --- Delivery Vehicle Selection Logic ---
