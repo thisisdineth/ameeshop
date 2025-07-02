@@ -28,15 +28,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const cityTotalPaidDisplay = document.getElementById('cityTotalPaidDisplay');
     const noCustomersFoundText = document.getElementById('noCustomersFoundText');
     
-    // **NEW**: Add Customer Form Elements
+    // Add Customer Form Elements
     const addCustomerForm = document.getElementById('addCustomerForm');
     const newCustomerNameInput = document.getElementById('newCustomerNameInput');
     const newCustomerCitySelect = document.getElementById('newCustomerCitySelect');
     const addNewCityInput = document.getElementById('addNewCityInput');
 
-    // **NEW**: Cities Table Elements
+    // Cities Table Elements
     const citiesTableBody = document.getElementById('citiesTableBody');
     const noCitiesFoundText = document.getElementById('noCitiesFoundText');
+    // **NEW**: Cities Search Input
+    const searchCitiesInput = document.getElementById('searchCitiesInput'); 
 
     // Firebase Paths
     const CUSTOMERS_PATH = 'customers';
@@ -45,11 +47,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Caches
     let allCustomersCache = []; 
-    let citiesCache = [];
+    let allCitiesDataCache = []; // Renamed from citiesCache to be explicit for raw data
     let allSalesDataCache = [];
 
     async function initializeCustomersPage() {
-        await fetchCitiesAndPopulateDropdowns(); // Fetches cities into cache and populates dropdowns
+        await fetchCitiesAndPopulateDropdowns(); 
         await fetchSalesData();
         loadCustomers(); 
         loadCities(); // Load cities for the new table
@@ -58,13 +60,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (searchCustomersInput) searchCustomersInput.addEventListener('input', displayFilteredCustomers);
         if (cityFilterSelect) cityFilterSelect.addEventListener('change', displayFilteredCustomers);
         if (addCustomerForm) addCustomerForm.addEventListener('submit', handleAddCustomerSubmit);
+        // **NEW**: Event listener for cities search input
+        if (searchCitiesInput) searchCitiesInput.addEventListener('input', displayFilteredCities);
     }
 
-    // **UPDATED**: This function now populates both the filter and the new customer form dropdowns.
     async function fetchCitiesAndPopulateDropdowns() {
         try {
             const snapshot = await db.ref(CITIES_PATH).orderByChild('name').once('value');
-            citiesCache = [];
+            allCitiesDataCache = []; // Update the explicit cache
             let filterOptionsHTML = '<option value="">-- All Cities --</option>';
             let addFormOptionsHTML = '<option value="">-- Choose existing city --</option>';
 
@@ -72,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 snapshot.forEach(child => {
                     const cityData = child.val();
                     if (cityData && cityData.name) {
-                        citiesCache.push({ id: child.key, name: cityData.name });
+                        allCitiesDataCache.push({ id: child.key, name: cityData.name });
                         filterOptionsHTML += `<option value="${cityData.name}">${cityData.name}</option>`;
                         addFormOptionsHTML += `<option value="${cityData.name}">${cityData.name}</option>`;
                     }
@@ -101,7 +104,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // **NEW**: Handles the submission of the "Add New Customer" form.
     async function handleAddCustomerSubmit(e) {
         e.preventDefault();
         const customerName = newCustomerNameInput.value.trim();
@@ -113,7 +115,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Logic to decide which city to use
         if (newCity) {
             customerCity = newCity;
         }
@@ -123,18 +124,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // If a new city was entered, check if it exists and add it if not.
             if (newCity) {
                 const normalizedNewCity = newCity.toLowerCase().trim();
-                const cityExists = citiesCache.some(city => city.name.toLowerCase().trim() === normalizedNewCity);
+                const cityExists = allCitiesDataCache.some(city => city.name.toLowerCase().trim() === normalizedNewCity);
                 if (!cityExists) {
                     await db.ref(CITIES_PATH).push({ name: newCity });
-                    await fetchCitiesAndPopulateDropdowns(); // Refresh dropdowns
-                    loadCities(); // Also refresh the cities table
+                    await fetchCitiesAndPopulateDropdowns(); 
+                    loadCities(); // Refresh the cities table as well
                 }
             }
             
-            // Proceed to add the customer
             const normalizedName = customerName.toLowerCase().replace(/\s+/g, ' ').trim();
             const newCustomerRef = db.ref(CUSTOMERS_PATH).push();
             const newCustomer = {
@@ -147,9 +146,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             await newCustomerRef.set(newCustomer);
             alert(`Customer "${customerName}" added successfully!`);
-            addCustomerForm.reset(); // Clear the form
+            addCustomerForm.reset(); 
 
-            // The real-time listener on 'loadCustomers' will automatically update the table.
         } catch (error) {
             console.error("Error adding customer:", error);
             alert("Failed to add customer. Check the console for more details.");
@@ -277,41 +275,54 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- NEW: City Management Functions ---
+    // --- City Management Functions ---
 
     function loadCities() {
         const citiesRef = db.ref(CITIES_PATH).orderByChild('name');
         citiesRef.on('value', snapshot => {
-            citiesCache = []; // Clear cache before refilling
-            citiesTableBody.innerHTML = '';
-            let citiesDisplayedCount = 0;
-
+            allCitiesDataCache = []; // Update the explicit cache with raw data
             if (snapshot.exists()) {
                 snapshot.forEach(childSnapshot => {
                     const cityData = childSnapshot.val();
                     if (cityData && cityData.name) {
                         const cityId = childSnapshot.key;
-                        citiesCache.push({ id: cityId, name: cityData.name }); // Update cache
-                        renderCityRow({ id: cityId, name: cityData.name });
-                        citiesDisplayedCount++;
+                        allCitiesDataCache.push({ id: cityId, name: cityData.name }); 
                     }
                 });
             }
-
-            if (noCitiesFoundText) {
-                if (citiesDisplayedCount === 0) {
-                    noCitiesFoundText.style.display = 'block';
-                } else {
-                    noCitiesFoundText.style.display = 'none';
-                }
-            }
+            displayFilteredCities(); // Now calls the filtered display
             fetchCitiesAndPopulateDropdowns(); // Re-populate dropdowns if cities list changes
         }, error => {
             console.error("Error loading cities:", error);
-            citiesCache = [];
-            citiesTableBody.innerHTML = '';
-            if (noCitiesFoundText) noCitiesFoundText.style.display = 'block';
+            allCitiesDataCache = [];
+            displayFilteredCities(); // Ensure table is cleared/updated on error
         });
+    }
+
+    // **NEW**: Function to filter and display cities
+    function displayFilteredCities() {
+        if (!citiesTableBody) return;
+        citiesTableBody.innerHTML = '';
+        const searchTerm = searchCitiesInput.value.toLowerCase().trim();
+        let citiesDisplayedCount = 0;
+
+        const filteredCities = allCitiesDataCache.filter(city => {
+            return city.name && city.name.toLowerCase().includes(searchTerm);
+        });
+
+        filteredCities.forEach(city => {
+            renderCityRow(city);
+            citiesDisplayedCount++;
+        });
+
+        if (noCitiesFoundText) {
+            if (citiesDisplayedCount === 0) {
+                noCitiesFoundText.textContent = searchTerm ? 'No cities match your search criteria.' : 'No cities found.';
+                noCitiesFoundText.style.display = 'block';
+            } else {
+                noCitiesFoundText.style.display = 'none';
+            }
+        }
     }
 
     function renderCityRow(cityData) {
@@ -333,7 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const deleteBtn = document.createElement('button');
         deleteBtn.innerHTML = '<i class="fas fa-trash fa-fw"></i> Delete';
-        deleteBtn.classList.add('btn', 'btn-danger', 'btn-sm', 'ml-1'); // ml-1 for some spacing
+        deleteBtn.classList.add('btn', 'btn-danger', 'btn-sm', 'ml-1'); 
         deleteBtn.title = `Delete city ${cityData.name}`;
         deleteBtn.onclick = () => deleteCity(cityData.id, cityData.name);
         actionsCell.appendChild(deleteBtn);
@@ -354,8 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Check for duplicate city names (case-insensitive)
-        const isDuplicate = citiesCache.some(
+        const isDuplicate = allCitiesDataCache.some(
             city => city.name.toLowerCase() === trimmedNewCityName.toLowerCase() && city.id !== cityId
         );
         if (isDuplicate) {
@@ -364,10 +374,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // 1. Update the city name in the 'cities' collection
             await db.ref(`${CITIES_PATH}/${cityId}`).update({ name: trimmedNewCityName });
 
-            // 2. Update all customers associated with the old city name to the new city name
             const customersToUpdate = allCustomersCache.filter(customer => customer.city === currentCityName);
             const updates = {};
             customersToUpdate.forEach(customer => {
@@ -380,7 +388,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             alert(`City "${currentCityName}" updated to "${trimmedNewCityName}" successfully. All associated customers have also been updated.`);
-            // loadCities() and loadCustomers() listeners will handle UI updates
         } catch (error) {
             console.error(`Error editing city ${cityId}:`, error);
             alert('Error editing city. Check console for details.');
@@ -390,7 +397,6 @@ document.addEventListener('DOMContentLoaded', () => {
     async function deleteCity(cityId, cityName) {
         if (!cityId) return;
 
-        // Check if any customers are associated with this city
         const customersInCity = allCustomersCache.filter(customer => customer.city === cityName);
         if (customersInCity.length > 0) {
             alert(`Cannot delete city "${cityName}". There are ${customersInCity.length} customers associated with this city. Please reassign or delete these customers first.`);
@@ -401,14 +407,12 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await db.ref(`${CITIES_PATH}/${cityId}`).remove();
                 alert(`City "${cityName}" deleted successfully.`);
-                // loadCities() listener will handle UI update
             } catch (error) {
                 console.error(`Error deleting city ${cityId}:`, error);
                 alert('Error deleting city. Check console.');
             }
         }
     }
-
 
     // --- Initial Load ---
     initializeCustomersPage();
