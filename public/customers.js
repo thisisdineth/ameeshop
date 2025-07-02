@@ -34,6 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const newCustomerCitySelect = document.getElementById('newCustomerCitySelect');
     const addNewCityInput = document.getElementById('addNewCityInput');
 
+    // **NEW**: Cities Table Elements
+    const citiesTableBody = document.getElementById('citiesTableBody');
+    const noCitiesFoundText = document.getElementById('noCitiesFoundText');
+
     // Firebase Paths
     const CUSTOMERS_PATH = 'customers';
     const CITIES_PATH = 'cities';
@@ -45,9 +49,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let allSalesDataCache = [];
 
     async function initializeCustomersPage() {
-        await fetchCitiesAndPopulateDropdowns();
+        await fetchCitiesAndPopulateDropdowns(); // Fetches cities into cache and populates dropdowns
         await fetchSalesData();
         loadCustomers(); 
+        loadCities(); // Load cities for the new table
 
         // Attach Event Listeners
         if (searchCustomersInput) searchCustomersInput.addEventListener('input', displayFilteredCustomers);
@@ -125,6 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!cityExists) {
                     await db.ref(CITIES_PATH).push({ name: newCity });
                     await fetchCitiesAndPopulateDropdowns(); // Refresh dropdowns
+                    loadCities(); // Also refresh the cities table
                 }
             }
             
@@ -149,7 +155,6 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Failed to add customer. Check the console for more details.");
         }
     }
-
 
     function loadCustomers() {
         const customersRef = db.ref(CUSTOMERS_PATH).orderByChild('name');
@@ -212,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (noCustomersFoundText) {
             if (customersDisplayedCount === 0) {
-                noCustomersFoundText.textContent = (searchTerm || selectedCty) ? 'No customers match your criteria.' : 'No customers found.';
+                noCustomersFoundText.textContent = (searchTerm || selectedCity) ? 'No customers match your criteria.' : 'No customers found.';
                 noCustomersFoundText.style.display = 'block';
             } else {
                 noCustomersFoundText.style.display = 'none';
@@ -271,6 +276,139 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
+
+    // --- NEW: City Management Functions ---
+
+    function loadCities() {
+        const citiesRef = db.ref(CITIES_PATH).orderByChild('name');
+        citiesRef.on('value', snapshot => {
+            citiesCache = []; // Clear cache before refilling
+            citiesTableBody.innerHTML = '';
+            let citiesDisplayedCount = 0;
+
+            if (snapshot.exists()) {
+                snapshot.forEach(childSnapshot => {
+                    const cityData = childSnapshot.val();
+                    if (cityData && cityData.name) {
+                        const cityId = childSnapshot.key;
+                        citiesCache.push({ id: cityId, name: cityData.name }); // Update cache
+                        renderCityRow({ id: cityId, name: cityData.name });
+                        citiesDisplayedCount++;
+                    }
+                });
+            }
+
+            if (noCitiesFoundText) {
+                if (citiesDisplayedCount === 0) {
+                    noCitiesFoundText.style.display = 'block';
+                } else {
+                    noCitiesFoundText.style.display = 'none';
+                }
+            }
+            fetchCitiesAndPopulateDropdowns(); // Re-populate dropdowns if cities list changes
+        }, error => {
+            console.error("Error loading cities:", error);
+            citiesCache = [];
+            citiesTableBody.innerHTML = '';
+            if (noCitiesFoundText) noCitiesFoundText.style.display = 'block';
+        });
+    }
+
+    function renderCityRow(cityData) {
+        const row = citiesTableBody.insertRow();
+        row.setAttribute('data-id', cityData.id);
+
+        const nameCell = row.insertCell();
+        nameCell.textContent = cityData.name;
+
+        const actionsCell = row.insertCell();
+        actionsCell.classList.add('actions', 'text-center');
+
+        const editBtn = document.createElement('button');
+        editBtn.innerHTML = '<i class="fas fa-edit fa-fw"></i> Edit';
+        editBtn.classList.add('btn', 'btn-primary', 'btn-sm');
+        editBtn.title = `Edit city ${cityData.name}`;
+        editBtn.onclick = () => editCity(cityData.id, cityData.name);
+        actionsCell.appendChild(editBtn);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.innerHTML = '<i class="fas fa-trash fa-fw"></i> Delete';
+        deleteBtn.classList.add('btn', 'btn-danger', 'btn-sm', 'ml-1'); // ml-1 for some spacing
+        deleteBtn.title = `Delete city ${cityData.name}`;
+        deleteBtn.onclick = () => deleteCity(cityData.id, cityData.name);
+        actionsCell.appendChild(deleteBtn);
+    }
+
+    async function editCity(cityId, currentCityName) {
+        if (!cityId) return;
+
+        const newCityName = prompt(`Edit city name for "${currentCityName}":`, currentCityName);
+        if (newCityName === null || newCityName.trim() === '') {
+            alert('City name cannot be empty. Edit cancelled.');
+            return;
+        }
+
+        const trimmedNewCityName = newCityName.trim();
+        if (trimmedNewCityName === currentCityName) {
+            alert('No change made to city name.');
+            return;
+        }
+
+        // Check for duplicate city names (case-insensitive)
+        const isDuplicate = citiesCache.some(
+            city => city.name.toLowerCase() === trimmedNewCityName.toLowerCase() && city.id !== cityId
+        );
+        if (isDuplicate) {
+            alert(`A city named "${trimmedNewCityName}" already exists. Please choose a different name.`);
+            return;
+        }
+
+        try {
+            // 1. Update the city name in the 'cities' collection
+            await db.ref(`${CITIES_PATH}/${cityId}`).update({ name: trimmedNewCityName });
+
+            // 2. Update all customers associated with the old city name to the new city name
+            const customersToUpdate = allCustomersCache.filter(customer => customer.city === currentCityName);
+            const updates = {};
+            customersToUpdate.forEach(customer => {
+                updates[`${CUSTOMERS_PATH}/${customer.id}/city`] = trimmedNewCityName;
+            });
+
+            if (Object.keys(updates).length > 0) {
+                await db.ref().update(updates);
+                console.log(`Updated ${Object.keys(updates).length} customers from "${currentCityName}" to "${trimmedNewCityName}".`);
+            }
+            
+            alert(`City "${currentCityName}" updated to "${trimmedNewCityName}" successfully. All associated customers have also been updated.`);
+            // loadCities() and loadCustomers() listeners will handle UI updates
+        } catch (error) {
+            console.error(`Error editing city ${cityId}:`, error);
+            alert('Error editing city. Check console for details.');
+        }
+    }
+
+    async function deleteCity(cityId, cityName) {
+        if (!cityId) return;
+
+        // Check if any customers are associated with this city
+        const customersInCity = allCustomersCache.filter(customer => customer.city === cityName);
+        if (customersInCity.length > 0) {
+            alert(`Cannot delete city "${cityName}". There are ${customersInCity.length} customers associated with this city. Please reassign or delete these customers first.`);
+            return;
+        }
+
+        if (confirm(`Are you sure you want to delete city "${cityName}"?\nThis action cannot be undone.`)) {
+            try {
+                await db.ref(`${CITIES_PATH}/${cityId}`).remove();
+                alert(`City "${cityName}" deleted successfully.`);
+                // loadCities() listener will handle UI update
+            } catch (error) {
+                console.error(`Error deleting city ${cityId}:`, error);
+                alert('Error deleting city. Check console.');
+            }
+        }
+    }
+
 
     // --- Initial Load ---
     initializeCustomersPage();

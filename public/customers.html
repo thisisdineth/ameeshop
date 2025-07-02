@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Amee-Tea | Customer Management</title>
-    <meta name="description" content="Amee-Tea - Manage Customers" />
+    <title>Amee-Store | Customer Management</title>
+    <meta name="description" content="Amee-Store - Manage Customers" />
     <link rel="icon" type="image/png" href="tealeaf.png" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="tbs.css">
     <style>
-        /* Add any specific styles for customers.html if needed, or rely on tbs.css */
         .filter-controls {
             display: flex;
             gap: 1rem;
@@ -24,10 +23,26 @@
         #cityTotalPaidDisplay {
             margin-top: 1rem;
             padding: 0.75rem;
-            background-color: #e9f7ef; /* A light green background */
+            background-color: #e9f7ef;
             border-left: 4px solid var(--success-color, #28a745);
             font-weight: 500;
             border-radius: 4px;
+        }
+        /* Styles for the new form */
+        #addCustomerContainer .form-grid {
+            grid-template-columns: 1fr 1fr; /* Two columns */
+            gap: 1rem;
+        }
+        /* Added for consistent table spacing */
+        .data-table th, .data-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .data-table th {
+            background-color: var(--table-header-bg);
+            font-weight: 600;
+            color: var(--table-header-color);
         }
     </style>
 </head>
@@ -36,14 +51,16 @@
         <nav id="top-navbar">
             <div class="container nav-container">
                 <div class="nav-brand">
-                    <a href="index.html" class="nav-logo-link"><i class="fas fa-leaf nav-logo-icon"></i> Amee-Tea</a>
+                   <a href="index.html" class="nav-logo-link">
+    <img src="logo.jpeg" alt="Amee-Store Logo" class="nav-logo-icon"> Amee-Store
+</a>
                 </div>
                 <div id="mobile-menu-button-container">
                     <button id="mobile-menu-button"><i class="fas fa-bars nav-mobile-icon"></i></button>
                 </div>
                 <div id="desktop-nav-links">
                     <a href="index.html" class="navbar-item"><i class="fas fa-tachometer-alt fa-fw"></i> <span>Dashboard</span></a>
-                    <a href="raw_tea.html" class="navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Tea</span></a>
+                    <a href="raw_tea.html" class="navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Direct</span></a>
                     <a href="packing_material.html" class="navbar-item"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
                     <a href="production.html" class="navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
                     <a href="delivery.html" class="navbar-item"><i class="fas fa-truck fa-fw"></i> <span>Delivery</span></a>
@@ -53,7 +70,7 @@
             </div>
             <div id="mobile-menu" class="hidden">
                 <a href="index.html" class="mobile-navbar-item"><i class="fas fa-tachometer-alt fa-fw"></i> <span>Dashboard</span></a>
-                <a href="raw_tea.html" class="mobile-navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Tea</span></a>
+                <a href="raw_tea.html" class="mobile-navbar-item"><i class="fas fa-boxes-stacked fa-fw"></i> <span>Raw Direct</span></a>
                 <a href="packing_material.html" class="mobile-navbar-item"><i class="fas fa-box-archive fa-fw"></i> <span>Packing Material</span></a>
                 <a href="production.html" class="mobile-navbar-item"><i class="fas fa-industry fa-fw"></i> <span>Production</span></a>
                 <a href="delivery.html" class="mobile-navbar-item"><i class="fas fa-truck fa-fw"></i> <span>Delivery</span></a>
@@ -66,6 +83,45 @@
             <div class="container">
                 <h1 class="page-title"><i class="fas fa-users fa-fw"></i> Customer Management</h1>
 
+                <div id="addCustomerContainer" class="section-card">
+                    <h2 class="section-title"><i class="fas fa-user-plus fa-fw"></i> Add New Customer</h2>
+                    <form id="addCustomerForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="newCustomerNameInput" class="form-label">Customer Name</label>
+                                <input type="text" id="newCustomerNameInput" class="form-input" placeholder="Enter full name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="newCustomerCitySelect" class="form-label">Select City/Route</label>
+                                <select id="newCustomerCitySelect" class="form-input">
+                                    <option value="">-- Choose existing city --</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                             <label for="addNewCityInput" class="form-label">Or Add New City/Route</label>
+                             <input type="text" id="addNewCityInput" class="form-input" placeholder="Type new city name if not in list">
+                        </div>
+                        <button type="submit" class="btn btn-success" style="margin-top: 1rem;"><i class="fas fa-check fa-fw"></i> Save Customer</button>
+                    </form>
+                </div>
+                <div class="section-card" style="margin-top: 2rem;">
+                    <h2 class="section-title"><i class="fas fa-city fa-fw"></i> Manage Cities/Routes</h2>
+                    <div class="table-responsive-wrapper">
+                        <table id="citiesTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="table-header">City Name</th>
+                                    <th class="table-header text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="citiesTableBody">
+                            </tbody>
+                        </table>
+                        <p id="noCitiesFoundText" class="text-center" style="display:none; padding: 1rem; color: var(--text-color-muted);">No cities found.</p>
+                    </div>
+                </div>
+
                 <div class="all-items-list-container section-card">
                     <h2 class="section-title">All Customers</h2>
                     <div class="filter-controls">
@@ -74,13 +130,13 @@
                             <input type="text" id="searchCustomersInput" class="form-input" placeholder="Type to search...">
                         </div>
                         <div class="form-group">
-                            <label for="cityFilterSelect" class="form-label">Filter by route:</label>
+                            <label for="cityFilterSelect" class="form-label">Filter by City:</label>
                             <select id="cityFilterSelect" class="form-input">
-                                <option value="">-- All route --</option>
-                                </select>
+                                <option value="">-- All Cities --</option>
+                            </select>
                         </div>
                     </div>
-                    <div id="cityTotalPaidDisplay" style="display: none;">Total paid from selected route: Rs. 0.00</div>
+                    <div id="cityTotalPaidDisplay" style="display: none;">Total paid from selected city: Rs. 0.00</div>
 
                     <div class="table-responsive-wrapper">
                         <table id="customersTable" class="data-table">
@@ -88,18 +144,17 @@
                                 <tr>
                                     <th class="table-header">Customer ID</th>
                                     <th class="table-header">Customer Name</th>
-                                    <th class="table-header">route</th>
+                                    <th class="table-header">City</th>
                                     <th class="table-header">Date Added</th>
                                     <th class="table-header text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="customersTableBody">
-                                </tbody>
+                            </tbody>
                         </table>
                          <p id="noCustomersFoundText" class="text-center" style="display:none; padding: 1rem; color: var(--text-color-muted);">No customers found.</p>
                     </div>
                 </div>
-            </div>
         </main>
     </div>
 
